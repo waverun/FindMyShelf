@@ -10,9 +10,22 @@
 		503824712ECC7778006B36C1 /* findMyShelf.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = findMyShelf.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		50B530E02ECCC28E004C23FA /* Exceptions for "findMyShelf" folder in "findMyShelf" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 503824702ECC7778006B36C1 /* findMyShelf */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		503824732ECC7778006B36C1 /* findMyShelf */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				50B530E02ECCC28E004C23FA /* Exceptions for "findMyShelf" folder in "findMyShelf" target */,
+			);
 			path = findMyShelf;
 			sourceTree = "<group>";
 		};
@@ -256,6 +269,9 @@
 				DEVELOPMENT_TEAM = NRTGJB9J65;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = findMyShelf/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Privacy - Camera Usage Description\nנדרש כדי לצלם שלטים בסופר.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "נדרש כדי למצוא חנויות קרובות אליך.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "נדרש כדי לבחור תמונות של שלטים מהגלריה.";
 				INFOPLIST_KEY_NSPrincipalClass = "";
@@ -287,6 +303,9 @@
 				DEVELOPMENT_TEAM = NRTGJB9J65;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = findMyShelf/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Privacy - Camera Usage Description\nנדרש כדי לצלם שלטים בסופר.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "נדרש כדי למצוא חנויות קרובות אליך.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "נדרש כדי לבחור תמונות של שלטים מהגלריה.";
 				INFOPLIST_KEY_NSPrincipalClass = "";

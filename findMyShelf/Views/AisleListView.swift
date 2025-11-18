@@ -18,6 +18,9 @@ struct AisleListView: View {
     @State private var isProcessingOCR: Bool = false
     @State private var ocrErrorMessage: String?
 
+    // עבור מצלמה
+    @State private var isShowingCamera: Bool = false
+
     // שורות רק של החנות הזו
     private var aislesForStore: [Aisle] {
         allAisles.filter { $0.storeId == store.id }
@@ -60,6 +63,16 @@ struct AisleListView: View {
         }
         .navigationTitle("מיפוי שורות – \(store.name)")
         .toolbar {
+            // כפתור מצלמה
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    isShowingCamera = true
+                } label: {
+                    Image(systemName: "camera")
+                }
+            }
+
+            // כפתור גלריה (PhotosPicker)
             ToolbarItem(placement: .topBarTrailing) {
                 PhotosPicker(
                     selection: $pickedPhotoItem,
@@ -69,11 +82,18 @@ struct AisleListView: View {
                     if isProcessingOCR {
                         ProgressView()
                     } else {
-                        Text("צלם / בחר שלט")
+                        Text("בחר שלט מהגלריה")
                     }
                 }
             }
         }
+        // מצלמה – sheet
+        .sheet(isPresented: $isShowingCamera) {
+            CameraImagePicker(isPresented: $isShowingCamera) { image in
+                processImage(image)
+            }
+        }
+        // גלריה – שינוי בפריט שנבחר
         .onChange(of: pickedPhotoItem) { _, newItem in
             if let item = newItem {
                 handlePickedPhoto(item)
@@ -81,7 +101,7 @@ struct AisleListView: View {
         }
     }
 
-    // MARK: - Actions
+    // MARK: - Actions בסיסיים (הוספה/מחיקה ידנית)
 
     private func addAisle() {
         let trimmed = newAisleName.trimmingCharacters(in: .whitespaces)
@@ -109,53 +129,61 @@ struct AisleListView: View {
         }
     }
 
+    // MARK: - גלריה → UIImage
+
     private func handlePickedPhoto(_ item: PhotosPickerItem) {
         ocrErrorMessage = nil
-        isProcessingOCR = true
 
         Task {
-            // טוענים Data מהתמונה
             guard let data = try? await item.loadTransferable(type: Data.self),
                   let image = UIImage(data: data) else {
                 await MainActor.run {
-                    self.isProcessingOCR = false
-                    self.ocrErrorMessage = "לא הצלחתי לקרוא את התמונה."
+                    self.ocrErrorMessage = "לא הצלחתי לקרוא את התמונה מהגלריה."
                 }
                 return
             }
+            await MainActor.run {
+                self.processImage(image)
+            }
+        }
+    }
 
-            // OCR
-            AisleOCRService.extractAisleInfo(from: image) { result in
-                self.isProcessingOCR = false
+    // MARK: - OCR משותף למצלמה ולגלריה
 
-                guard let title = result.title,
-                      !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                    self.ocrErrorMessage = "לא זוהתה כותרת שורה מהשלט."
-                    return
-                }
+    private func processImage(_ image: UIImage) {
+        ocrErrorMessage = nil
+        isProcessingOCR = true
 
-                let name = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        AisleOCRService.extractAisleInfo(from: image) { result in
+            self.isProcessingOCR = false
 
-                // מונעים כפילות בסיסית: אם יש כבר שורה עם אותו שם
-                if self.aislesForStore.contains(where: { $0.nameOrNumber == name }) {
-                    self.ocrErrorMessage = "שורה '\(name)' כבר קיימת."
-                    return
-                }
+            guard let rawTitle = result.title,
+                  !rawTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                self.ocrErrorMessage = "לא זוהתה כותרת שורה מהשלט."
+                return
+            }
 
-                let aisle = Aisle(
-                    nameOrNumber: name,
-                    storeId: self.store.id,
-                    keywords: result.keywords
-                )
+            let name = rawTitle.trimmingCharacters(in: .whitespacesAndNewlines)
 
-                self.context.insert(aisle)
-                do {
-                    try self.context.save()
-                    self.ocrErrorMessage = nil
-                } catch {
-                    print("Failed to save OCR aisle:", error)
-                    self.ocrErrorMessage = "שגיאה בשמירת השורה החדשה."
-                }
+            // מונעים כפילות בסיסית
+            if self.aislesForStore.contains(where: { $0.nameOrNumber == name }) {
+                self.ocrErrorMessage = "שורה '\(name)' כבר קיימת."
+                return
+            }
+
+            let aisle = Aisle(
+                nameOrNumber: name,
+                storeId: self.store.id,
+                keywords: result.keywords
+            )
+
+            self.context.insert(aisle)
+            do {
+                try self.context.save()
+                self.ocrErrorMessage = nil
+            } catch {
+                print("Failed to save OCR aisle:", error)
+                self.ocrErrorMessage = "שגיאה בשמירת השורה החדשה."
             }
         }
     }
