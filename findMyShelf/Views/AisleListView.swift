@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import PhotosUI
 
 struct AisleListView: View {
     @Environment(\.modelContext) private var context
@@ -11,6 +12,11 @@ struct AisleListView: View {
     private var allAisles: [Aisle]
 
     @State private var newAisleName: String = ""
+
+    // עבור PhotosPicker
+    @State private var pickedPhotoItem: PhotosPickerItem?
+    @State private var isProcessingOCR: Bool = false
+    @State private var ocrErrorMessage: String?
 
     // שורות רק של החנות הזו
     private var aislesForStore: [Aisle] {
@@ -34,6 +40,13 @@ struct AisleListView: View {
                 .onDelete(perform: deleteAisles)
             }
 
+            if let err = ocrErrorMessage {
+                Text(err)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .padding(.horizontal)
+            }
+
             HStack {
                 TextField("מספר/שם שורה חדש…", text: $newAisleName)
                     .textFieldStyle(.roundedBorder)
@@ -46,7 +59,29 @@ struct AisleListView: View {
             .padding()
         }
         .navigationTitle("מיפוי שורות – \(store.name)")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                PhotosPicker(
+                    selection: $pickedPhotoItem,
+                    matching: .images,
+                    photoLibrary: .shared()
+                ) {
+                    if isProcessingOCR {
+                        ProgressView()
+                    } else {
+                        Text("צלם / בחר שלט")
+                    }
+                }
+            }
+        }
+        .onChange(of: pickedPhotoItem) { _, newItem in
+            if let item = newItem {
+                handlePickedPhoto(item)
+            }
+        }
     }
+
+    // MARK: - Actions
 
     private func addAisle() {
         let trimmed = newAisleName.trimmingCharacters(in: .whitespaces)
@@ -71,6 +106,57 @@ struct AisleListView: View {
             try context.save()
         } catch {
             print("Failed to delete aisles:", error)
+        }
+    }
+
+    private func handlePickedPhoto(_ item: PhotosPickerItem) {
+        ocrErrorMessage = nil
+        isProcessingOCR = true
+
+        Task {
+            // טוענים Data מהתמונה
+            guard let data = try? await item.loadTransferable(type: Data.self),
+                  let image = UIImage(data: data) else {
+                await MainActor.run {
+                    self.isProcessingOCR = false
+                    self.ocrErrorMessage = "לא הצלחתי לקרוא את התמונה."
+                }
+                return
+            }
+
+            // OCR
+            AisleOCRService.extractAisleInfo(from: image) { result in
+                self.isProcessingOCR = false
+
+                guard let title = result.title,
+                      !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                    self.ocrErrorMessage = "לא זוהתה כותרת שורה מהשלט."
+                    return
+                }
+
+                let name = title.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                // מונעים כפילות בסיסית: אם יש כבר שורה עם אותו שם
+                if self.aislesForStore.contains(where: { $0.nameOrNumber == name }) {
+                    self.ocrErrorMessage = "שורה '\(name)' כבר קיימת."
+                    return
+                }
+
+                let aisle = Aisle(
+                    nameOrNumber: name,
+                    storeId: self.store.id,
+                    keywords: result.keywords
+                )
+
+                self.context.insert(aisle)
+                do {
+                    try self.context.save()
+                    self.ocrErrorMessage = nil
+                } catch {
+                    print("Failed to save OCR aisle:", error)
+                    self.ocrErrorMessage = "שגיאה בשמירת השורה החדשה."
+                }
+            }
         }
     }
 }
