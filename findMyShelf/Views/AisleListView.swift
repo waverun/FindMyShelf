@@ -30,13 +30,17 @@ struct AisleListView: View {
         VStack {
             List {
                 ForEach(aislesForStore) { aisle in
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("שורה \(aisle.nameOrNumber)")
-                            .font(.headline)
-                        if !aisle.keywords.isEmpty {
-                            Text(aisle.keywords.joined(separator: ", "))
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                    NavigationLink {
+                        AisleDetailView(aisle: aisle)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("שורה \(aisle.nameOrNumber)")
+                                .font(.headline)
+                            if !aisle.keywords.isEmpty {
+                                Text(aisle.keywords.joined(separator: ", "))
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
                 }
