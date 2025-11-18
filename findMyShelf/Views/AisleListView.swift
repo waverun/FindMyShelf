@@ -13,6 +13,9 @@ struct AisleListView: View {
 
     @State private var newAisleName: String = ""
 
+    // חיפוש / פילטר
+    @State private var filterText: String = ""
+
     // עבור PhotosPicker
     @State private var pickedPhotoItem: PhotosPickerItem?
     @State private var isProcessingOCR: Bool = false
@@ -26,25 +29,54 @@ struct AisleListView: View {
         allAisles.filter { $0.storeId == store.id }
     }
 
+    // שורות אחרי פילטר
+    private var filteredAisles: [Aisle] {
+        let text = filterText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !text.isEmpty else {
+            return aislesForStore
+        }
+        return aislesForStore.filter { aisle in
+            let nameHit = aisle.nameOrNumber.lowercased().contains(text)
+            let keywordHit = aisle.keywords.contains { kw in
+                kw.lowercased().contains(text)
+            }
+            return nameHit || keywordHit
+        }
+    }
+
     var body: some View {
         VStack {
+            // שורת חיפוש
+            HStack {
+                TextField("חפש שורה או מילות מפתח…", text: $filterText)
+                    .textFieldStyle(.roundedBorder)
+            }
+            .padding([.horizontal, .top])
+
+            // רשימת שורות (מסוננת)
             List {
-                ForEach(aislesForStore) { aisle in
-                    NavigationLink {
-                        AisleDetailView(aisle: aisle)
-                    } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("שורה \(aisle.nameOrNumber)")
-                                .font(.headline)
-                            if !aisle.keywords.isEmpty {
-                                Text(aisle.keywords.joined(separator: ", "))
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
+                if filteredAisles.isEmpty {
+                    Text("לא נמצאו שורות בהתאם לחיפוש.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(filteredAisles) { aisle in
+                        NavigationLink {
+                            AisleDetailView(aisle: aisle)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("שורה \(aisle.nameOrNumber)")
+                                    .font(.headline)
+                                if !aisle.keywords.isEmpty {
+                                    Text(aisle.keywords.joined(separator: ", "))
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(2)
+                                }
                             }
                         }
                     }
+                    .onDelete(perform: deleteAislesFiltered)
                 }
-                .onDelete(perform: deleteAisles)
             }
 
             if let err = ocrErrorMessage {
@@ -54,6 +86,7 @@ struct AisleListView: View {
                     .padding(.horizontal)
             }
 
+            // הוספה ידנית
             HStack {
                 TextField("מספר/שם שורה חדש…", text: $newAisleName)
                     .textFieldStyle(.roundedBorder)
@@ -67,7 +100,7 @@ struct AisleListView: View {
         }
         .navigationTitle("מיפוי שורות – \(store.name)")
         .toolbar {
-            // כפתור מצלמה
+            // מצלמה
             ToolbarItem(placement: .topBarLeading) {
                 Button {
                     isShowingCamera = true
@@ -76,7 +109,7 @@ struct AisleListView: View {
                 }
             }
 
-            // כפתור גלריה (PhotosPicker)
+            // גלריה
             ToolbarItem(placement: .topBarTrailing) {
                 PhotosPicker(
                     selection: $pickedPhotoItem,
@@ -105,7 +138,7 @@ struct AisleListView: View {
         }
     }
 
-    // MARK: - Actions בסיסיים (הוספה/מחיקה ידנית)
+    // MARK: - פעולות בסיסיות
 
     private func addAisle() {
         let trimmed = newAisleName.trimmingCharacters(in: .whitespaces)
@@ -121,9 +154,10 @@ struct AisleListView: View {
         }
     }
 
-    private func deleteAisles(at offsets: IndexSet) {
+    /// מחיקה מתוך filteredAisles – מוחק את האובייקט עצמו מהקונטקסט
+    private func deleteAislesFiltered(at offsets: IndexSet) {
         for index in offsets {
-            let aisle = aislesForStore[index]
+            let aisle = filteredAisles[index]
             context.delete(aisle)
         }
         do {
@@ -169,7 +203,7 @@ struct AisleListView: View {
 
             let name = rawTitle.trimmingCharacters(in: .whitespacesAndNewlines)
 
-            // מונעים כפילות בסיסית
+            // מניעת כפילות – לפי nameOrNumber
             if self.aislesForStore.contains(where: { $0.nameOrNumber == name }) {
                 self.ocrErrorMessage = "שורה '\(name)' כבר קיימת."
                 return
