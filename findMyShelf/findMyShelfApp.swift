@@ -13,5 +13,7 @@ struct findMyShelfApp: App {
         WindowGroup {
             ContentView()
         }
+        // כאן יוצרים container ל-SwiftData עם המודל Store
+        .modelContainer(for: [Store.self])
     }
 }

@@ -1,12 +1,22 @@
 import SwiftUI
 import CoreLocation
+import SwiftData
 
 struct ContentView: View {
     @StateObject private var locationManager = LocationManager()
 
-    // נשמור את שם החנות הנבחרת (כרגע רק בזיכרון – בשלב הבא אפשר גם @AppStorage)
-    @State private var selectedStoreName: String?
-    @State private var selectedStoreDistance: Double?
+    @Environment(\.modelContext) private var context
+    @Query(sort: \Store.createdAt) private var stores: [Store]
+
+    // מזהה החנות שנבחרה – נשמר ב-UserDefaults
+    @AppStorage("selectedStoreId") private var selectedStoreId: String?
+
+    // חנות נבחרת בפועל (אם קיימת ב-DB)
+    private var selectedStore: Store? {
+        guard let idString = selectedStoreId,
+              let uuid = UUID(uuidString: idString) else { return nil }
+        return stores.first(where: { $0.id == uuid })
+    }
 
     var body: some View {
         NavigationStack {
@@ -19,6 +29,7 @@ struct ContentView: View {
                     .font(.headline)
                     .foregroundStyle(.secondary)
 
+                // סטטוס הרשאה
                 Group {
                     if let status = locationManager.authorizationStatus {
                         Text("סטטוס הרשאת מיקום: \(describe(status))")
@@ -28,7 +39,7 @@ struct ContentView: View {
                 }
                 .font(.subheadline)
 
-                // הצגת המיקום
+                // מיקום נוכחי
                 Group {
                     if let loc = locationManager.currentLocation {
                         VStack(spacing: 4) {
@@ -44,14 +55,14 @@ struct ContentView: View {
                 }
                 .font(.body)
 
-                // הצגת החנות הנבחרת
-                if let name = selectedStoreName {
+                // חנות נבחרת מה-DB
+                if let store = selectedStore {
                     VStack(spacing: 4) {
                         Text("החנות שנבחרה:")
                             .font(.headline)
-                        Text(name)
-                        if let d = selectedStoreDistance {
-                            Text(String(format: "כ-%0.0f מטרים כשהיא נבחרה", d))
+                        Text(store.name)
+                        if let lat = store.latitude, let lon = store.longitude {
+                            Text(String(format: "lat: %.5f, lon: %.5f", lat, lon))
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
                         }
@@ -59,14 +70,17 @@ struct ContentView: View {
                     .padding()
                     .background(.thinMaterial)
                     .cornerRadius(12)
+                } else {
+                    Text("עדיין לא נבחרה חנות.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
 
-                if let loc = locationManager.currentLocation {
+                // מעבר למסך חיפוש חנויות קרובות
+                if locationManager.currentLocation != nil {
                     NavigationLink {
-                        NearbyStoresView(locationManager: locationManager) { store in
-                            // פה אנחנו מעדכנים את הבחירה
-                            selectedStoreName = store.name
-                            selectedStoreDistance = store.distance
+                        NearbyStoresView(locationManager: locationManager) { nearby in
+                            handleStoreChosen(nearby)
                         }
                     } label: {
                         Text("מצא חנויות קרובות ובחר \"זו החנות שלי\"")
@@ -104,6 +118,35 @@ struct ContentView: View {
             }
             .padding()
             .navigationTitle("מסך ראשי")
+        }
+    }
+
+    // MARK: - Logic
+
+    /// מה עושים כשהמשתמש בוחר "זו החנות שלי" במסך החנויות הקרובות
+    private func handleStoreChosen(_ nearby: NearbyStore) {
+        // אופציה 1: לבדוק אם כבר יש חנות עם אותו שם וקואורדינטות דומות
+        if let existing = stores.first(where: { s in
+            s.name == nearby.name &&
+            abs((s.latitude ?? 0) - nearby.coordinate.latitude) < 0.0005 &&
+            abs((s.longitude ?? 0) - nearby.coordinate.longitude) < 0.0005
+        }) {
+            // משתמש בחנות קיימת
+            selectedStoreId = existing.id.uuidString
+        } else {
+            // יוצר חנות חדשה
+            let newStore = Store(
+                name: nearby.name,
+                latitude: nearby.coordinate.latitude,
+                longitude: nearby.coordinate.longitude
+            )
+            context.insert(newStore)
+            do {
+                try context.save()
+                selectedStoreId = newStore.id.uuidString
+            } catch {
+                print("Failed to save store:", error)
+            }
         }
     }
 
