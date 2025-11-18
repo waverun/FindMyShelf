@@ -70,7 +70,37 @@ struct ContentView: View {
                     .padding()
                     .background(.thinMaterial)
                     .cornerRadius(12)
+
+                    // כפתור מעבר למיפוי שורות
+                    NavigationLink {
+                        AisleListView(store: store)
+                    } label: {
+                        Text("המשך למיפוי השורות")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+
                 } else {
+                    Text("עדיין לא נבחרה חנות.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+//                if let store = selectedStore {
+//                    VStack(spacing: 4) {
+//                        Text("החנות שנבחרה:")
+//                            .font(.headline)
+//                        Text(store.name)
+//                        if let lat = store.latitude, let lon = store.longitude {
+//                            Text(String(format: "lat: %.5f, lon: %.5f", lat, lon))
+//                                .font(.footnote)
+//                                .foregroundStyle(.secondary)
+//                        }
+//                    }
+//                    .padding()
+//                    .background(.thinMaterial)
+//                    .cornerRadius(12)
+//                } else {
                     Text("עדיין לא נבחרה חנות.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -119,7 +149,7 @@ struct ContentView: View {
             .padding()
             .navigationTitle("מסך ראשי")
         }
-    }
+//    }
 
     // MARK: - Logic
 
@@ -161,3 +191,4 @@ struct ContentView: View {
         }
     }
 }
+

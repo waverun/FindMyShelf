@@ -9,6 +9,10 @@ final class Store {
     var latitude: Double?
     var longitude: Double?
 
+    // קשרים לשורות ולמוצרים
+    @Relationship(deleteRule: .cascade) var aisles: [Aisle] = []
+    @Relationship(deleteRule: .cascade) var products: [ProductItem] = []
+
     init(name: String,
          latitude: Double? = nil,
          longitude: Double? = nil) {

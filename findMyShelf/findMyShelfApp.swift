@@ -14,6 +14,6 @@ struct findMyShelfApp: App {
             ContentView()
         }
         // כאן יוצרים container ל-SwiftData עם המודל Store
-        .modelContainer(for: [Store.self])
+        .modelContainer(for: [Store.self, Aisle.self, ProductItem.self])
     }
 }
