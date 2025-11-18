@@ -81,24 +81,83 @@ struct WrapKeywordsView: View {
     let keywords: [String]
 
     var body: some View {
-        LazyVGrid(
-            columns: [
-                // כל צ'יפ לפחות 120pt רוחב → 2–3 טורים במקום 5–6 צרים
-                GridItem(.adaptive(minimum: 120), spacing: 8)
-            ],
-            spacing: 8
-        ) {
+        TagLayout(spacing: 6, lineSpacing: 6) {
             ForEach(keywords, id: \.self) { kw in
                 Text(kw)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .background(.thinMaterial, in: Capsule())
-                // מאפשר לשורה להיות טיפה גמישה, בלי לחנוק את הטקסט
-                    .fixedSize(horizontal: true, vertical: false)
+                    .fixedSize() // שלא יכווץ את המילה יותר מדי
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, 4)
+    }
+}
+
+/// Layout שעושה wrap כמו תגיות: ממלא שורה, גולש לשורה הבאה.
+struct TagLayout: Layout {
+    var spacing: CGFloat
+    var lineSpacing: CGFloat
+
+    init(spacing: CGFloat = 8, lineSpacing: CGFloat = 8) {
+        self.spacing = spacing
+        self.lineSpacing = lineSpacing
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize,
+                      subviews: Subviews,
+                      cache: inout ()) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        guard maxWidth < .infinity else {
+            // אם אין רוחב מוגדר, נניח איזשהו רוחב סביר
+            return arrange(in: 300, subviews: subviews).size
+        }
+        return arrange(in: maxWidth, subviews: subviews).size
+    }
+
+    func placeSubviews(in bounds: CGRect,
+                       proposal: ProposedViewSize,
+                       subviews: Subviews,
+                       cache: inout ()) {
+        let arrangement = arrange(in: bounds.width, subviews: subviews)
+        for (index, frame) in arrangement.frames.enumerated() {
+            guard index < subviews.count else { break }
+            let subview = subviews[index]
+            subview.place(
+                at: CGPoint(x: bounds.minX + frame.minX,
+                            y: bounds.minY + frame.minY),
+                proposal: ProposedViewSize(frame.size)
+            )
+        }
+    }
+
+    // חישוב מיקום וגודל כולל של כל התגיות
+    private func arrange(in maxWidth: CGFloat,
+                         subviews: Subviews) -> (frames: [CGRect], size: CGSize) {
+        var frames: [CGRect] = []
+
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var lineHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            // אם לא נכנס בשורה, יורדים שורה
+            if x + size.width > maxWidth, x > 0 {
+                x = 0
+                y += lineHeight + lineSpacing
+                lineHeight = 0
+            }
+
+            let frame = CGRect(origin: CGPoint(x: x, y: y), size: size)
+            frames.append(frame)
+
+            x += size.width + spacing
+            lineHeight = max(lineHeight, size.height)
+        }
+
+        let totalHeight = y + lineHeight
+        return (frames, CGSize(width: maxWidth, height: totalHeight))
     }
 }
 
