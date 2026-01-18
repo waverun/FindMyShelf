@@ -179,7 +179,7 @@ struct ContentView: View {
                                 buttonTitle: "Select",
                                 buttonAction: {
                                     handleStoreChosen(store)
-                                    withAnimation { showBanner("Selected: \(store.name)", isError: false) }
+//                                    withAnimation { showBanner("Selected: \(store.name)", isError: false) }
                                 }
                             )
                         }
@@ -252,7 +252,7 @@ struct ContentView: View {
                     trailingAction: {
                         selectedStoreId = nil
                         quickQuery = ""
-                        showBanner("Choose a different store", isError: false)
+//                        showBanner("Choose a different store", isError: false)
                     }
                 )
             }
