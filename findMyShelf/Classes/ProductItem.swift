@@ -3,24 +3,23 @@ import SwiftData
 
 @Model
 final class ProductItem {
-    @Attribute(.unique) var id: UUID
-    var name: String
-    var barcode: String?
+    var id: UUID
+    var storeId: UUID       // החנות
+    var aisleId: UUID?      // השורה (אופציונלי)
+
+    var name: String        // שם המוצר
+    var barcode: String?    // לא חובה עכשיו, אפשר להשאיר ריק
     var createdAt: Date
 
-    // קשרים
-    var store: Store?
-    var aisle: Aisle?
-
     init(name: String,
-         barcode: String? = nil,
-         store: Store? = nil,
-         aisle: Aisle? = nil) {
+         storeId: UUID,
+         aisleId: UUID? = nil,
+         barcode: String? = nil) {
         self.id = UUID()
+        self.storeId = storeId
+        self.aisleId = aisleId
         self.name = name
         self.barcode = barcode
         self.createdAt = .now
-        self.store = store
-        self.aisle = aisle
     }
 }

@@ -12,3 +12,9 @@ Packages/
 # Misc
 .DS_Store
 
+# Secrets
+Secrets.xcconfig
+*.secret.*
+*.private.*
+findMyShelf/Config.xcconfig
+

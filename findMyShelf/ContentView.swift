@@ -55,7 +55,6 @@ struct ContentView: View {
                 }
                 .font(.body)
 
-                // חנות נבחרת מה-DB
                 if let store = selectedStore {
                     VStack(spacing: 4) {
                         Text("החנות שנבחרה:")
@@ -71,11 +70,18 @@ struct ContentView: View {
                     .background(.thinMaterial)
                     .cornerRadius(12)
 
-                    // כפתור מעבר למיפוי שורות
                     NavigationLink {
                         AisleListView(store: store)
                     } label: {
                         Text("המשך למיפוי השורות")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+
+                    NavigationLink {
+                        ProductSearchView(store: store)
+                    } label: {
+                        Text("חפש מוצר לפי שורות")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
@@ -86,6 +92,7 @@ struct ContentView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                // חנות נבחרת מה-DB
 //                if let store = selectedStore {
 //                    VStack(spacing: 4) {
 //                        Text("החנות שנבחרה:")
