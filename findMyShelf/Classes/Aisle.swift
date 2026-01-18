@@ -1,6 +1,6 @@
 import Foundation
 import SwiftData
-// בדיקת פוש
+
 @Model
 final class Aisle {
     var id: UUID
