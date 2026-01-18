@@ -47,7 +47,7 @@ extension LocationManager: CLLocationManagerDelegate {
                 errorMessage = "סטטוס הרשאה לא מוכר."
         }
     }
-
+//
     func locationManager(_ manager: CLLocationManager,
                          didUpdateLocations locations: [CLLocation]) {
         currentLocation = locations.last
