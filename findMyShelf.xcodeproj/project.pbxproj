@@ -281,7 +281,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Privacy - Camera Usage Description\nנדרש כדי לצלם שלטים בסופר.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "נדרש כדי למצוא חנויות קרובות אליך.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "נדרש כדי לבחור תמונות של שלטים מהגלריה.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Required to select images of aisle signs from the photo library.";
 				INFOPLIST_KEY_NSPrincipalClass = "";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -317,7 +317,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Privacy - Camera Usage Description\nנדרש כדי לצלם שלטים בסופר.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "נדרש כדי למצוא חנויות קרובות אליך.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "נדרש כדי לבחור תמונות של שלטים מהגלריה.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Required to select images of aisle signs from the photo library.";
 				INFOPLIST_KEY_NSPrincipalClass = "";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
