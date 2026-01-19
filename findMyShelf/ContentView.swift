@@ -37,13 +37,23 @@ struct ContentView: View {
             } else {
 
                 HStack(spacing: 10) {
-                    Button {
-                        locationManager.requestPermission()
-                    } label: {
-                        Label("Allow location", systemImage: "location")
-                            .frame(maxWidth: .infinity)
+                    if locationManager.authorizationStatus == .notDetermined {
+                        Button {
+                            locationManager.requestPermission()
+                        } label: {
+                            Label("Allow location", systemImage: "location")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
                     }
-                    .buttonStyle(.bordered)
+
+//                    Button {
+//                        locationManager.requestPermission()
+//                    } label: {
+//                        Label("Allow location", systemImage: "location")
+//                            .frame(maxWidth: .infinity)
+//                    }
+//                    .buttonStyle(.bordered)
 
                     Button {
                         locationManager.startUpdating()
