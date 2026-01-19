@@ -5,6 +5,15 @@ import PhotosUI
 import UIKit
 
 struct ContentView: View {
+    private var hasLocation: Bool {
+        locationManager.currentLocation != nil
+    }
+
+    private var isAuthorized: Bool {
+        let status = locationManager.authorizationStatus
+        return status == .authorizedWhenInUse || status == .authorizedAlways
+    }
+
     @StateObject private var locationManager = LocationManager()
     @StateObject private var finder = StoreFinder()
 
@@ -58,23 +67,42 @@ struct ContentView: View {
                     Button {
                         locationManager.startUpdating()
                     } label: {
-                        Label("Refresh location", systemImage: "arrow.clockwise")
+                        Label("Refresh", systemImage: "arrow.clockwise")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
+                    .disabled(!isAuthorized)
+
+//                    Button {
+//                        locationManager.startUpdating()
+//                    } label: {
+//                        Label("Refresh location", systemImage: "arrow.clockwise")
+//                            .frame(maxWidth: .infinity)
+//                    }
+//                    .buttonStyle(.bordered)
                 }
 
                 Button {
-                    guard let loc = locationManager.currentLocation else {
-                        // אפשר להוסיף פה Alert אם תרצה
-                        return
-                    }
+                    guard let loc = locationManager.currentLocation else { return }
                     finder.searchNearby(from: loc)
                 } label: {
                     Label("Find nearby stores", systemImage: "magnifyingglass")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
+                .disabled(!hasLocation)
+
+//                Button {
+//                    guard let loc = locationManager.currentLocation else {
+//                        // אפשר להוסיף פה Alert אם תרצה
+//                        return
+//                    }
+//                    finder.searchNearby(from: loc)
+//                } label: {
+//                    Label("Find nearby stores", systemImage: "magnifyingglass")
+//                        .frame(maxWidth: .infinity)
+//                }
+//                .buttonStyle(.borderedProminent)
             }
         }
         .padding(.horizontal, 16)
