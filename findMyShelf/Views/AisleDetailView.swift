@@ -22,15 +22,15 @@ struct AisleDetailView: View {
 
     var body: some View {
         Form {
-            Section("שם / מספר שורה") {
-                TextField("למשל: 12 או מוצרי חלב", text: $aisle.nameOrNumber)
+            Section("Name / Line number") {
+                TextField("For example: 12 or dairy products", text: $aisle.nameOrNumber)
                     .textInputAutocapitalization(.never)
                     .focused($focusedField, equals: .name)
                     .focused($focusedField, equals: .name)
             }
 
-            Section("מילות מפתח") {
-                TextField("מילים מופרדות בפסיקים או רווחים", text: $keywordsText)
+            Section("Keywords") {
+                TextField("Words separated by commas or spaces", text: $keywordsText)
                     .textInputAutocapitalization(.never)
                     .focused($focusedField, equals: .name)
                     .onSubmit {
@@ -38,12 +38,12 @@ struct AisleDetailView: View {
                     }
 
                 if !aisle.keywords.isEmpty {
-                    Text("מילות המפתח שקיימות:")
+                    Text("Existing keywords")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     WrapKeywordsView(keywords: aisle.keywords)
                 } else {
-                    Text("עוד אין מילות מפתח לשורה הזו.")
+                    Text("There are no keywords for this aisle yet.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -51,10 +51,10 @@ struct AisleDetailView: View {
         }
         .onTapGesture { focusedField = nil }
         .scrollDismissesKeyboard(.interactively)
-        .navigationTitle("עריכת שורה")
+        .navigationTitle("Aisle editing")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("שמור") {
+                Button("Save") {
                     applyKeywords()
                     save()
                 }
