@@ -143,6 +143,7 @@ struct ContentView: View {
                 .onTapGesture {
                     isQuickQueryFocused = false
                 }
+                .scrollDismissesKeyboard(.interactively)
                 if let bannerText {
                     BannerView(text: bannerText, isError: bannerIsError) {
                         withAnimation { self.bannerText = nil }
