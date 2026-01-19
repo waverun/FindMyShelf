@@ -4,6 +4,13 @@ import SwiftData
 struct AisleDetailView: View {
     @Environment(\.modelContext) private var context
 
+    @FocusState private var focusedField: Field?
+
+    private enum Field {
+        case name
+        case keywords
+    }
+
     @Bindable var aisle: Aisle
 
     @State private var keywordsText: String
@@ -18,11 +25,14 @@ struct AisleDetailView: View {
             Section("שם / מספר שורה") {
                 TextField("למשל: 12 או מוצרי חלב", text: $aisle.nameOrNumber)
                     .textInputAutocapitalization(.never)
+                    .focused($focusedField, equals: .name)
+                    .focused($focusedField, equals: .name)
             }
 
             Section("מילות מפתח") {
                 TextField("מילים מופרדות בפסיקים או רווחים", text: $keywordsText)
                     .textInputAutocapitalization(.never)
+                    .focused($focusedField, equals: .name)
                     .onSubmit {
                         applyKeywords()
                     }
@@ -39,6 +49,8 @@ struct AisleDetailView: View {
                 }
             }
         }
+        .onTapGesture { focusedField = nil }
+        .scrollDismissesKeyboard(.interactively)
         .navigationTitle("עריכת שורה")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
@@ -46,6 +58,10 @@ struct AisleDetailView: View {
                     applyKeywords()
                     save()
                 }
+            }
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { focusedField = nil }
             }
         }
         .onDisappear {
