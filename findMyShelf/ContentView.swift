@@ -91,7 +91,8 @@ struct ContentView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!hasLocation)
-
+                .padding(.top, 16)   // ← זה המרווח הנוסף
+                
 //                Button {
 //                    guard let loc = locationManager.currentLocation else {
 //                        // אפשר להוסיף פה Alert אם תרצה
