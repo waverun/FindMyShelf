@@ -206,10 +206,18 @@ struct ContentView: View {
 
                 Spacer()
 
-                if finder.isSearching {
-                    ProgressView()
-                        .scaleEffect(0.9)
+                Group {
+                    if finder.isSearching {
+                        ProgressView().scaleEffect(0.9)
+                    } else {
+                        ProgressView().scaleEffect(0.9).hidden()
+                    }
                 }
+
+//                if finder.isSearching {
+//                    ProgressView()
+//                        .scaleEffect(0.9)
+//                }
             }
 
             Group {
