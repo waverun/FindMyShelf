@@ -22,6 +22,8 @@ struct ContentView: View {
 
     @FocusState private var isQuickQueryFocused: Bool
 
+    @State private var showPhotosPicker: Bool = false
+
     @StateObject private var locationManager = LocationManager()
     @StateObject private var finder = StoreFinder()
 
@@ -188,18 +190,54 @@ struct ContentView: View {
                 titleVisibility: .visible
             ) {
                 Button("Take photo") {
+                    isQuickQueryFocused = false
                     isShowingCamera = true
                 }
-                PhotosPicker(
-                    selection: $pickedPhotoItem,
-                    matching: .images,
-                    photoLibrary: .shared()
-                ) {
-                    Text("Choose from library")
+
+                Button("Choose from library") {
+                    isQuickQueryFocused = false
+                    showPhotosPicker = true
                 }
+
+                Button("Cancel", role: .cancel) { }
             } message: {
                 Text("You can take a photo in the store or choose an existing image.")
             }
+
+//            .confirmationDialog(
+//                "Add aisle sign",
+//                isPresented: $showPhotoSourceDialog,
+//                titleVisibility: .visible
+//            ) {
+//                Button("Take photo") {
+//                    isShowingCamera = true
+//                }
+//                .confirmationDialog(
+//                    "Add aisle sign",
+//                    isPresented: $showPhotoSourceDialog,
+//                    titleVisibility: .visible
+//                ) {
+//                    Button("Take photo") {
+//                        isShowingCamera = true
+//                    }
+//
+//                    Button("Choose from library") {
+//                        showPhotosPicker = true
+//                    }
+//                } message: {
+//                    Text("You can take a photo in the store or choose an existing image.")
+//                }
+//
+////                PhotosPicker(
+////                    selection: $pickedPhotoItem,
+////                    matching: .images,
+////                    photoLibrary: .shared()
+////                ) {
+////                    Text("Choose from library")
+////                }
+//            } message: {
+//                Text("You can take a photo in the store or choose an existing image.")
+//            }
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
@@ -209,6 +247,12 @@ struct ContentView: View {
                 }
             }
         }
+        .photosPicker(
+            isPresented: $showPhotosPicker,
+            selection: $pickedPhotoItem,
+            matching: .images,
+            photoLibrary: .shared()
+        )
     }
 
     // MARK: - Store discovery
