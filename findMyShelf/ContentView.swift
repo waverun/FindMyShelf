@@ -276,18 +276,30 @@ struct ContentView: View {
             if !finder.results.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(spacing: 14) {
-                        ForEach(finder.results.prefix(12)) { store in
+                        ForEach(Array(finder.results.prefix(12).enumerated()), id: \.element.id) { index, store in
                             StorePosterCard(
                                 title: store.name,
                                 subtitle: store.distance.map { formatDistance($0) },
-                                accentSeed: store.name,
-                                buttonTitle: "Select",
+                                colorIndex: index,
+                                buttonTitle: "Choose",
                                 buttonAction: {
                                     handleStoreChosen(store)
-//                                    withAnimation { showBanner("Selected: \(store.name)", isError: false) }
                                 }
                             )
                         }
+
+//                        ForEach(finder.results.prefix(12)) { store in
+//                            StorePosterCard(
+//                                title: store.name,
+//                                subtitle: store.distance.map { formatDistance($0) },
+//                                accentSeed: store.name,
+//                                buttonTitle: "Select",
+//                                buttonAction: {
+//                                    handleStoreChosen(store)
+////                                    withAnimation { showBanner("Selected: \(store.name)", isError: false) }
+//                                }
+//                            )
+//                        }
                     }
                     .padding(.vertical, 6)
                     .padding(.horizontal, 2)
@@ -587,10 +599,17 @@ struct ContentView: View {
 
 // MARK: - UI building blocks
 
+//private struct StorePosterCard: View {
+//    let title: String
+//    let subtitle: String?
+//    let accentSeed: String
+//    let buttonTitle: String
+//    let buttonAction: () -> Void
+
 private struct StorePosterCard: View {
     let title: String
     let subtitle: String?
-    let accentSeed: String
+    let colorIndex: Int
     let buttonTitle: String
     let buttonAction: () -> Void
 
@@ -598,7 +617,8 @@ private struct StorePosterCard: View {
         ZStack(alignment: .bottomLeading) {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(LinearGradient(
-                    colors: [color(for: accentSeed).opacity(0.95), color(for: accentSeed).opacity(0.55)],
+                    colors: [color(for: colorIndex).opacity(0.95), color(for: colorIndex).opacity(0.55)],
+//                    colors: [color(for: accentSeed).opacity(0.95), color(for: accentSeed).opacity(0.55)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 ))
@@ -634,11 +654,17 @@ private struct StorePosterCard: View {
         .accessibilityLabel("\(title)\(subtitle.map { ", \($0)" } ?? "")")
     }
 
-    private func color(for seed: String) -> Color {
-        let hash = seed.unicodeScalars.reduce(0) { ($0 &* 131) &+ Int($1.value) }
-        let palette: [Color] = [.blue, .purple, .indigo, .teal, .mint, .pink, .orange]
-        return palette[abs(hash) % palette.count]
+    private func color(for index: Int) -> Color {
+        let palette: [Color] = [
+            .blue, .purple, .indigo, .teal, .mint, .pink, .orange
+        ]
+        return palette[index % palette.count]
     }
+//    private func color(for seed: String) -> Color {
+//        let hash = seed.unicodeScalars.reduce(0) { ($0 &* 131) &+ Int($1.value) }
+//        let palette: [Color] = [.blue, .purple, .indigo, .teal, .mint, .pink, .orange]
+//        return palette[abs(hash) % palette.count]
+//    }
 }
 
 private struct SelectedStoreCard: View {
