@@ -21,6 +21,7 @@ struct ContentView: View {
     @Query(sort: \Store.createdAt) private var stores: [Store]
 
     @AppStorage("selectedStoreId") private var selectedStoreId: String?
+    @AppStorage("previousSelectedStoreId") private var previousSelectedStoreId: String?
 
     private var selectedStore: Store? {
         guard let idString = selectedStoreId, let uuid = UUID(uuidString: idString) else { return nil }
@@ -44,6 +45,15 @@ struct ContentView: View {
                 .buttonStyle(.borderedProminent)
 
             } else {
+                if selectedStoreId == nil, let prev = previousSelectedStoreId, !prev.isEmpty {
+                    Button {
+                        selectedStoreId = prev
+                    } label: {
+                        Label("Back to selected store", systemImage: "arrow.uturn.backward")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                }
 
                 HStack(spacing: 10) {
                     if locationManager.authorizationStatus == .notDetermined {
@@ -366,12 +376,17 @@ struct ContentView: View {
                 SelectedStoreCard(
                     title: store.name,
                     accentSeed: store.name,
-                    trailingButtonTitle: "Change",
+                    trailingButtonTitle: "Change store",
                     trailingAction: {
-                        selectedStoreId = nil
+                        previousSelectedStoreId = selectedStoreId   // שמור את מה שהיה
+                        selectedStoreId = nil                       // עבור למסך בחירת חנות
                         quickQuery = ""
-//                        showBanner("Choose a different store", isError: false)
                     }
+//                    trailingAction: {
+//                        selectedStoreId = nil
+//                        quickQuery = ""
+////                        showBanner("Choose a different store", isError: false)
+//                    }
                 )
             }
         }
@@ -688,6 +703,7 @@ private struct SelectedStoreCard: View {
 
             Button(trailingButtonTitle, action: trailingAction)
                 .buttonStyle(.bordered)
+
         }
         .padding(16)
         .background(
