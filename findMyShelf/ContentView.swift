@@ -58,7 +58,7 @@ struct ContentView: View {
                     Button {
                         locationManager.startUpdating()
                     } label: {
-                        Label("Refresh", systemImage: "arrow.clockwise")
+                        Label("Refresh location", systemImage: "arrow.clockwise")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
