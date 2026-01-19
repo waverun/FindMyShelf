@@ -91,7 +91,7 @@ struct ContentView: View {
             ZStack(alignment: .top) {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
-                        header
+//                        header
 
                         if selectedStore == nil {
                             storeDiscoverySection
@@ -174,17 +174,17 @@ struct ContentView: View {
 
     // MARK: - Header
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Find your product")
-                .font(.title2.bold())
-
-            Text(selectedStore == nil ? "Choose an action" : "Choose a nearby store to get started")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.vertical, 6)
-    }
+//    private var header: some View {
+//        VStack(alignment: .leading, spacing: 6) {
+//            Text("Find your product")
+//                .font(.title2.bold())
+//
+//            Text(selectedStore == nil ? "Choose an action" : "Choose a nearby store to get started")
+//                .font(.subheadline)
+//                .foregroundStyle(.secondary)
+//        }
+//        .padding(.vertical, 6)
+//    }
 
     // MARK: - Store discovery
 
