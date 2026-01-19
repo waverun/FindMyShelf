@@ -20,6 +20,8 @@ struct ContentView: View {
         return status == .authorizedWhenInUse || status == .authorizedAlways
     }
 
+    @FocusState private var isQuickQueryFocused: Bool
+
     @StateObject private var locationManager = LocationManager()
     @StateObject private var finder = StoreFinder()
 
@@ -72,14 +74,6 @@ struct ContentView: View {
                         .buttonStyle(.bordered)
                     }
 
-//                    Button {
-//                        locationManager.requestPermission()
-//                    } label: {
-//                        Label("Allow location", systemImage: "location")
-//                            .frame(maxWidth: .infinity)
-//                    }
-//                    .buttonStyle(.bordered)
-
                     Button {
                         locationManager.startUpdating()
                     } label: {
@@ -88,14 +82,6 @@ struct ContentView: View {
                     }
                     .buttonStyle(.bordered)
                     .disabled(!isAuthorized)
-
-//                    Button {
-//                        locationManager.startUpdating()
-//                    } label: {
-//                        Label("Refresh location", systemImage: "arrow.clockwise")
-//                            .frame(maxWidth: .infinity)
-//                    }
-//                    .buttonStyle(.bordered)
                 }
 
                 Button {
@@ -108,18 +94,6 @@ struct ContentView: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(!hasLocation)
                 .padding(.top, 16)   // ← זה המרווח הנוסף
-                
-//                Button {
-//                    guard let loc = locationManager.currentLocation else {
-//                        // אפשר להוסיף פה Alert אם תרצה
-//                        return
-//                    }
-//                    finder.searchNearby(from: loc)
-//                } label: {
-//                    Label("Find nearby stores", systemImage: "magnifyingglass")
-//                        .frame(maxWidth: .infinity)
-//                }
-//                .buttonStyle(.borderedProminent)
             }
         }
         .padding(.horizontal, 16)
@@ -146,8 +120,6 @@ struct ContentView: View {
             ZStack(alignment: .top) {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
-//                        header
-
                         if selectedStore == nil {
                             storeDiscoverySection
                         } else {
@@ -224,22 +196,16 @@ struct ContentView: View {
             } message: {
                 Text("You can take a photo in the store or choose an existing image.")
             }
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        isQuickQueryFocused = false
+                    }
+                }
+            }
         }
     }
-
-    // MARK: - Header
-
-//    private var header: some View {
-//        VStack(alignment: .leading, spacing: 6) {
-//            Text("Find your product")
-//                .font(.title2.bold())
-//
-//            Text(selectedStore == nil ? "Choose an action" : "Choose a nearby store to get started")
-//                .font(.subheadline)
-//                .foregroundStyle(.secondary)
-//        }
-//        .padding(.vertical, 6)
-//    }
 
     // MARK: - Store discovery
 
@@ -258,11 +224,6 @@ struct ContentView: View {
                         ProgressView().scaleEffect(0.9).hidden()
                     }
                 }
-
-//                if finder.isSearching {
-//                    ProgressView()
-//                        .scaleEffect(0.9)
-//                }
             }
 
             Group {
@@ -283,10 +244,8 @@ struct ContentView: View {
                             }
                         )
                     } else {
-//                        locationReadyControls
                     }
                 } else {
-//                    locationReadyControls
                 }
             }
 
@@ -306,18 +265,6 @@ struct ContentView: View {
                                 }
                             )
                         }
-
-//                        ForEach(Array(finder.results.prefix(12).enumerated()), id: \.element.id) { index, store in
-//                            StorePosterCard(
-//                                title: store.name,
-//                                subtitle: store.distance.map { formatDistance($0) },
-//                                colorIndex: index,
-//                                buttonTitle: "Choose",
-//                                buttonAction: {
-//                                    handleStoreChosen(store)
-//                                }
-//                            )
-//                        }
                     }
                     .padding(.vertical, 6)
                     .padding(.horizontal, 2)
@@ -331,46 +278,6 @@ struct ContentView: View {
             }
         }
     }
-
-//    private var locationReadyControls: some View {
-//        VStack(spacing: 10) {
-//            HStack(spacing: 10) {
-//                Button {
-//                    locationManager.requestPermission()
-//                } label: {
-//                    Label("Allow location", systemImage: "location")
-//                        .frame(maxWidth: .infinity)
-//                }
-//                .buttonStyle(.bordered)
-//
-//                Button {
-//                    locationManager.startUpdating()
-//                } label: {
-//                    Label("Refresh", systemImage: "arrow.clockwise")
-//                        .frame(maxWidth: .infinity)
-//                }
-//                .buttonStyle(.bordered)
-//            }
-//
-//            Button {
-//                guard let loc = locationManager.currentLocation else {
-//                    showBanner("Location not available yet. Tap \"Allow location\" and then \"Refresh\".", isError: true)
-//                    return
-//                }
-//                finder.searchNearby(from: loc)
-//            } label: {
-//                Label("Find nearby stores", systemImage: "magnifyingglass")
-//                    .frame(maxWidth: .infinity)
-//            }
-//            .buttonStyle(.borderedProminent)
-//
-//            if let msg = locationManager.errorMessage {
-//                Text(msg)
-//                    .font(.footnote)
-//                    .foregroundStyle(.red)
-//            }
-//        }
-//    }
 
     // MARK: - Selected store
 
@@ -389,11 +296,6 @@ struct ContentView: View {
                         selectedStoreId = nil                       // עבור למסך בחירת חנות
                         quickQuery = ""
                     }
-//                    trailingAction: {
-//                        selectedStoreId = nil
-//                        quickQuery = ""
-////                        showBanner("Choose a different store", isError: false)
-//                    }
                 )
             }
         }
@@ -415,9 +317,18 @@ struct ContentView: View {
                         TextField("What are you looking for?", text: $quickQuery)
                             .textFieldStyle(.roundedBorder)
                             .submitLabel(.search)
+                            .focused($isQuickQueryFocused)
                             .onSubmit {
+                                isQuickQueryFocused = false      // סוגר מקלדת
                                 startQuickSearch()
                             }
+
+//                        TextField("What are you looking for?", text: $quickQuery)
+//                            .textFieldStyle(.roundedBorder)
+//                            .submitLabel(.search)
+//                            .onSubmit {
+//                                startQuickSearch()
+//                            }
 
                         Button {
                             startQuickSearch()
@@ -591,7 +502,6 @@ struct ContentView: View {
                     aisle.storeId == storeID
                 }
             )
-//            let existing = FetchDescriptor<Aisle>(predicate: #Predicate { $0.storeId == store.id })
 
             let aisles = (try? context.fetch(descriptor)) ?? []
             if aisles.contains(where: { $0.nameOrNumber == name }) {
@@ -634,13 +544,6 @@ struct ContentView: View {
 }
 
 // MARK: - UI building blocks
-
-//private struct StorePosterCard: View {
-//    let title: String
-//    let subtitle: String?
-//    let colorIndex: Int
-//    let buttonTitle: String
-//    let buttonAction: () -> Void
 
 private struct StorePosterCard: View {
     let title: String
@@ -706,58 +609,12 @@ private struct StorePosterCard: View {
         .accessibilityElement(children: .combine)
     }
 
-//    var body: some View {
-//        ZStack(alignment: .bottomLeading) {
-//            RoundedRectangle(cornerRadius: 20, style: .continuous)
-//                .fill(LinearGradient(
-//                    colors: [color(for: colorIndex).opacity(0.95), color(for: colorIndex).opacity(0.55)],
-////                    colors: [color(for: accentSeed).opacity(0.95), color(for: accentSeed).opacity(0.55)],
-//                    startPoint: .topLeading,
-//                    endPoint: .bottomTrailing
-//                ))
-//                .overlay(
-//                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-//                        .strokeBorder(.white.opacity(0.18), lineWidth: 1)
-//                )
-//
-//            VStack(alignment: .leading, spacing: 10) {
-//                VStack(alignment: .leading, spacing: 4) {
-//                    Text(title)
-//                        .font(.headline)
-//                        .foregroundStyle(.white)
-//                        .lineLimit(2)
-//
-//                    if let subtitle {
-//                        Text(subtitle)
-//                            .font(.subheadline)
-//                            .foregroundStyle(.white.opacity(0.85))
-//                    }
-//                }
-//
-//                Button(buttonTitle, action: buttonAction)
-//                    .font(.subheadline.bold())
-//                    .buttonStyle(.borderedProminent)
-//                    .tint(.white.opacity(0.25))
-//            }
-//            .padding(16)
-//        }
-//        .frame(width: 280, height: 170)
-//        .shadow(radius: 12, y: 6)
-//        .accessibilityElement(children: .combine)
-//        .accessibilityLabel("\(title)\(subtitle.map { ", \($0)" } ?? "")")
-//    }
-
     private func color(for index: Int) -> Color {
         let palette: [Color] = [
             .blue, .purple, .indigo, .teal, .mint, .pink, .orange
         ]
         return palette[index % palette.count]
     }
-//    private func color(for seed: String) -> Color {
-//        let hash = seed.unicodeScalars.reduce(0) { ($0 &* 131) &+ Int($1.value) }
-//        let palette: [Color] = [.blue, .purple, .indigo, .teal, .mint, .pink, .orange]
-//        return palette[abs(hash) % palette.count]
-//    }
 }
 
 private struct SelectedStoreCard: View {
@@ -782,10 +639,6 @@ private struct SelectedStoreCard: View {
                 Label("Change store", systemImage: "arrow.triangle.2.circlepath")
             }
             .buttonStyle(.bordered)
-
-//            Button(trailingButtonTitle, action: trailingAction)
-//                .buttonStyle(.bordered)
-
         }
         .padding(16)
         .background(
@@ -914,205 +767,3 @@ private struct BannerView: View {
         .shadow(radius: 10, y: 6)
     }
 }
-
-//import SwiftUI
-//import CoreLocation
-//import SwiftData
-//
-//struct ContentView: View {
-//    @StateObject private var locationManager = LocationManager()
-//
-//    @Environment(\.modelContext) private var context
-//    @Query(sort: \Store.createdAt) private var stores: [Store]
-//
-//    // מזהה החנות שנבחרה – נשמר ב-UserDefaults
-//    @AppStorage("selectedStoreId") private var selectedStoreId: String?
-//
-//    // חנות נבחרת בפועל (אם קיימת ב-DB)
-//    private var selectedStore: Store? {
-//        guard let idString = selectedStoreId,
-//              let uuid = UUID(uuidString: idString) else { return nil }
-//        return stores.first(where: { $0.id == uuid })
-//    }
-//
-//    var body: some View {
-//        NavigationStack {
-//            VStack(spacing: 24) {
-//
-//                Text("FindMyShelf")
-//                    .font(.largeTitle.bold())
-//
-//                Text("שלב 1–2: מיקום + בחירת חנות")
-//                    .font(.headline)
-//                    .foregroundStyle(.secondary)
-//
-//                // סטטוס הרשאה
-//                Group {
-//                    if let status = locationManager.authorizationStatus {
-//                        Text("סטטוס הרשאת מיקום: \(describe(status))")
-//                    } else {
-//                        Text("סטטוס הרשאת מיקום: לא ידוע עדיין")
-//                    }
-//                }
-//                .font(.subheadline)
-//
-//                // מיקום נוכחי
-//                Group {
-//                    if let loc = locationManager.currentLocation {
-//                        VStack(spacing: 4) {
-//                            Text("המיקום שלך כרגע:")
-//                                .font(.headline)
-//                            Text(String(format: "Latitude: %.5f", loc.coordinate.latitude))
-//                            Text(String(format: "Longitude: %.5f", loc.coordinate.longitude))
-//                        }
-//                    } else {
-//                        Text("עוד אין מיקום. לחץ על \"אפשר מיקום\".")
-//                            .multilineTextAlignment(.center)
-//                    }
-//                }
-//                .font(.body)
-//
-//                if let store = selectedStore {
-//                    VStack(spacing: 4) {
-//                        Text("החנות שנבחרה:")
-//                            .font(.headline)
-//                        Text(store.name)
-//                        if let lat = store.latitude, let lon = store.longitude {
-//                            Text(String(format: "lat: %.5f, lon: %.5f", lat, lon))
-//                                .font(.footnote)
-//                                .foregroundStyle(.secondary)
-//                        }
-//                    }
-//                    .padding()
-//                    .background(.thinMaterial)
-//                    .cornerRadius(12)
-//
-//                    NavigationLink {
-//                        AisleListView(store: store)
-//                    } label: {
-//                        Text("המשך למיפוי השורות")
-//                            .frame(maxWidth: .infinity)
-//                    }
-//                    .buttonStyle(.bordered)
-//
-//                    NavigationLink {
-//                        ProductSearchView(store: store)
-//                    } label: {
-//                        Text("חפש מוצר לפי שורות")
-//                            .frame(maxWidth: .infinity)
-//                    }
-//                    .buttonStyle(.bordered)
-//
-//                } else {
-//                    Text("עדיין לא נבחרה חנות.")
-//                        .font(.footnote)
-//                        .foregroundStyle(.secondary)
-//                }
-//
-//                // חנות נבחרת מה-DB
-////                if let store = selectedStore {
-////                    VStack(spacing: 4) {
-////                        Text("החנות שנבחרה:")
-////                            .font(.headline)
-////                        Text(store.name)
-////                        if let lat = store.latitude, let lon = store.longitude {
-////                            Text(String(format: "lat: %.5f, lon: %.5f", lat, lon))
-////                                .font(.footnote)
-////                                .foregroundStyle(.secondary)
-////                        }
-////                    }
-////                    .padding()
-////                    .background(.thinMaterial)
-////                    .cornerRadius(12)
-////                } else {
-//                    Text("עדיין לא נבחרה חנות.")
-//                        .font(.footnote)
-//                        .foregroundStyle(.secondary)
-//                }
-//
-//                // מעבר למסך חיפוש חנויות קרובות
-//                if locationManager.currentLocation != nil {
-//                    NavigationLink {
-//                        NearbyStoresView(locationManager: locationManager) { nearby in
-//                            handleStoreChosen(nearby)
-//                        }
-//                    } label: {
-//                        Text("מצא חנויות קרובות ובחר \"זו החנות שלי\"")
-//                            .multilineTextAlignment(.center)
-//                    }
-//                    .buttonStyle(.borderedProminent)
-//                } else {
-//                    Text("כדי לחפש חנויות קרובות, צריך קודם מיקום.")
-//                        .font(.footnote)
-//                        .foregroundStyle(.secondary)
-//                        .multilineTextAlignment(.center)
-//                }
-//
-//                if let msg = locationManager.errorMessage {
-//                    Text(msg)
-//                        .font(.footnote)
-//                        .foregroundStyle(.red)
-//                        .multilineTextAlignment(.center)
-//                        .padding(.horizontal)
-//                }
-//
-//                VStack(spacing: 12) {
-//                    Button("אפשר מיקום") {
-//                        locationManager.requestPermission()
-//                    }
-//                    .buttonStyle(.borderedProminent)
-//
-//                    Button("רענן מיקום") {
-//                        locationManager.startUpdating()
-//                    }
-//                    .buttonStyle(.bordered)
-//                }
-//
-//                Spacer()
-//            }
-//            .padding()
-//            .navigationTitle("מסך ראשי")
-//        }
-////    }
-//
-//    // MARK: - Logic
-//
-//    /// מה עושים כשהמשתמש בוחר "זו החנות שלי" במסך החנויות הקרובות
-//    private func handleStoreChosen(_ nearby: NearbyStore) {
-//        // אופציה 1: לבדוק אם כבר יש חנות עם אותו שם וקואורדינטות דומות
-//        if let existing = stores.first(where: { s in
-//            s.name == nearby.name &&
-//            abs((s.latitude ?? 0) - nearby.coordinate.latitude) < 0.0005 &&
-//            abs((s.longitude ?? 0) - nearby.coordinate.longitude) < 0.0005
-//        }) {
-//            // משתמש בחנות קיימת
-//            selectedStoreId = existing.id.uuidString
-//        } else {
-//            // יוצר חנות חדשה
-//            let newStore = Store(
-//                name: nearby.name,
-//                latitude: nearby.coordinate.latitude,
-//                longitude: nearby.coordinate.longitude
-//            )
-//            context.insert(newStore)
-//            do {
-//                try context.save()
-//                selectedStoreId = newStore.id.uuidString
-//            } catch {
-//                print("Failed to save store:", error)
-//            }
-//        }
-//    }
-//
-//    private func describe(_ status: CLAuthorizationStatus) -> String {
-//        switch status {
-//            case .notDetermined: return "לא הוחלט עדיין"
-//            case .restricted:    return "מוגבל"
-//            case .denied:        return "נשללה"
-//            case .authorizedAlways: return "מאושרת תמיד"
-//            case .authorizedWhenInUse: return "מאושרת בשימוש באפליקציה"
-//            @unknown default:    return "לא מוכר"
-//        }
-//    }
-//}
-//
