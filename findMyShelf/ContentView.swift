@@ -591,7 +591,7 @@ struct ContentView: View {
 
     private func formatDistance(_ meters: CLLocationDistance) -> String {
         if meters < 1000 {
-            return String(format: "From %.0f ", meters)
+            return String(format: "%.0f meters ", meters)
         }
         return String(format: "%.1f k\"m", meters / 1000.0)
     }
