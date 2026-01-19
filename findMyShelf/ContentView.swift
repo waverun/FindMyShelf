@@ -9,6 +9,12 @@ struct ContentView: View {
         locationManager.currentLocation != nil
     }
 
+    private var previousStore: Store? {
+        guard let idString = previousSelectedStoreId,
+              let uuid = UUID(uuidString: idString) else { return nil }
+        return stores.first(where: { $0.id == uuid })
+    }
+
     private var isAuthorized: Bool {
         let status = locationManager.authorizationStatus
         return status == .authorizedWhenInUse || status == .authorizedAlways
@@ -292,6 +298,8 @@ struct ContentView: View {
                                 title: store.name,
                                 subtitle: store.distance.map { formatDistance($0) },
                                 colorIndex: index,
+                                isHighlighted: matchesPreviousStore(store),
+                                badgeText: matchesPreviousStore(store) ? "Previously selected" : nil,
                                 buttonTitle: "Choose",
                                 buttonAction: {
                                     handleStoreChosen(store)
@@ -299,15 +307,14 @@ struct ContentView: View {
                             )
                         }
 
-//                        ForEach(finder.results.prefix(12)) { store in
+//                        ForEach(Array(finder.results.prefix(12).enumerated()), id: \.element.id) { index, store in
 //                            StorePosterCard(
 //                                title: store.name,
 //                                subtitle: store.distance.map { formatDistance($0) },
-//                                accentSeed: store.name,
-//                                buttonTitle: "Select",
+//                                colorIndex: index,
+//                                buttonTitle: "Choose",
 //                                buttonAction: {
 //                                    handleStoreChosen(store)
-////                                    withAnimation { showBanner("Selected: \(store.name)", isError: false) }
 //                                }
 //                            )
 //                        }
@@ -497,6 +504,19 @@ struct ContentView: View {
 
     // MARK: - Logic
 
+    private func matchesPreviousStore(_ nearby: NearbyStore) -> Bool {
+        guard let prev = previousStore,
+              let lat = prev.latitude,
+              let lon = prev.longitude else { return false }
+
+        // התאמה עדינה: שם + קירבה גיאוגרפית קטנה
+        let nameMatch = nearby.name == prev.name
+        let latOk = abs(lat - nearby.coordinate.latitude) < 0.0007
+        let lonOk = abs(lon - nearby.coordinate.longitude) < 0.0007
+
+        return nameMatch && latOk && lonOk
+    }
+
     private func startQuickSearch() {
         let trimmed = quickQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -618,7 +638,7 @@ struct ContentView: View {
 //private struct StorePosterCard: View {
 //    let title: String
 //    let subtitle: String?
-//    let accentSeed: String
+//    let colorIndex: Int
 //    let buttonTitle: String
 //    let buttonAction: () -> Void
 
@@ -626,25 +646,43 @@ private struct StorePosterCard: View {
     let title: String
     let subtitle: String?
     let colorIndex: Int
+    let isHighlighted: Bool
+    let badgeText: String?
     let buttonTitle: String
     let buttonAction: () -> Void
 
     var body: some View {
+        let baseColor = color(for: colorIndex)
+
         ZStack(alignment: .bottomLeading) {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(LinearGradient(
-                    colors: [color(for: colorIndex).opacity(0.95), color(for: colorIndex).opacity(0.55)],
-//                    colors: [color(for: accentSeed).opacity(0.95), color(for: accentSeed).opacity(0.55)],
+                    colors: [baseColor.opacity(0.95), baseColor.opacity(0.55)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 ))
                 .overlay(
                     RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .strokeBorder(.white.opacity(0.18), lineWidth: 1)
+                        .strokeBorder(isHighlighted ? .white.opacity(0.85) : .white.opacity(0.18),
+                                      lineWidth: isHighlighted ? 2 : 1)
                 )
+                .shadow(radius: isHighlighted ? 16 : 12, y: isHighlighted ? 8 : 6)
+                .scaleEffect(isHighlighted ? 1.03 : 1.0)
+                .animation(.easeInOut(duration: 0.15), value: isHighlighted)
 
             VStack(alignment: .leading, spacing: 10) {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 6) {
+
+                    if let badgeText {
+                        Text(badgeText)
+                            .font(.caption2.bold())
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(.white.opacity(0.22))
+                            .clipShape(Capsule())
+                            .foregroundStyle(.white)
+                    }
+
                     Text(title)
                         .font(.headline)
                         .foregroundStyle(.white)
@@ -665,10 +703,49 @@ private struct StorePosterCard: View {
             .padding(16)
         }
         .frame(width: 280, height: 170)
-        .shadow(radius: 12, y: 6)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(title)\(subtitle.map { ", \($0)" } ?? "")")
     }
+
+//    var body: some View {
+//        ZStack(alignment: .bottomLeading) {
+//            RoundedRectangle(cornerRadius: 20, style: .continuous)
+//                .fill(LinearGradient(
+//                    colors: [color(for: colorIndex).opacity(0.95), color(for: colorIndex).opacity(0.55)],
+////                    colors: [color(for: accentSeed).opacity(0.95), color(for: accentSeed).opacity(0.55)],
+//                    startPoint: .topLeading,
+//                    endPoint: .bottomTrailing
+//                ))
+//                .overlay(
+//                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+//                        .strokeBorder(.white.opacity(0.18), lineWidth: 1)
+//                )
+//
+//            VStack(alignment: .leading, spacing: 10) {
+//                VStack(alignment: .leading, spacing: 4) {
+//                    Text(title)
+//                        .font(.headline)
+//                        .foregroundStyle(.white)
+//                        .lineLimit(2)
+//
+//                    if let subtitle {
+//                        Text(subtitle)
+//                            .font(.subheadline)
+//                            .foregroundStyle(.white.opacity(0.85))
+//                    }
+//                }
+//
+//                Button(buttonTitle, action: buttonAction)
+//                    .font(.subheadline.bold())
+//                    .buttonStyle(.borderedProminent)
+//                    .tint(.white.opacity(0.25))
+//            }
+//            .padding(16)
+//        }
+//        .frame(width: 280, height: 170)
+//        .shadow(radius: 12, y: 6)
+//        .accessibilityElement(children: .combine)
+//        .accessibilityLabel("\(title)\(subtitle.map { ", \($0)" } ?? "")")
+//    }
 
     private func color(for index: Int) -> Color {
         let palette: [Color] = [
