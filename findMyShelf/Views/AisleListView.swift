@@ -5,6 +5,8 @@ import PhotosUI
 struct AisleListView: View {
     @Environment(\.modelContext) private var context
 
+    private let analyzer = AisleImageAnalyzer()
+
     let store: Store
 
     // כל השורות בבסיס הנתונים
@@ -41,6 +43,46 @@ struct AisleListView: View {
                 kw.lowercased().contains(text)
             }
             return nameHit || keywordHit
+        }
+    }
+
+    private func processImage(_ image: UIImage) {
+        ocrErrorMessage = nil
+        isProcessingOCR = true
+
+        Task {
+            do {
+                let analysis = try await analyzer.analyze(image)
+
+                await MainActor.run {
+                    isProcessingOCR = false
+
+                    let title = !analysis.titleEN.isEmpty ? analysis.titleEN : analysis.titleOriginal
+                    guard !title.isEmpty else {
+                        ocrErrorMessage = "לא הצלחתי לזהות כותרת מהשלט."
+                        return
+                    }
+
+                    // בדיקת כפילות
+                    if aislesForStore.contains(where: { $0.nameOrNumber == title }) {
+                        ocrErrorMessage = "השורה '\(title)' כבר קיימת."
+                        return
+                    }
+
+                    let aisle = Aisle(nameOrNumber: title, storeId: store.id, keywords: analysis.keywords)
+                    context.insert(aisle)
+                    do {
+                        try context.save()
+                    } catch {
+                        ocrErrorMessage = "שמירה נכשלה."
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    isProcessingOCR = false
+                    ocrErrorMessage = error.localizedDescription
+                }
+            }
         }
     }
 
@@ -188,41 +230,12 @@ struct AisleListView: View {
 
     // MARK: - OCR משותף למצלמה ולגלריה
 
-    private func processImage(_ image: UIImage) {
-        ocrErrorMessage = nil
-        isProcessingOCR = true
+//    private let apiKey: String = ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? ""
+    private var apiKey: String {
+        Bundle.main.object(forInfoDictionaryKey: "OPENAI_API_KEY") as? String ?? ""
+    }
 
-        AisleOCRService.extractAisleInfo(from: image) { result in
-            self.isProcessingOCR = false
-
-            guard let rawTitle = result.title,
-                  !rawTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                self.ocrErrorMessage = "לא זוהתה כותרת שורה מהשלט."
-                return
-            }
-
-            let name = rawTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-
-            // מניעת כפילות – לפי nameOrNumber
-            if self.aislesForStore.contains(where: { $0.nameOrNumber == name }) {
-                self.ocrErrorMessage = "שורה '\(name)' כבר קיימת."
-                return
-            }
-
-            let aisle = Aisle(
-                nameOrNumber: name,
-                storeId: self.store.id,
-                keywords: result.keywords
-            )
-
-            self.context.insert(aisle)
-            do {
-                try self.context.save()
-                self.ocrErrorMessage = nil
-            } catch {
-                print("Failed to save OCR aisle:", error)
-                self.ocrErrorMessage = "שגיאה בשמירת השורה החדשה."
-            }
-        }
+    private var visionService: OpenAIAisleVisionService {
+        OpenAIAisleVisionService(apiKey: apiKey)
     }
 }

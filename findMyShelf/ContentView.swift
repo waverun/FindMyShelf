@@ -9,6 +9,16 @@ struct ContentView: View {
         locationManager.currentLocation != nil
     }
 
+//    private let apiKey: String = ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? ""
+
+    private var apiKey: String {
+        Bundle.main.object(forInfoDictionaryKey: "OPENAI_API_KEY") as? String ?? ""
+    }
+
+    private var visionService: OpenAIAisleVisionService {
+        OpenAIAisleVisionService(apiKey: apiKey)
+    }
+
     private var previousStore: Store? {
         guard let idString = previousSelectedStoreId,
               let uuid = UUID(uuidString: idString) else { return nil }
@@ -527,44 +537,91 @@ struct ContentView: View {
 
     private func processImage(_ image: UIImage) {
         guard let store = selectedStore else {
-            showBanner("Please select a store before searching", isError: true)
+            showBanner("Please select a store before uploading an image", isError: true)
             return
         }
 
+        isQuickQueryFocused = false
         isProcessingOCR = true
 
-        AisleOCRService.extractAisleInfo(from: image) { result in
-            isProcessingOCR = false
-
-            guard let rawTitle = result.title,
-                  !rawTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                showBanner("No aisle title could be detected from the sign", isError: true)
-                return
-            }
-
-            let name = rawTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-
-            let storeID = store.id
-            let descriptor = FetchDescriptor<Aisle>(
-                predicate: #Predicate<Aisle> { aisle in
-                    aisle.storeId == storeID
-                }
-            )
-
-            let aisles = (try? context.fetch(descriptor)) ?? []
-            if aisles.contains(where: { $0.nameOrNumber == name }) {
-                showBanner("Aisle '(name)' already exists", isError: true)
-                return
-            }
-
-            let aisle = Aisle(nameOrNumber: name, storeId: store.id, keywords: result.keywords)
-            context.insert(aisle)
-
+        Task {
             do {
-                try context.save()
-                showBanner("Aisle added:", isError: false)
+                guard !apiKey.isEmpty else {
+                    throw NSError(domain: "Config", code: 0, userInfo: [NSLocalizedDescriptionKey: "OPENAI_API_KEY is missing"])
+                }
+
+                // JPEG דחוס כדי להקטין משקל (עלות/מהירות)
+                guard let jpeg = image.jpegData(compressionQuality: 0.8) else {
+                    throw NSError(domain: "Image", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to encode JPEG"])
+                }
+
+                let result = try await visionService.analyzeAisle(imageJPEGData: jpeg)
+
+                await MainActor.run {
+                    isProcessingOCR = false
+
+                    let titleOriginal = (result.title_original ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                    let titleEn = (result.title_en ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+
+                    // חייבים כותרת כלשהי כדי ליצור Aisle
+                    let displayTitle = !titleEn.isEmpty ? titleEn : (!titleOriginal.isEmpty ? titleOriginal : "")
+
+                    guard !displayTitle.isEmpty else {
+                        showBanner("No aisle title could be detected from the sign", isError: true)
+                        return
+                    }
+
+                    // בניית keywords: גם מקור וגם אנגלית + שתי הכותרות
+                    var all = [String]()
+
+                    if let ko = result.keywords_original { all.append(contentsOf: ko) }
+                    if let ke = result.keywords_en { all.append(contentsOf: ke) }
+
+                    if !titleOriginal.isEmpty { all.append(titleOriginal) }
+                    if !titleEn.isEmpty { all.append(titleEn) }
+
+                    // ניקוי/נרמול: trim, lowercased, הסרת ריקים, ייחוד
+                    let normalized = all
+                        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                        .filter { !$0.isEmpty }
+                        .map { $0.lowercased() }
+
+                    let uniqueKeywords = Array(Set(normalized)).sorted()
+
+                    // בדיקת כפילות לפי שם (אנגלית/מקור) — בגרסה שלך יש רק nameOrNumber, אז נבדוק מול displayTitle.
+                    let storeID = store.id
+                    let descriptor = FetchDescriptor<Aisle>(
+                        predicate: #Predicate<Aisle> { aisle in
+                            aisle.storeId == storeID
+                        }
+                    )
+                    let aisles = (try? context.fetch(descriptor)) ?? []
+                    if aisles.contains(where: { $0.nameOrNumber == displayTitle }) {
+                        showBanner("Aisle '\(displayTitle)' already exists", isError: true)
+                        return
+                    }
+
+                    // יצירה ושמירה
+                    let aisle = Aisle(
+                        nameOrNumber: displayTitle,
+                        storeId: store.id,
+                        keywords: uniqueKeywords
+                    )
+
+                    context.insert(aisle)
+                    do {
+                        try context.save()
+                        showBanner("Aisle added: \(displayTitle)", isError: false)
+                    } catch {
+                        showBanner("Failed to save the new aisle", isError: true)
+                    }
+                }
+
             } catch {
-                showBanner("Failed to save the new aisle", isError: true)
+                await MainActor.run {
+                    isProcessingOCR = false
+                    showBanner("Failed to analyze image: \(error.localizedDescription)", isError: true)
+                }
             }
         }
     }

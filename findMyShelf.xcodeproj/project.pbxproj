@@ -15,6 +15,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Config.xcconfig,
+				Info.plist,
 			);
 			target = 503824702ECC7778006B36C1 /* findMyShelf */;
 		};
@@ -277,7 +278,7 @@
 				DEVELOPMENT_TEAM = NRTGJB9J65;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "";
+				INFOPLIST_FILE = findMyShelf/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Privacy - Camera Usage Description\nRequired to take photos of signs in the supermarket.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "נדרש כדי למצוא חנויות קרובות אליך.";
@@ -313,7 +314,7 @@
 				DEVELOPMENT_TEAM = NRTGJB9J65;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "";
+				INFOPLIST_FILE = findMyShelf/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Privacy - Camera Usage Description\nRequired to take photos of signs in the supermarket.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "נדרש כדי למצוא חנויות קרובות אליך.";
