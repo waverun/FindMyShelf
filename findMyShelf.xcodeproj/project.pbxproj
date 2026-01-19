@@ -279,7 +279,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "";
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
-				INFOPLIST_KEY_NSCameraUsageDescription = "Privacy - Camera Usage Description\nנדרש כדי לצלם שלטים בסופר.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Privacy - Camera Usage Description\nRequired to take photos of signs in the supermarket.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "נדרש כדי למצוא חנויות קרובות אליך.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Required to select images of aisle signs from the photo library.";
 				INFOPLIST_KEY_NSPrincipalClass = "";
@@ -315,7 +315,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "";
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
-				INFOPLIST_KEY_NSCameraUsageDescription = "Privacy - Camera Usage Description\nנדרש כדי לצלם שלטים בסופר.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Privacy - Camera Usage Description\nRequired to take photos of signs in the supermarket.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "נדרש כדי למצוא חנויות קרובות אליך.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Required to select images of aisle signs from the photo library.";
 				INFOPLIST_KEY_NSPrincipalClass = "";
