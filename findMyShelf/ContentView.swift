@@ -18,6 +18,61 @@ struct ContentView: View {
         return stores.first(where: { $0.id == uuid })
     }
 
+    private var bottomButtonsBar: some View {
+        VStack(spacing: 10) {
+
+            if let status = locationManager.authorizationStatus,
+               status == .denied || status == .restricted {
+
+                Button {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                } label: {
+                    Label("Open Settings", systemImage: "gear")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+
+            } else {
+
+                HStack(spacing: 10) {
+                    Button {
+                        locationManager.requestPermission()
+                    } label: {
+                        Label("Allow location", systemImage: "location")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+
+                    Button {
+                        locationManager.startUpdating()
+                    } label: {
+                        Label("Refresh", systemImage: "arrow.clockwise")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                }
+
+                Button {
+                    guard let loc = locationManager.currentLocation else {
+                        // אפשר להוסיף פה Alert אם תרצה
+                        return
+                    }
+                    finder.searchNearby(from: loc)
+                } label: {
+                    Label("Find nearby stores", systemImage: "magnifyingglass")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 10)
+        .padding(.bottom, 10)
+        .background(.ultraThinMaterial)
+    }
+
     @State private var quickQuery: String = ""
 
     @State private var goToSearch: Bool = false
@@ -53,7 +108,11 @@ struct ContentView: View {
                     .padding(.top, 12)
                     .padding(.bottom, 24)
                 }
-
+                .safeAreaInset(edge: .bottom) {
+                    if selectedStore == nil {
+                        bottomButtonsBar
+                    }
+                }
                 if let bannerText {
                     BannerView(text: bannerText, isError: bannerIsError) {
                         withAnimation { self.bannerText = nil }
@@ -161,10 +220,10 @@ struct ContentView: View {
                             }
                         )
                     } else {
-                        locationReadyControls
+//                        locationReadyControls
                     }
                 } else {
-                    locationReadyControls
+//                    locationReadyControls
                 }
             }
 
@@ -197,45 +256,45 @@ struct ContentView: View {
         }
     }
 
-    private var locationReadyControls: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 10) {
-                Button {
-                    locationManager.requestPermission()
-                } label: {
-                    Label("Allow location", systemImage: "location")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-
-                Button {
-                    locationManager.startUpdating()
-                } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-            }
-
-            Button {
-                guard let loc = locationManager.currentLocation else {
-                    showBanner("Location not available yet. Tap \"Allow location\" and then \"Refresh\".", isError: true)
-                    return
-                }
-                finder.searchNearby(from: loc)
-            } label: {
-                Label("Find nearby stores", systemImage: "magnifyingglass")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-
-            if let msg = locationManager.errorMessage {
-                Text(msg)
-                    .font(.footnote)
-                    .foregroundStyle(.red)
-            }
-        }
-    }
+//    private var locationReadyControls: some View {
+//        VStack(spacing: 10) {
+//            HStack(spacing: 10) {
+//                Button {
+//                    locationManager.requestPermission()
+//                } label: {
+//                    Label("Allow location", systemImage: "location")
+//                        .frame(maxWidth: .infinity)
+//                }
+//                .buttonStyle(.bordered)
+//
+//                Button {
+//                    locationManager.startUpdating()
+//                } label: {
+//                    Label("Refresh", systemImage: "arrow.clockwise")
+//                        .frame(maxWidth: .infinity)
+//                }
+//                .buttonStyle(.bordered)
+//            }
+//
+//            Button {
+//                guard let loc = locationManager.currentLocation else {
+//                    showBanner("Location not available yet. Tap \"Allow location\" and then \"Refresh\".", isError: true)
+//                    return
+//                }
+//                finder.searchNearby(from: loc)
+//            } label: {
+//                Label("Find nearby stores", systemImage: "magnifyingglass")
+//                    .frame(maxWidth: .infinity)
+//            }
+//            .buttonStyle(.borderedProminent)
+//
+//            if let msg = locationManager.errorMessage {
+//                Text(msg)
+//                    .font(.footnote)
+//                    .foregroundStyle(.red)
+//            }
+//        }
+//    }
 
     // MARK: - Selected store
 
