@@ -701,8 +701,13 @@ private struct SelectedStoreCard: View {
 
             Spacer()
 
-            Button(trailingButtonTitle, action: trailingAction)
-                .buttonStyle(.bordered)
+            Button(action: trailingAction) {
+                Label("Change store", systemImage: "arrow.triangle.2.circlepath")
+            }
+            .buttonStyle(.bordered)
+
+//            Button(trailingButtonTitle, action: trailingAction)
+//                .buttonStyle(.bordered)
 
         }
         .padding(16)
