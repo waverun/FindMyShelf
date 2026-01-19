@@ -140,6 +140,9 @@ struct ContentView: View {
                         bottomButtonsBar
                     }
                 }
+                .onTapGesture {
+                    isQuickQueryFocused = false
+                }
                 if let bannerText {
                     BannerView(text: bannerText, isError: bannerIsError) {
                         withAnimation { self.bannerText = nil }
