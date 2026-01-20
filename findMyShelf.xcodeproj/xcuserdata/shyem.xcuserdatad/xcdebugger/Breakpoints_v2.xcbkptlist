@@ -71,68 +71,6 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "FCF82394-1ED8-4730-9D99-B855CDE8DB21"
-            shouldBeEnabled = "Yes"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "findMyShelf/Views/AisleListView.swift"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "83"
-            endingLineNumber = "83"
-            landmarkName = "AisleListView"
-            landmarkType = "14">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            uuid = "FAED17E8-0BF6-4A65-9192-3A45ABDAF2B9"
-            shouldBeEnabled = "Yes"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "findMyShelf/Views/AisleListView.swift"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "80"
-            endingLineNumber = "80"
-            landmarkName = "AisleListView"
-            landmarkType = "14">
-            <Locations>
-               <Location
-                  uuid = "FAED17E8-0BF6-4A65-9192-3A45ABDAF2B9 - cc6a5d0f9f68bc65"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "(1) suspend resume partial function for closure #1 () async -&gt; () in findMyShelf.AisleListView.processImage(__C.UIImage) -&gt; ()"
-                  moduleName = "findMyShelf.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/shyem/Projects%20-%20no%20icloud/findMyShelf/findMyShelf/Views/AisleListView.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "80"
-                  endingLineNumber = "80">
-               </Location>
-               <Location
-                  uuid = "FAED17E8-0BF6-4A65-9192-3A45ABDAF2B9 - 887d9cb96b265dbb"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "(3) await resume partial function for closure #1 () async -&gt; () in findMyShelf.AisleListView.processImage(__C.UIImage) -&gt; ()"
-                  moduleName = "findMyShelf.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/shyem/Projects%20-%20no%20icloud/findMyShelf/findMyShelf/Views/AisleListView.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "80"
-                  endingLineNumber = "80">
-               </Location>
-            </Locations>
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
             uuid = "26E7BE7A-F3FE-4EE6-AA12-7DC1F798DE06"
             shouldBeEnabled = "No"
             ignoreCount = "0"
