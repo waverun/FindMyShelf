@@ -14,8 +14,8 @@
             filePath = "findMyShelf/ContentView.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "550"
-            endingLineNumber = "550"
+            startingLineNumber = "561"
+            endingLineNumber = "561"
             landmarkName = "processImage(_:)"
             landmarkType = "7">
          </BreakpointContent>
@@ -156,8 +156,8 @@
             filePath = "findMyShelf/ContentView.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "561"
-            endingLineNumber = "561"
+            startingLineNumber = "572"
+            endingLineNumber = "572"
             landmarkName = "processImage(_:)"
             landmarkType = "7">
          </BreakpointContent>

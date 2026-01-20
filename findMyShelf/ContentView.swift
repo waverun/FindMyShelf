@@ -159,13 +159,24 @@ struct ContentView: View {
                     isQuickQueryFocused = false
                 }
                 .scrollDismissesKeyboard(.interactively)
+//                if let bannerText {
+//                    BannerView(text: bannerText, isError: bannerIsError) {
+//                        withAnimation { self.bannerText = nil }
+//                    }
+//                    .padding(.top, 8)
+//                    .padding(.horizontal, 16)
+//                    .transition(.move(edge: .top).combined(with: .opacity))
+//                }
+            }
+            .safeAreaInset(edge: .top) {
                 if let bannerText {
                     BannerView(text: bannerText, isError: bannerIsError) {
                         withAnimation { self.bannerText = nil }
                     }
-                    .padding(.top, 8)
                     .padding(.horizontal, 16)
+                    .padding(.top, 8)
                     .transition(.move(edge: .top).combined(with: .opacity))
+                    .zIndex(999)
                 }
             }
             .navigationTitle("FindMyShelf")
