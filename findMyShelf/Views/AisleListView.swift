@@ -52,25 +52,37 @@ struct AisleListView: View {
 
         Task {
             do {
-                let analysis = try await analyzer.analyze(image)
+                guard let jpeg = image.jpegData(compressionQuality: 0.85) else {
+                    await MainActor.run {
+                        isProcessingOCR = false
+                        ocrErrorMessage = "לא הצלחתי להמיר את התמונה ל-JPEG."
+                    }
+                    return
+                }
+
+                let result = try await visionService.analyzeAisle(imageJPEGData: jpeg)
 
                 await MainActor.run {
                     isProcessingOCR = false
 
-                    let title = !analysis.titleEN.isEmpty ? analysis.titleEN : analysis.titleOriginal
-                    guard !title.isEmpty else {
-                        ocrErrorMessage = "לא הצלחתי לזהות כותרת מהשלט."
+                    let name = aisleNameFromVision(result)
+                    guard name != "Unknown" else {
+                        ocrErrorMessage = "לא הצלחתי לזהות מספר/כותרת מהשלט."
                         return
                     }
 
-                    // בדיקת כפילות
-                    if aislesForStore.contains(where: { $0.nameOrNumber == title }) {
-                        ocrErrorMessage = "השורה '\(title)' כבר קיימת."
+                    // כפילות לפי nameOrNumber
+                    if aislesForStore.contains(where: { $0.nameOrNumber == name }) {
+                        ocrErrorMessage = "השורה '\(name)' כבר קיימת."
                         return
                     }
 
-                    let aisle = Aisle(nameOrNumber: title, storeId: store.id, keywords: analysis.keywords)
+                    // keywords – אם אתה רוצה רק מקוריים, תשאיר רק אותם
+                    let keywords = (result.keywords_original ?? []) + (result.keywords_en ?? [])
+
+                    let aisle = Aisle(nameOrNumber: name, storeId: store.id, keywords: keywords)
                     context.insert(aisle)
+
                     do {
                         try context.save()
                     } catch {
@@ -84,6 +96,45 @@ struct AisleListView: View {
                 }
             }
         }
+
+//        Task {
+//            do {
+//                let analysis = try await analyzer.analyze(image)
+//
+//                await MainActor.run {
+//                    isProcessingOCR = false
+//
+//                    let title = !analysis.titleEN.isEmpty ? analysis.titleEN : analysis.titleOriginal
+//                    guard !title.isEmpty else {
+//                        ocrErrorMessage = "לא הצלחתי לזהות כותרת מהשלט."
+//                        return
+//                    }
+//
+//                    // בדיקת כפילות
+//                    if aislesForStore.contains(where: { $0.nameOrNumber == title }) {
+//                        ocrErrorMessage = "השורה '\(title)' כבר קיימת."
+//                        return
+//                    }
+//
+////                    let aisle = Aisle(nameOrNumber: title, storeId: store.id, keywords: analysis.keywords)
+//                    let name = aisleNameFromVision(result)
+//                    let keywords = (result.keywords_original ?? []) + (result.keywords_en ?? [])
+//                    let aisle = Aisle(nameOrNumber: name, storeId: store.id, keywords: keywords)
+//
+//                    context.insert(aisle)
+//                    do {
+//                        try context.save()
+//                    } catch {
+//                        ocrErrorMessage = "שמירה נכשלה."
+//                    }
+//                }
+//            } catch {
+//                await MainActor.run {
+//                    isProcessingOCR = false
+//                    ocrErrorMessage = error.localizedDescription
+//                }
+//            }
+//        }
     }
 
     var body: some View {

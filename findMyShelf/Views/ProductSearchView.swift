@@ -171,16 +171,6 @@ struct ProductSearchView: View {
         Task {
             await runGPTSuggestion(for: q)
         }
-
-//        // 2. לנסות למצוא שורה לפי keywords
-//        let best = bestMatchingAisle(for: q)
-//
-//        if let aisle = best {
-//            suggestedAisle = aisle
-//            statusMessage = "לא נמצא מוצר מוכר, אבל זוהתה שורה מתאימה לפי השלטים."
-//        } else {
-//            statusMessage = "לא נמצא מוצר ולא נמצאה שורה מתאימה לפי מילות מפתח."
-//        }
     }
 
     private func runGPTSuggestion(for query: String) async {

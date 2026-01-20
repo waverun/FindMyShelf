@@ -6,12 +6,21 @@ import Foundation
 //}
 
 struct AisleVisionResult: Decodable {
+    let aisle_code: String?      // e.g. "12", "A12", "7A" — if detected, THIS is the aisle name
     let title_original: String?
     let title_en: String?
     let keywords_original: [String]?
     let keywords_en: [String]?
-    let language: String?        // optional: e.g. "he", "de", "fr"
+    let language: String?        // e.g. "he", "de", "fr"
 }
+
+//struct AisleVisionResult: Decodable {
+//    let title_original: String?
+//    let title_en: String?
+//    let keywords_original: [String]?
+//    let keywords_en: [String]?
+//    let language: String?        // optional: e.g. "he", "de", "fr"
+//}
 
 final class GPTAisleVisionService {
 
