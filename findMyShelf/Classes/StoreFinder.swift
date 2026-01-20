@@ -3,13 +3,24 @@ import MapKit
 import CoreLocation
 
 /// מודל פשוט של חנות שנמצאה קרוב אלינו
+/// struct NearbyStore: Identifiable {
 struct NearbyStore: Identifiable {
     let id = UUID()
     let name: String
+    let addressLine: String?
+    let city: String?
     let coordinate: CLLocationCoordinate2D
     let distance: CLLocationDistance?
     let rawItem: MKMapItem
 }
+
+//struct NearbyStore: Identifiable {
+//    let id = UUID()
+//    let name: String
+//    let coordinate: CLLocationCoordinate2D
+//    let distance: CLLocationDistance?
+//    let rawItem: MKMapItem
+//}
 
 /// מחלקה שמבצעת חיפוש חנויות ליד מיקום נתון
 final class StoreFinder: ObservableObject {
@@ -58,12 +69,24 @@ final class StoreFinder: ObservableObject {
             let origin = location
             let mapped: [NearbyStore] = response.mapItems.map { item in
                 let dist = item.placemark.location?.distance(from: origin)
+                let pm = item.placemark
+                let addr = (pm as MKPlacemark).shortAddressLine
+                let city = pm.locality
                 return NearbyStore(
                     name: item.name ?? "חנות ללא שם",
-                    coordinate: item.placemark.coordinate,
+                    addressLine: addr,
+                    city: city,
+                    coordinate: pm.coordinate,
                     distance: dist,
                     rawItem: item
                 )
+
+//                return NearbyStore(
+//                    name: item.name ?? "חנות ללא שם",
+//                    coordinate: item.placemark.coordinate,
+//                    distance: dist,
+//                    rawItem: item
+//                )
             }
                 .sorted {
                     ($0.distance ?? .greatestFiniteMagnitude) <

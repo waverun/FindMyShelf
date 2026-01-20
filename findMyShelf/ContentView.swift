@@ -9,7 +9,8 @@ struct ContentView: View {
         locationManager.currentLocation != nil
     }
 
-//    private let apiKey: String = ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? ""
+    @State private var showManualStoreSheet = false
+    @State private var savedStoreSearch = ""
 
     @State private var pendingProductQuery: String = ""
 
@@ -161,14 +162,6 @@ struct ContentView: View {
                     isQuickQueryFocused = false
                 }
                 .scrollDismissesKeyboard(.interactively)
-//                if let bannerText {
-//                    BannerView(text: bannerText, isError: bannerIsError) {
-//                        withAnimation { self.bannerText = nil }
-//                    }
-//                    .padding(.top, 8)
-//                    .padding(.horizontal, 16)
-//                    .transition(.move(edge: .top).combined(with: .opacity))
-//                }
             }
             .safeAreaInset(edge: .top) {
                 if let bannerText {
@@ -214,20 +207,6 @@ struct ContentView: View {
                     handlePickedPhoto(item)
                 }
             }
-//            .background(
-//                Group {
-//                    if let store = selectedStore {
-//                        NavigationLink(isActive: $goToAisles) {
-//                            AisleListView(store: store)
-//                        } label: { EmptyView() }
-//                        NavigationLink(isActive: $goToSearch) {
-////                            ProductSearchView(store: store)
-//                            ProductSearchView(store: store, initialQuery: pendingProductQuery)   // ✅
-//
-//                        } label: { EmptyView() }
-//                    }
-//                }
-//            )
             .confirmationDialog(
                 "Add aisle sign",
                 isPresented: $showPhotoSourceDialog,
@@ -267,6 +246,26 @@ struct ContentView: View {
             }
 
         }
+        .sheet(isPresented: $showManualStoreSheet) {
+            ManualStoreSheet(
+                existingStores: stores,
+                onPickExisting: { store in
+                    selectedStoreId = store.id.uuidString
+                    showManualStoreSheet = false
+                },
+                onSaveNew: { name, address, city in
+                    let newStore = Store(name: name, addressLine: address, city: city)
+                    context.insert(newStore)
+                    do {
+                        try context.save()
+                        selectedStoreId = newStore.id.uuidString
+                        showManualStoreSheet = false
+                    } catch {
+                        showBanner("Failed to save the store", isError: true)
+                    }
+                }
+            )
+        }
         .photosPicker(
             isPresented: $showPhotosPicker,
             selection: $pickedPhotoItem,
@@ -282,6 +281,12 @@ struct ContentView: View {
             HStack(alignment: .firstTextBaseline) {
                 Text("Nearby stores")
                     .font(.headline)
+
+                Button("Add manually") {
+                    showManualStoreSheet = true
+                }
+                .font(.subheadline)
+                .buttonStyle(.bordered)
 
                 Spacer()
 
@@ -321,9 +326,13 @@ struct ContentView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(spacing: 14) {
                         ForEach(Array(finder.results.prefix(12).enumerated()), id: \.element.id) { index, store in
+                            let sub = [store.addressLine, store.distance.map(formatDistance)]
+                                .compactMap { $0 }
+                                .joined(separator: " • ")
                             StorePosterCard(
                                 title: store.name,
-                                subtitle: store.distance.map { formatDistance($0) },
+//                                subtitle: store.distance.map { formatDistance($0) },
+                                subtitle: sub.isEmpty ? nil : sub,
                                 colorIndex: index,
                                 isHighlighted: matchesPreviousStore(store),
                                 badgeText: matchesPreviousStore(store) ? "Previously selected" : nil,
@@ -390,13 +399,6 @@ struct ContentView: View {
                                 isQuickQueryFocused = false      // סוגר מקלדת
                                 startQuickSearch()
                             }
-
-//                        TextField("What are you looking for?", text: $quickQuery)
-//                            .textFieldStyle(.roundedBorder)
-//                            .submitLabel(.search)
-//                            .onSubmit {
-//                                startQuickSearch()
-//                            }
 
                         Button {
                             startQuickSearch()
@@ -496,19 +498,6 @@ struct ContentView: View {
         return nameMatch && latOk && lonOk
     }
 
-//    private func startQuickSearch() {
-//        let trimmed = quickQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-//        guard !trimmed.isEmpty else { return }
-//
-//        guard selectedStore != nil else {
-//            showBanner("Please select a store before searching", isError: true)
-//            return
-//        }
-//
-//        pendingProductQuery = trimmed   // ✅ שמור לפני ניווט
-//        goToSearch = true
-//    }
-
     private func startQuickSearch() {
         let trimmed = quickQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -523,10 +512,26 @@ struct ContentView: View {
     }
 
     private func handleStoreChosen(_ nearby: NearbyStore) {
+        let lat = nearby.coordinate.latitude
+        let lon = nearby.coordinate.longitude
+
+        func distanceMeters(_ s: Store) -> Double? {
+            guard let slat = s.latitude, let slon = s.longitude else { return nil }
+            return CLLocation(latitude: slat, longitude: slon)
+                .distance(from: CLLocation(latitude: lat, longitude: lon))
+        }
+
         if let existing = stores.first(where: { s in
-            s.name == nearby.name &&
-            abs((s.latitude ?? 0) - nearby.coordinate.latitude) < 0.0005 &&
-            abs((s.longitude ?? 0) - nearby.coordinate.longitude) < 0.0005
+            guard let d = distanceMeters(s) else { return false }
+            if d > 80 { return false }
+            // אם יש כתובת – תן בונוס למי שמתאים
+            if let a1 = s.addressLine?.lowercased(),
+               let a2 = nearby.addressLine?.lowercased(),
+               !a1.isEmpty, !a2.isEmpty {
+                return a1 == a2
+            }
+            // fallback: שם+קרבה
+            return s.name == nearby.name
         }) {
             selectedStoreId = existing.id.uuidString
             return
@@ -534,8 +539,10 @@ struct ContentView: View {
 
         let newStore = Store(
             name: nearby.name,
-            latitude: nearby.coordinate.latitude,
-            longitude: nearby.coordinate.longitude
+            latitude: lat,
+            longitude: lon,
+            addressLine: nearby.addressLine,
+            city: nearby.city
         )
         context.insert(newStore)
         do {
@@ -546,18 +553,27 @@ struct ContentView: View {
         }
     }
 
-//    private func handlePickedPhoto(_ item: PhotosPickerItem) {
-//        Task {
-//            guard let data = try? await item.loadTransferable(type: Data.self),
-//                  let image = UIImage(data: data) else {
-//                await MainActor.run {
-//                    showBanner("Failed to load the image from the photo library", isError: true)
-//                }
-//                return
-//            }
-//            await MainActor.run {
-//                processImage(image)
-//            }
+//    private func handleStoreChosen(_ nearby: NearbyStore) {
+//        if let existing = stores.first(where: { s in
+//            s.name == nearby.name &&
+//            abs((s.latitude ?? 0) - nearby.coordinate.latitude) < 0.0005 &&
+//            abs((s.longitude ?? 0) - nearby.coordinate.longitude) < 0.0005
+//        }) {
+//            selectedStoreId = existing.id.uuidString
+//            return
+//        }
+//
+//        let newStore = Store(
+//            name: nearby.name,
+//            latitude: nearby.coordinate.latitude,
+//            longitude: nearby.coordinate.longitude
+//        )
+//        context.insert(newStore)
+//        do {
+//            try context.save()
+//            selectedStoreId = newStore.id.uuidString
+//        } catch {
+//            showBanner("Failed to save the store", isError: true)
 //        }
 //    }
 
@@ -740,7 +756,6 @@ struct ContentView: View {
             }
         }
     }
-
 }
 
 // MARK: - UI building blocks

@@ -14,8 +14,8 @@
             filePath = "findMyShelf/ContentView.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "592"
-            endingLineNumber = "592"
+            startingLineNumber = "608"
+            endingLineNumber = "608"
             landmarkName = "processImage(_:)"
             landmarkType = "7">
          </BreakpointContent>
@@ -94,10 +94,134 @@
             filePath = "findMyShelf/ContentView.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "603"
-            endingLineNumber = "603"
+            startingLineNumber = "619"
+            endingLineNumber = "619"
             landmarkName = "processImage(_:)"
             landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "4A76C0D8-69B5-4F8F-8992-EA3177DC5CC2"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "findMyShelf/Classes/StoreFinder.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "55"
+            endingLineNumber = "55"
+            landmarkName = "searchNearby(from:)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "D4374DFE-3E76-4879-9E02-022CEEAA776C"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "findMyShelf/Classes/StoreFinder.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "62"
+            endingLineNumber = "62"
+            landmarkName = "searchNearby(from:)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "4105F37E-54D1-4175-AC11-6E2D69BA5F75"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "findMyShelf/Classes/StoreFinder.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "59"
+            endingLineNumber = "59"
+            landmarkName = "searchNearby(from:)"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "4105F37E-54D1-4175-AC11-6E2D69BA5F75 - c933f39f093ead8b"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "closure #1 @Swift.MainActor @Sendable (Swift.Optional&lt;__C.MKLocalSearchResponse&gt;, Swift.Optional&lt;Swift.Error&gt;) -&gt; () in findMyShelf.StoreFinder.searchNearby(from: __C.CLLocation) -&gt; ()"
+                  moduleName = "findMyShelf.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/shyem/Projects%20-%20no%20icloud/findMyShelf/findMyShelf/Classes/StoreFinder.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "50"
+                  endingLineNumber = "50">
+               </Location>
+               <Location
+                  uuid = "4105F37E-54D1-4175-AC11-6E2D69BA5F75 - c933f39f093eaf62"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "closure #1 @Swift.MainActor @Sendable (Swift.Optional&lt;__C.MKLocalSearchResponse&gt;, Swift.Optional&lt;Swift.Error&gt;) -&gt; () in findMyShelf.StoreFinder.searchNearby(from: __C.CLLocation) -&gt; ()"
+                  moduleName = "findMyShelf.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/shyem/Projects%20-%20no%20icloud/findMyShelf/findMyShelf/Classes/StoreFinder.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "59"
+                  endingLineNumber = "59">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "F7F7A812-5D14-4CF1-B393-1CCF1A7AC9B6"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "findMyShelf/Classes/StoreFinder.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "66"
+            endingLineNumber = "66"
+            landmarkName = "searchNearby(from:)"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "F7F7A812-5D14-4CF1-B393-1CCF1A7AC9B6 - c933f39f093eaca0"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "closure #1 @Swift.MainActor @Sendable (Swift.Optional&lt;__C.MKLocalSearchResponse&gt;, Swift.Optional&lt;Swift.Error&gt;) -&gt; () in findMyShelf.StoreFinder.searchNearby(from: __C.CLLocation) -&gt; ()"
+                  moduleName = "findMyShelf.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/shyem/Projects%20-%20no%20icloud/findMyShelf/findMyShelf/Classes/StoreFinder.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "57"
+                  endingLineNumber = "57">
+               </Location>
+               <Location
+                  uuid = "F7F7A812-5D14-4CF1-B393-1CCF1A7AC9B6 - c933f39f093eae7b"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "closure #1 @Swift.MainActor @Sendable (Swift.Optional&lt;__C.MKLocalSearchResponse&gt;, Swift.Optional&lt;Swift.Error&gt;) -&gt; () in findMyShelf.StoreFinder.searchNearby(from: __C.CLLocation) -&gt; ()"
+                  moduleName = "findMyShelf.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/shyem/Projects%20-%20no%20icloud/findMyShelf/findMyShelf/Classes/StoreFinder.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "66"
+                  endingLineNumber = "66">
+               </Location>
+            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

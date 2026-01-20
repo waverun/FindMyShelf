@@ -8,6 +8,8 @@ final class Store {
     var createdAt: Date
     var latitude: Double?
     var longitude: Double?
+    var addressLine: String?
+    var city: String?
 
     // קשרים לשורות ולמוצרים
     @Relationship(deleteRule: .cascade) var aisles: [Aisle] = []
@@ -15,11 +17,25 @@ final class Store {
 
     init(name: String,
          latitude: Double? = nil,
-         longitude: Double? = nil) {
+         longitude: Double? = nil,
+         addressLine: String? = nil,
+         city: String? = nil) {
         self.id = UUID()
         self.name = name
         self.createdAt = .now
         self.latitude = latitude
         self.longitude = longitude
+        self.addressLine = addressLine
+        self.city = city
     }
+
+//    init(name: String,
+//         latitude: Double? = nil,
+//         longitude: Double? = nil) {
+//        self.id = UUID()
+//        self.name = name
+//        self.createdAt = .now
+//        self.latitude = latitude
+//        self.longitude = longitude
+//    }
 }
