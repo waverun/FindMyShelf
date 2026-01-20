@@ -123,152 +123,155 @@ struct AisleListView: View {
     }
 
     var body: some View {
-        VStack {
-            // שורת חיפוש
-            HStack {
-//                TextField("Search for an aisle or keywords…", text: $filterText)
-//                    .textFieldStyle(.roundedBorder)
-                TextField("Search for an aisle or keywords…", text: $filterText)
-                    .textFieldStyle(.roundedBorder)
-                    .focused($focusedField, equals: .filter)
-                    .submitLabel(.search)
-            }
-            .padding([.horizontal, .top])
+        ScrollView {
+            VStack {
+                // שורת חיפוש
+                HStack {
+                    //                TextField("Search for an aisle or keywords…", text: $filterText)
+                    //                    .textFieldStyle(.roundedBorder)
+                    TextField("Search for an aisle or keywords…", text: $filterText)
+                        .textFieldStyle(.roundedBorder)
+                        .focused($focusedField, equals: .filter)
+                        .submitLabel(.search)
+                }
+                .padding([.horizontal, .top])
 
-            // כרטיסיות שורות – אופקי
-            ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: 14) {
-                    if filteredAisles.isEmpty {
-                        Text("No aisles were found matching your search.")
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 16)
-                    } else {
-                        ForEach(Array(filteredAisles.enumerated()), id: \.element.id) { index, aisle in
-                            AisleCard(
-                                title: aisle.nameOrNumber,
-                                keywords: aisle.keywords,
-                                colorIndex: index,
-                                isSelected: aisle.id == selectedAisleID
-                            ) {
-                                // בחירה בלבד (לא עריכה)
-                                selectedAisleID = aisle.id
-                                isEditingSelected = false
+                // כרטיסיות שורות – אופקי
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(spacing: 14) {
+                        if filteredAisles.isEmpty {
+                            Text("No aisles were found matching your search.")
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 16)
+                        } else {
+                            ForEach(Array(filteredAisles.enumerated()), id: \.element.id) { index, aisle in
+                                AisleCard(
+                                    title: aisle.nameOrNumber,
+                                    keywords: aisle.keywords,
+                                    colorIndex: index,
+                                    isSelected: aisle.id == selectedAisleID
+                                ) {
+                                    // בחירה בלבד (לא עריכה)
+                                    selectedAisleID = aisle.id
+                                    isEditingSelected = false
+                                }
                             }
                         }
                     }
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-            }
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 6)
-                    .onChanged { _ in
-                        focusedField = nil
-                        guard selectedAisleID != nil else { return }
-                        withAnimation(.easeInOut(duration: 0.36)) {
-                            selectedAisleID = nil
-                            isEditingSelected = false
-                        }
-                    }
-            )
-
-            // פאנל למטה
-            Group {
-                if let aisle = selectedAisle {
-                    AisleBottomPanel(
-                        aisle: aisle,
-                        isEditing: $isEditingSelected,
-                        onDelete: {
-                            context.delete(aisle)
-                            try? context.save()
-                            selectedAisleID = nil
-                            isEditingSelected = false
-                        },
-                        onSave: { newName, newKeywords in
-                            aisle.nameOrNumber = newName
-                            aisle.keywords = newKeywords
-                            try? context.save()
-                            isEditingSelected = false
-                        }
-                    )
                     .padding(.horizontal, 16)
-                    .padding(.bottom, 8)
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    .padding(.vertical, 8)
                 }
-            }
-            .animation(.easeInOut(duration: 0.36), value: selectedAisleID)
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 6)
+                        .onChanged { _ in
+                            focusedField = nil
+                            guard selectedAisleID != nil else { return }
+                            withAnimation(.easeInOut(duration: 0.36)) {
+                                selectedAisleID = nil
+                                isEditingSelected = false
+                            }
+                        }
+                )
 
-            if let err = ocrErrorMessage {
-                Text(err)
-                    .font(.footnote)
-                    .foregroundStyle(.red)
-                    .padding(.horizontal)
-            }
-
-            // הוספה ידנית
-            HStack {
-//                TextField("...number / new asile name", text: $newAisleName)
-//                    .textFieldStyle(.roundedBorder)
-
-                TextField("...number / new aisle name", text: $newAisleName)
-                    .textFieldStyle(.roundedBorder)
-                    .focused($focusedField, equals: .newAisleName)
-                    .submitLabel(.done)
-                    .onSubmit {
-                        focusedField = nil   // סוגר מקלדת
-                                             // אופציונלי: להוסיף שורה אוטומטית
-                                             // addAisle()
-                    }
-
-                Button("הוסף") {
-                    addAisle()
-                }
-                .disabled(newAisleName.trimmingCharacters(in: .whitespaces).isEmpty)
-            }
-            .padding()
-        }
-        .navigationTitle("Aisles map \(store.name)")
-        .toolbar {
-            // מצלמה
-            ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    isShowingCamera = true
-                } label: {
-                    Image(systemName: "camera")
-                }
-            }
-
-            // גלריה
-            ToolbarItem(placement: .topBarTrailing) {
-                PhotosPicker(
-                    selection: $pickedPhotoItem,
-                    matching: .images,
-                    photoLibrary: .shared()
-                ) {
-                    if isProcessingOCR {
-                        ProgressView()
-                    } else {
-                        Text("Select signd from gallery")
+                // פאנל למטה
+                Group {
+                    if let aisle = selectedAisle {
+                        AisleBottomPanel(
+                            aisle: aisle,
+                            isEditing: $isEditingSelected,
+                            onDelete: {
+                                context.delete(aisle)
+                                try? context.save()
+                                selectedAisleID = nil
+                                isEditingSelected = false
+                            },
+                            onSave: { newName, newKeywords in
+                                aisle.nameOrNumber = newName
+                                aisle.keywords = newKeywords
+                                try? context.save()
+                                isEditingSelected = false
+                            }
+                        )
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 8)
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
                     }
                 }
+                .animation(.easeInOut(duration: 0.36), value: selectedAisleID)
+
+                if let err = ocrErrorMessage {
+                    Text(err)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                        .padding(.horizontal)
+                }
+
+                // הוספה ידנית
+                HStack {
+                    //                TextField("...number / new asile name", text: $newAisleName)
+                    //                    .textFieldStyle(.roundedBorder)
+
+                    TextField("...number / new aisle name", text: $newAisleName)
+                        .textFieldStyle(.roundedBorder)
+                        .focused($focusedField, equals: .newAisleName)
+                        .submitLabel(.done)
+                        .onSubmit {
+                            focusedField = nil   // סוגר מקלדת
+                                                 // אופציונלי: להוסיף שורה אוטומטית
+                                                 // addAisle()
+                        }
+
+                    Button("הוסף") {
+                        addAisle()
+                    }
+                    .disabled(newAisleName.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+                .padding()
+            }
+            .navigationTitle("Aisles map \(store.name)")
+            .toolbar {
+                // מצלמה
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        isShowingCamera = true
+                    } label: {
+                        Image(systemName: "camera")
+                    }
+                }
+
+                // גלריה
+                ToolbarItem(placement: .topBarTrailing) {
+                    PhotosPicker(
+                        selection: $pickedPhotoItem,
+                        matching: .images,
+                        photoLibrary: .shared()
+                    ) {
+                        if isProcessingOCR {
+                            ProgressView()
+                        } else {
+                            Text("Select signd from gallery")
+                        }
+                    }
+                }
+            }
+            // מצלמה – sheet
+            .sheet(isPresented: $isShowingCamera) {
+                CameraImagePicker(isPresented: $isShowingCamera) { image in
+                    processImage(image)
+                }
+            }
+            // גלריה – שינוי בפריט שנבחר
+            .onChange(of: pickedPhotoItem) { _, newItem in
+                if let item = newItem {
+                    handlePickedPhoto(item)
+                }
+            }
+            .contentShape(Rectangle())     // חשוב!
+            .onTapGesture {
+                focusedField = nil
             }
         }
-        // מצלמה – sheet
-        .sheet(isPresented: $isShowingCamera) {
-            CameraImagePicker(isPresented: $isShowingCamera) { image in
-                processImage(image)
-            }
-        }
-        // גלריה – שינוי בפריט שנבחר
-        .onChange(of: pickedPhotoItem) { _, newItem in
-            if let item = newItem {
-                handlePickedPhoto(item)
-            }
-        }
-        .contentShape(Rectangle())     // חשוב!
-        .onTapGesture {
-            focusedField = nil
-        }
+        .scrollDismissesKeyboard(.interactively)
     }
 
     // MARK: - פעולות בסיסיות
