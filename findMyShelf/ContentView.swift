@@ -30,6 +30,9 @@ struct ContentView: View {
         return status == .authorizedWhenInUse || status == .authorizedAlways
     }
 
+    @State private var pendingImage: UIImage?
+    @State private var showConfirmImageSheet: Bool = false
+
     @FocusState private var isQuickQueryFocused: Bool
 
     @State private var showPhotosPicker: Bool = false
@@ -177,6 +180,22 @@ struct ContentView: View {
                     processImage(image)
                 }
             }
+            .sheet(isPresented: $showConfirmImageSheet) {
+                ConfirmImageSheet(
+                    image: pendingImage,
+                    onCancel: {
+                        pendingImage = nil
+                        pickedPhotoItem = nil
+                        showConfirmImageSheet = false
+                    },
+                    onConfirm: { image in
+                        pendingImage = nil
+                        pickedPhotoItem = nil
+                        showConfirmImageSheet = false
+                        processImage(image)
+                    }
+                )
+            }
             .onChange(of: pickedPhotoItem) { _, newItem in
                 if let item = newItem {
                     handlePickedPhoto(item)
@@ -213,41 +232,6 @@ struct ContentView: View {
             } message: {
                 Text("You can take a photo in the store or choose an existing image.")
             }
-
-//            .confirmationDialog(
-//                "Add aisle sign",
-//                isPresented: $showPhotoSourceDialog,
-//                titleVisibility: .visible
-//            ) {
-//                Button("Take photo") {
-//                    isShowingCamera = true
-//                }
-//                .confirmationDialog(
-//                    "Add aisle sign",
-//                    isPresented: $showPhotoSourceDialog,
-//                    titleVisibility: .visible
-//                ) {
-//                    Button("Take photo") {
-//                        isShowingCamera = true
-//                    }
-//
-//                    Button("Choose from library") {
-//                        showPhotosPicker = true
-//                    }
-//                } message: {
-//                    Text("You can take a photo in the store or choose an existing image.")
-//                }
-//
-////                PhotosPicker(
-////                    selection: $pickedPhotoItem,
-////                    matching: .images,
-////                    photoLibrary: .shared()
-////                ) {
-////                    Text("Choose from library")
-////                }
-//            } message: {
-//                Text("You can take a photo in the store or choose an existing image.")
-//            }
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
@@ -520,6 +504,21 @@ struct ContentView: View {
         }
     }
 
+//    private func handlePickedPhoto(_ item: PhotosPickerItem) {
+//        Task {
+//            guard let data = try? await item.loadTransferable(type: Data.self),
+//                  let image = UIImage(data: data) else {
+//                await MainActor.run {
+//                    showBanner("Failed to load the image from the photo library", isError: true)
+//                }
+//                return
+//            }
+//            await MainActor.run {
+//                processImage(image)
+//            }
+//        }
+//    }
+
     private func handlePickedPhoto(_ item: PhotosPickerItem) {
         Task {
             guard let data = try? await item.loadTransferable(type: Data.self),
@@ -529,8 +528,10 @@ struct ContentView: View {
                 }
                 return
             }
+
             await MainActor.run {
-                processImage(image)
+                self.pendingImage = image
+                self.showConfirmImageSheet = true
             }
         }
     }
@@ -648,6 +649,56 @@ struct ContentView: View {
         }
         return String(format: "%.1f k\"m", meters / 1000.0)
     }
+
+    private struct ConfirmImageSheet: View {
+        let image: UIImage?
+        let onCancel: () -> Void
+        let onConfirm: (UIImage) -> Void
+
+        var body: some View {
+            NavigationStack {
+                VStack(spacing: 16) {
+                    if let image {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFit()
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .padding(.horizontal, 16)
+                            .padding(.top, 8)
+
+                        Text("Use this photo?")
+                            .font(.headline)
+
+                        Text("The app will analyze the aisle sign and add an aisle.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
+
+                    } else {
+                        Text("No image")
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+                }
+                .navigationTitle("Confirm photo")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { onCancel() }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Use photo") {
+                            if let image { onConfirm(image) }
+                        }
+                        .disabled(image == nil)
+                    }
+                }
+            }
+        }
+    }
+
 }
 
 // MARK: - UI building blocks
