@@ -30,6 +30,13 @@ struct AisleListView: View {
     // עבור מצלמה
     @State private var isShowingCamera: Bool = false
 
+    @FocusState private var focusedField: FocusedField?
+
+    private enum FocusedField: Hashable {
+        case newAisleName
+        case filter
+    }
+
     private var selectedAisle: Aisle? {
         guard let id = selectedAisleID else { return nil }
         return aislesForStore.first(where: { $0.id == id })
@@ -84,13 +91,6 @@ struct AisleListView: View {
 
                 // 3) סינון Keywords (async) — מחוץ ל-MainActor
                 let rawKeywords = (result.keywords_original ?? []) + (result.keywords_en ?? [])
-                // בנתיים לא קוראים לניקוי מילות מפתח
-//                let sanitizer = OpenAIKeywordSanitizerService(apiKey: apiKey)
-//                let filtered = try await sanitizer.filterProductKeywords(
-//                    originalKeywords: rawKeywords,
-//                    languageHint: result.language
-//                )
-//                let finalKeywords = filtered.kept
 
                 let finalKeywords = rawKeywords
                 
@@ -126,36 +126,14 @@ struct AisleListView: View {
         VStack {
             // שורת חיפוש
             HStack {
+//                TextField("Search for an aisle or keywords…", text: $filterText)
+//                    .textFieldStyle(.roundedBorder)
                 TextField("Search for an aisle or keywords…", text: $filterText)
                     .textFieldStyle(.roundedBorder)
+                    .focused($focusedField, equals: .filter)
+                    .submitLabel(.search)
             }
             .padding([.horizontal, .top])
-
-            // רשימת שורות (מסוננת)
-//            List {
-//                if filteredAisles.isEmpty {
-//                    Text("No aisles were found matching your search.")
-//                        .foregroundStyle(.secondary)
-//                } else {
-//                    ForEach(filteredAisles) { aisle in
-//                        NavigationLink {
-//                            AisleDetailView(aisle: aisle)
-//                        } label: {
-//                            VStack(alignment: .leading, spacing: 4) {
-//                                Text("שורה \(aisle.nameOrNumber)")
-//                                    .font(.headline)
-//                                if !aisle.keywords.isEmpty {
-//                                    Text(aisle.keywords.joined(separator: ", "))
-//                                        .font(.subheadline)
-//                                        .foregroundStyle(.secondary)
-//                                        .lineLimit(2)
-//                                }
-//                            }
-//                        }
-//                    }
-//                    .onDelete(perform: deleteAislesFiltered)
-//                }
-//            }
 
             // כרטיסיות שורות – אופקי
             ScrollView(.horizontal, showsIndicators: false) {
@@ -182,25 +160,10 @@ struct AisleListView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
             }
-//            .gesture(
-//                DragGesture(minimumDistance: 6)
-//                    .onChanged { _ in
-//                        // בזמן גלילה – מסתירים פאנל
-//                        if !isScrollingCards {
-//                            isScrollingCards = true
-//                            isEditingSelected = false
-//                        }
-//                    }
-//                    .onEnded { _ in
-//                        // אחרי סיום גלילה – משאירים את הפאנל מוסתר עד בחירה מחדש
-//                        isScrollingCards = false
-//                        selectedAisleID = nil
-//                    }
-//            )
-
             .simultaneousGesture(
                 DragGesture(minimumDistance: 6)
                     .onChanged { _ in
+                        focusedField = nil
                         guard selectedAisleID != nil else { return }
                         withAnimation(.easeInOut(duration: 0.36)) {
                             selectedAisleID = nil
@@ -244,8 +207,18 @@ struct AisleListView: View {
 
             // הוספה ידנית
             HStack {
-                TextField("...number / new asile name", text: $newAisleName)
+//                TextField("...number / new asile name", text: $newAisleName)
+//                    .textFieldStyle(.roundedBorder)
+
+                TextField("...number / new aisle name", text: $newAisleName)
                     .textFieldStyle(.roundedBorder)
+                    .focused($focusedField, equals: .newAisleName)
+                    .submitLabel(.done)
+                    .onSubmit {
+                        focusedField = nil   // סוגר מקלדת
+                                             // אופציונלי: להוסיף שורה אוטומטית
+                                             // addAisle()
+                    }
 
                 Button("הוסף") {
                     addAisle()
@@ -291,6 +264,10 @@ struct AisleListView: View {
             if let item = newItem {
                 handlePickedPhoto(item)
             }
+        }
+        .contentShape(Rectangle())     // חשוב!
+        .onTapGesture {
+            focusedField = nil
         }
     }
 
