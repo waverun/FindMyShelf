@@ -11,6 +11,8 @@ struct ContentView: View {
 
 //    private let apiKey: String = ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? ""
 
+    @State private var pendingProductQuery: String = ""
+
     private var apiKey: String {
         Bundle.main.object(forInfoDictionaryKey: "OPENAI_API_KEY") as? String ?? ""
     }
@@ -212,18 +214,20 @@ struct ContentView: View {
                     handlePickedPhoto(item)
                 }
             }
-            .background(
-                Group {
-                    if let store = selectedStore {
-                        NavigationLink(isActive: $goToAisles) {
-                            AisleListView(store: store)
-                        } label: { EmptyView() }
-                        NavigationLink(isActive: $goToSearch) {
-                            ProductSearchView(store: store)
-                        } label: { EmptyView() }
-                    }
-                }
-            )
+//            .background(
+//                Group {
+//                    if let store = selectedStore {
+//                        NavigationLink(isActive: $goToAisles) {
+//                            AisleListView(store: store)
+//                        } label: { EmptyView() }
+//                        NavigationLink(isActive: $goToSearch) {
+////                            ProductSearchView(store: store)
+//                            ProductSearchView(store: store, initialQuery: pendingProductQuery)   // ✅
+//
+//                        } label: { EmptyView() }
+//                    }
+//                }
+//            )
             .confirmationDialog(
                 "Add aisle sign",
                 isPresented: $showPhotoSourceDialog,
@@ -251,6 +255,17 @@ struct ContentView: View {
                     }
                 }
             }
+            .navigationDestination(isPresented: $goToAisles) {
+                if let store = selectedStore {
+                    AisleListView(store: store)
+                }
+            }
+            .navigationDestination(isPresented: $goToSearch) {
+                if let store = selectedStore {
+                    ProductSearchView(store: store, initialQuery: pendingProductQuery)
+                }
+            }
+
         }
         .photosPicker(
             isPresented: $showPhotosPicker,
@@ -453,7 +468,7 @@ struct ContentView: View {
                         .buttonStyle(.bordered)
 
                         NavigationLink {
-                            ProductSearchView(store: store)
+                            ProductSearchView(store: store, initialQuery: "")
                         } label: {
                             Label("Search", systemImage: "magnifyingglass")
                                 .frame(maxWidth: .infinity)
@@ -481,13 +496,29 @@ struct ContentView: View {
         return nameMatch && latOk && lonOk
     }
 
+//    private func startQuickSearch() {
+//        let trimmed = quickQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+//        guard !trimmed.isEmpty else { return }
+//
+//        guard selectedStore != nil else {
+//            showBanner("Please select a store before searching", isError: true)
+//            return
+//        }
+//
+//        pendingProductQuery = trimmed   // ✅ שמור לפני ניווט
+//        goToSearch = true
+//    }
+
     private func startQuickSearch() {
         let trimmed = quickQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+
         guard selectedStore != nil else {
             showBanner("Please select a store before searching", isError: true)
             return
         }
+
+        pendingProductQuery = trimmed
         goToSearch = true
     }
 

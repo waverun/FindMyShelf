@@ -9,6 +9,9 @@ struct ProductSearchView: View {
     @Query(sort: \Aisle.createdAt, order: .forward)
     private var allAisles: [Aisle]
 
+    let initialQuery: String   // ✅ חדש
+    @State private var didAutoSearch = false   // ✅ חדש
+
     @Query(sort: \ProductItem.createdAt, order: .forward)
     private var allProducts: [ProductItem]
 
@@ -129,6 +132,16 @@ struct ProductSearchView: View {
 
         }
         .navigationTitle("חיפוש מוצר בחנות")
+        .onAppear {
+            // ✅ רץ פעם אחת בלבד, ורק אם הגיע טקסט מהמסך הקודם
+            guard !didAutoSearch else { return }
+            let q = initialQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !q.isEmpty else { return }
+
+            didAutoSearch = true
+            productQuery = q
+            runSearch()
+        }
     }
 
     // MARK: - לוגיקה
