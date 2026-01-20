@@ -55,7 +55,7 @@ struct AisleListView: View {
                 guard let jpeg = image.jpegData(compressionQuality: 0.85) else {
                     await MainActor.run {
                         isProcessingOCR = false
-                        ocrErrorMessage = "לא הצלחתי להמיר את התמונה ל-JPEG."
+                        ocrErrorMessage = "I couldn't convert the image to JPEG."
                     }
                     return
                 }
@@ -68,7 +68,7 @@ struct AisleListView: View {
                 guard name != "Unknown" else {
                     await MainActor.run {
                         isProcessingOCR = false
-                        ocrErrorMessage = "לא הצלחתי לזהות מספר/כותרת מהשלט."
+                        ocrErrorMessage = "I couldn't detect an aisle number or title from the sign."
                     }
                     return
                 }
@@ -90,7 +90,7 @@ struct AisleListView: View {
                     isProcessingOCR = false
 
                     if aislesForStore.contains(where: { $0.nameOrNumber == name }) {
-                        ocrErrorMessage = "השורה '\(name)' כבר קיימת."
+                        ocrErrorMessage = "Aisle '\(name)' already exists."
                         return
                     }
 
@@ -100,7 +100,7 @@ struct AisleListView: View {
                     do {
                         try context.save()
                     } catch {
-                        ocrErrorMessage = "שמירה נכשלה."
+                        ocrErrorMessage = "Save failed."
                     }
                 }
 
@@ -117,7 +117,7 @@ struct AisleListView: View {
         VStack {
             // שורת חיפוש
             HStack {
-                TextField("חפש שורה או מילות מפתח…", text: $filterText)
+                TextField("Search for an aisle or keywords…", text: $filterText)
                     .textFieldStyle(.roundedBorder)
             }
             .padding([.horizontal, .top])
@@ -125,7 +125,7 @@ struct AisleListView: View {
             // רשימת שורות (מסוננת)
             List {
                 if filteredAisles.isEmpty {
-                    Text("לא נמצאו שורות בהתאם לחיפוש.")
+                    Text("No aisles were found matching your search.")
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(filteredAisles) { aisle in
@@ -157,7 +157,7 @@ struct AisleListView: View {
 
             // הוספה ידנית
             HStack {
-                TextField("מספר/שם שורה חדש…", text: $newAisleName)
+                TextField("...number / new asile name", text: $newAisleName)
                     .textFieldStyle(.roundedBorder)
 
                 Button("הוסף") {
@@ -167,7 +167,7 @@ struct AisleListView: View {
             }
             .padding()
         }
-        .navigationTitle("מיפוי שורות – \(store.name)")
+        .navigationTitle("Aisles map \(store.name)")
         .toolbar {
             // מצלמה
             ToolbarItem(placement: .topBarLeading) {
@@ -188,7 +188,7 @@ struct AisleListView: View {
                     if isProcessingOCR {
                         ProgressView()
                     } else {
-                        Text("בחר שלט מהגלריה")
+                        Text("Select signd from gallery")
                     }
                 }
             }
@@ -245,7 +245,7 @@ struct AisleListView: View {
             guard let data = try? await item.loadTransferable(type: Data.self),
                   let image = UIImage(data: data) else {
                 await MainActor.run {
-                    self.ocrErrorMessage = "לא הצלחתי לקרוא את התמונה מהגלריה."
+                    self.ocrErrorMessage = "I couldn't load the image from the photo library."
                 }
                 return
             }

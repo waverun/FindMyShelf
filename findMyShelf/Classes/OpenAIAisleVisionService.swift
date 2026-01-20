@@ -42,8 +42,8 @@ If unsure, use null for aisle_code/title fields and empty keyword arrays.
         ]
 
         let body: [String: Any] = [
-//            "model": "gpt-4o-mini",   // אפשר להחליף למודל שאתה משתמש בו בפועל
-            "model": "gpt-5.2",   // אפשר להחליף למודל שאתה משתמש בו בפועל
+            "model": "gpt-4o-mini",   // אפשר להחליף למודל שאתה משתמש בו בפועל
+//            "model": "gpt-5.2",   // אפשר להחליף למודל שאתה משתמש בו בפועל
             "temperature": 0.2,
             "messages": [
                 ["role": "system", "content": systemText],
