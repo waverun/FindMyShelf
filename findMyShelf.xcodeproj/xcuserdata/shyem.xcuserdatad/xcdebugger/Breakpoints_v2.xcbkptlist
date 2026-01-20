@@ -80,8 +80,8 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "83"
             endingLineNumber = "83"
-            landmarkName = "processImage(_:)"
-            landmarkType = "7">
+            landmarkName = "AisleListView"
+            landmarkType = "14">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -96,8 +96,8 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "80"
             endingLineNumber = "80"
-            landmarkName = "processImage(_:)"
-            landmarkType = "7">
+            landmarkName = "AisleListView"
+            landmarkType = "14">
             <Locations>
                <Location
                   uuid = "FAED17E8-0BF6-4A65-9192-3A45ABDAF2B9 - cc6a5d0f9f68bc65"
