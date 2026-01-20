@@ -263,9 +263,45 @@ struct ContentView: View {
                     } catch {
                         showBanner("Failed to save the store", isError: true)
                     }
+                },
+                onDelete: { store in
+                    // אם מוחקים חנות שנבחרה – נקה בחירה
+                    if selectedStoreId == store.id.uuidString {
+                        selectedStoreId = nil
+                    }
+                    if previousSelectedStoreId == store.id.uuidString {
+                        previousSelectedStoreId = nil
+                    }
+
+                    context.delete(store)          // ✅ cascade ימחק aisles/products
+                    do {
+                        try context.save()
+                    } catch {
+                        showBanner("Failed to delete store", isError: true)
+                    }
                 }
             )
         }
+//        .sheet(isPresented: $showManualStoreSheet) {
+//            ManualStoreSheet(
+//                existingStores: stores,
+//                onPickExisting: { store in
+//                    selectedStoreId = store.id.uuidString
+//                    showManualStoreSheet = false
+//                },
+//                onSaveNew: { name, address, city in
+//                    let newStore = Store(name: name, addressLine: address, city: city)
+//                    context.insert(newStore)
+//                    do {
+//                        try context.save()
+//                        selectedStoreId = newStore.id.uuidString
+//                        showManualStoreSheet = false
+//                    } catch {
+//                        showBanner("Failed to save the store", isError: true)
+//                    }
+//                }
+//            )
+//        }
         .photosPicker(
             isPresented: $showPhotosPicker,
             selection: $pickedPhotoItem,
