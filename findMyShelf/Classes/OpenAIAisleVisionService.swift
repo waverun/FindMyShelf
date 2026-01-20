@@ -17,10 +17,8 @@ final class OpenAIAisleVisionService {
         """
 
         let userText = """
-Extract the aisle identifier/number as printed on the sign (e.g., "12", "A12", "7A").
-If there are multiple numbers, choose the one that clearly labels the aisle (not prices or dates).
 Return:
-- aisle_code: the aisle identifier exactly as seen (trimmed) or null
+- aisle_code: the aisle number/identifier exactly as seen (trimmed) or null
 - title_original: short title as seen (trimmed)
 - title_en: English translation (trimmed)
 - keywords_original: 3-12 relevant keywords (lowercase if possible)
@@ -28,31 +26,6 @@ Return:
 - language: ISO 639-1 if you can (e.g., "he", "de", "fr"), else null
 If unsure, use null for aisle_code/title fields and empty keyword arrays.
 """
-
-//        let userText = """
-//        Extract the aisle title in the original language and translate to English.
-//        Also return keywords in both original language and English.
-//        - title_original: short title as seen (trimmed)
-//        - title_en: English translation (trimmed)
-//        - keywords_original: 3-12 relevant keywords (lowercase if possible)
-//        - keywords_en: 3-12 English keywords (lowercase)
-//        - language: ISO 639-1 if you can (e.g., "he", "de", "fr"), else null
-//        If unsure, use null title fields and empty keyword arrays.
-//        """
-
-        // JSON Schema (Strict) — כדי לקבל JSON יציב
-//        let schema: [String: Any] = [
-//            "type": "object",
-//            "additionalProperties": false,
-//            "properties": [
-//                "title_original": ["type": ["string","null"]],
-//                "title_en": ["type": ["string","null"]],
-//                "keywords_original": ["type": "array", "items": ["type": "string"]],
-//                "keywords_en": ["type": "array", "items": ["type": "string"]],
-//                "language": ["type": ["string","null"]]
-//            ],
-//            "required": ["title_original","title_en","keywords_original","keywords_en","language"]
-//        ]
 
         let schema: [String: Any] = [
             "type": "object",
@@ -69,7 +42,8 @@ If unsure, use null for aisle_code/title fields and empty keyword arrays.
         ]
 
         let body: [String: Any] = [
-            "model": "gpt-4o-mini",   // אפשר להחליף למודל שאתה משתמש בו בפועל
+//            "model": "gpt-4o-mini",   // אפשר להחליף למודל שאתה משתמש בו בפועל
+            "model": "gpt-5.2",   // אפשר להחליף למודל שאתה משתמש בו בפועל
             "temperature": 0.2,
             "messages": [
                 ["role": "system", "content": systemText],
@@ -77,7 +51,8 @@ If unsure, use null for aisle_code/title fields and empty keyword arrays.
                  "content": [
                     ["type": "text", "text": userText],
                     ["type": "image_url",
-                     "image_url": ["url": "data:image/jpeg;base64,\(base64)"]
+                     "image_url": ["url": "data:image/jpeg;base64,\(base64)",
+                                   "detail": "high"]
                     ]
                  ]
                 ]

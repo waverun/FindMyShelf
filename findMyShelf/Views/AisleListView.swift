@@ -60,27 +60,41 @@ struct AisleListView: View {
                     return
                 }
 
+                // 1) Vision (async) — מחוץ ל-MainActor
                 let result = try await visionService.analyzeAisle(imageJPEGData: jpeg)
 
+                // 2) קביעת שם (sync) — מחוץ ל-MainActor
+                let name = aisleNameFromVision(result)
+                guard name != "Unknown" else {
+                    await MainActor.run {
+                        isProcessingOCR = false
+                        ocrErrorMessage = "לא הצלחתי לזהות מספר/כותרת מהשלט."
+                    }
+                    return
+                }
+
+                // 3) סינון Keywords (async) — מחוץ ל-MainActor
+                let rawKeywords = (result.keywords_original ?? []) + (result.keywords_en ?? [])
+                // בנתיים לא קוראים לניקוי מילות מפתח
+//                let sanitizer = OpenAIKeywordSanitizerService(apiKey: apiKey)
+//                let filtered = try await sanitizer.filterProductKeywords(
+//                    originalKeywords: rawKeywords,
+//                    languageHint: result.language
+//                )
+//                let finalKeywords = filtered.kept
+
+                let finalKeywords = rawKeywords
+                
+                // 4) UI + SwiftData — בתוך MainActor
                 await MainActor.run {
                     isProcessingOCR = false
 
-                    let name = aisleNameFromVision(result)
-                    guard name != "Unknown" else {
-                        ocrErrorMessage = "לא הצלחתי לזהות מספר/כותרת מהשלט."
-                        return
-                    }
-
-                    // כפילות לפי nameOrNumber
                     if aislesForStore.contains(where: { $0.nameOrNumber == name }) {
                         ocrErrorMessage = "השורה '\(name)' כבר קיימת."
                         return
                     }
 
-                    // keywords – אם אתה רוצה רק מקוריים, תשאיר רק אותם
-                    let keywords = (result.keywords_original ?? []) + (result.keywords_en ?? [])
-
-                    let aisle = Aisle(nameOrNumber: name, storeId: store.id, keywords: keywords)
+                    let aisle = Aisle(nameOrNumber: name, storeId: store.id, keywords: finalKeywords)
                     context.insert(aisle)
 
                     do {
@@ -89,6 +103,7 @@ struct AisleListView: View {
                         ocrErrorMessage = "שמירה נכשלה."
                     }
                 }
+
             } catch {
                 await MainActor.run {
                     isProcessingOCR = false
@@ -96,45 +111,6 @@ struct AisleListView: View {
                 }
             }
         }
-
-//        Task {
-//            do {
-//                let analysis = try await analyzer.analyze(image)
-//
-//                await MainActor.run {
-//                    isProcessingOCR = false
-//
-//                    let title = !analysis.titleEN.isEmpty ? analysis.titleEN : analysis.titleOriginal
-//                    guard !title.isEmpty else {
-//                        ocrErrorMessage = "לא הצלחתי לזהות כותרת מהשלט."
-//                        return
-//                    }
-//
-//                    // בדיקת כפילות
-//                    if aislesForStore.contains(where: { $0.nameOrNumber == title }) {
-//                        ocrErrorMessage = "השורה '\(title)' כבר קיימת."
-//                        return
-//                    }
-//
-////                    let aisle = Aisle(nameOrNumber: title, storeId: store.id, keywords: analysis.keywords)
-//                    let name = aisleNameFromVision(result)
-//                    let keywords = (result.keywords_original ?? []) + (result.keywords_en ?? [])
-//                    let aisle = Aisle(nameOrNumber: name, storeId: store.id, keywords: keywords)
-//
-//                    context.insert(aisle)
-//                    do {
-//                        try context.save()
-//                    } catch {
-//                        ocrErrorMessage = "שמירה נכשלה."
-//                    }
-//                }
-//            } catch {
-//                await MainActor.run {
-//                    isProcessingOCR = false
-//                    ocrErrorMessage = error.localizedDescription
-//                }
-//            }
-//        }
     }
 
     var body: some View {

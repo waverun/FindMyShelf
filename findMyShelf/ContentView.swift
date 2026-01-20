@@ -563,8 +563,10 @@ struct ContentView: View {
                     let titleOriginal = (result.title_original ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
                     let titleEn = (result.title_en ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
 
+                    let aisleCode = (result.aisle_code ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+
                     // חייבים כותרת כלשהי כדי ליצור Aisle
-                    let displayTitle = !titleEn.isEmpty ? titleEn : (!titleOriginal.isEmpty ? titleOriginal : "")
+                    let displayTitle = !aisleCode.isEmpty ? aisleCode : !titleEn.isEmpty ? titleEn : (!titleOriginal.isEmpty ? titleOriginal : "")
 
                     guard !displayTitle.isEmpty else {
                         showBanner("No aisle title could be detected from the sign", isError: true)
