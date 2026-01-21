@@ -180,6 +180,16 @@ struct ProductSearchView: View {
             return
         }
 
+        // 3. If local didn't find anything – call GPT
+        // ✅ Solution 2: if the store has no aisles yet, don't call AI, show a better message.
+        if aislesForStore.isEmpty {
+            statusMessage = "This store has no aisles yet. Add an aisle (upload a sign) and then try searching again."
+            isCallingGPT = false
+            gptCandidates = []
+            suggestedAisle = nil
+            return
+        }
+
         // 3. אם גם לוקאלי לא מצא – לקרוא ל-GPT
         Task {
             await runGPTSuggestion(for: q)
@@ -187,6 +197,16 @@ struct ProductSearchView: View {
     }
 
     private func runGPTSuggestion(for query: String) async {
+        if aislesForStore.isEmpty {
+            await MainActor.run {
+                self.isCallingGPT = false
+                self.gptCandidates = []
+                self.suggestedAisle = nil
+                self.statusMessage = "This store has no aisles yet. Add an aisle (upload a sign) and then try searching again."
+            }
+            return
+        }
+
         await MainActor.run {
             self.isCallingGPT = true
             self.statusMessage = "Asking AI for aisle suggestion…"
