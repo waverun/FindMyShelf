@@ -9,6 +9,10 @@ struct ContentView: View {
         locationManager.currentLocation != nil
     }
 
+    @State private var showSelectedStoreAddress: Bool = false
+    @State private var editingStore: Store?
+    @State private var showEditStoreSheet: Bool = false
+
     @State private var showManualStoreSheet = false
     @State private var savedStoreSearch = ""
 
@@ -282,26 +286,32 @@ struct ContentView: View {
                 }
             )
         }
-//        .sheet(isPresented: $showManualStoreSheet) {
-//            ManualStoreSheet(
-//                existingStores: stores,
-//                onPickExisting: { store in
-//                    selectedStoreId = store.id.uuidString
-//                    showManualStoreSheet = false
-//                },
-//                onSaveNew: { name, address, city in
-//                    let newStore = Store(name: name, addressLine: address, city: city)
-//                    context.insert(newStore)
-//                    do {
-//                        try context.save()
-//                        selectedStoreId = newStore.id.uuidString
-//                        showManualStoreSheet = false
-//                    } catch {
-//                        showBanner("Failed to save the store", isError: true)
-//                    }
-//                }
-//            )
-//        }
+        .sheet(isPresented: $showEditStoreSheet) {
+            if let store = editingStore {
+                EditStoreSheet(
+                    store: store,
+                    onSave: { updatedName, updatedAddress, updatedCity in
+                        store.name = updatedName
+                        store.addressLine = updatedAddress
+                        store.city = updatedCity
+
+                        do {
+                            try context.save()
+                            showBanner("Store updated", isError: false)
+
+                            // אם נמחקה כתובת בזמן עריכה — סגור תצוגת כתובת
+                            let addr = storeAddressLine(store) ?? ""
+                            if addr.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                showSelectedStoreAddress = false
+                            }
+
+                        } catch {
+                            showBanner("Failed to update store", isError: true)
+                        }
+                    }
+                )
+            }
+        }
         .photosPicker(
             isPresented: $showPhotosPicker,
             selection: $pickedPhotoItem,
@@ -399,20 +409,72 @@ struct ContentView: View {
             Text("Your store")
                 .font(.headline)
 
+//            if let store = selectedStore {
+//                SelectedStoreCard(
+//                    title: store.name,
+//                    address: storeAddressLine(store),
+//                    isAddressShown: showSelectedStoreAddress,
+//                    onToggleAddress: {
+//                        withAnimation(.easeInOut(duration: 0.15)) {
+//                            showSelectedStoreAddress.toggle()
+//                        }
+//                    },
+//                    accentSeed: store.name,
+//                    trailingButtonTitle: "Change store",
+//                    trailingAction: {
+//                        previousSelectedStoreId = selectedStoreId
+//                        selectedStoreId = nil
+//                        quickQuery = ""
+//                        showSelectedStoreAddress = false // ✅ שלא “יידבק” לחנות הבאה
+//                    }
+//                )
+//            }
             if let store = selectedStore {
                 SelectedStoreCard(
                     title: store.name,
+                    address: storeAddressLine(store),
+                    isAddressShown: showSelectedStoreAddress,
+                    onToggleAddress: {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            showSelectedStoreAddress.toggle()
+                        }
+                    },
+                    onEdit: {
+                        editingStore = store
+                        showEditStoreSheet = true
+                    },
                     accentSeed: store.name,
                     trailingButtonTitle: "Change store",
                     trailingAction: {
-                        previousSelectedStoreId = selectedStoreId   // שמור את מה שהיה
-                        selectedStoreId = nil                       // עבור למסך בחירת חנות
+                        previousSelectedStoreId = selectedStoreId
+                        selectedStoreId = nil
                         quickQuery = ""
+                        showSelectedStoreAddress = false
                     }
                 )
             }
         }
     }
+
+//    private var selectedStoreSection: some View {
+//        VStack(alignment: .leading, spacing: 10) {
+//            Text("Your store")
+//                .font(.headline)
+//
+//            if let store = selectedStore {
+//                SelectedStoreCard(
+//                    title: store.name,
+//                    accentSeed: store.name,
+//                    trailingButtonTitle: "Change store",
+//                    trailingAction: {
+//                        previousSelectedStoreId = selectedStoreId   // שמור את מה שהיה
+//                        selectedStoreId = nil                       // עבור למסך בחירת חנות
+//                        quickQuery = ""
+//                    }
+//                )
+//            }
+//        }
+//    }
 
     // MARK: - Actions
 
@@ -521,6 +583,14 @@ struct ContentView: View {
 
     // MARK: - Logic
 
+    private func storeAddressLine(_ store: Store) -> String? {
+        let parts = [store.addressLine, store.city]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        return parts.isEmpty ? nil : parts.joined(separator: " • ")
+    }
+
+
     private func matchesPreviousStore(_ nearby: NearbyStore) -> Bool {
         guard let prev = previousStore,
               let lat = prev.latitude,
@@ -570,6 +640,7 @@ struct ContentView: View {
             return s.name == nearby.name
         }) {
             selectedStoreId = existing.id.uuidString
+            showSelectedStoreAddress = false
             return
         }
 
@@ -584,6 +655,7 @@ struct ContentView: View {
         do {
             try context.save()
             selectedStoreId = newStore.id.uuidString
+            showSelectedStoreAddress = false
         } catch {
             showBanner("Failed to save the store", isError: true)
         }
@@ -868,26 +940,170 @@ private struct StorePosterCard: View {
     }
 }
 
+//private struct SelectedStoreCard: View {
+//    let title: String
+//    let accentSeed: String
+//    let trailingButtonTitle: String
+//    let trailingAction: () -> Void
+//
+//    var body: some View {
+//        HStack(alignment: .center) {
+//            VStack(alignment: .leading, spacing: 6) {
+//                Text(title)
+//                    .font(.title3.bold())
+//                Text("Selected store")
+//                    .font(.footnote)
+//                    .foregroundStyle(.secondary)
+//            }
+//
+//            Spacer()
+//
+//            Button(action: trailingAction) {
+//                Label("Change store", systemImage: "arrow.triangle.2.circlepath")
+//            }
+//            .buttonStyle(.bordered)
+//        }
+//        .padding(16)
+//        .background(
+//            RoundedRectangle(cornerRadius: 20, style: .continuous)
+//                .fill(.thinMaterial)
+//                .overlay(
+//                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+//                        .strokeBorder(color(for: accentSeed).opacity(0.25), lineWidth: 1)
+//                )
+//        )
+//    }
+//
+//    private func color(for seed: String) -> Color {
+//        let hash = seed.unicodeScalars.reduce(0) { ($0 &* 131) &+ Int($1.value) }
+//        let palette: [Color] = [.blue, .purple, .indigo, .teal, .mint, .pink, .orange]
+//        return palette[abs(hash) % palette.count]
+//    }
+//}
+
+//private struct SelectedStoreCard: View {
+//    let title: String
+//    let address: String?
+//    let isAddressShown: Bool
+//    let onToggleAddress: () -> Void
+//
+//    let accentSeed: String
+//    let trailingButtonTitle: String
+//    let trailingAction: () -> Void
+//
+//    var body: some View {
+//        HStack(alignment: .center) {
+//            VStack(alignment: .leading, spacing: 6) {
+//
+//                // רק הכותרת לחיצה (ולא כל הכרטיס)
+//                Button(action: onToggleAddress) {
+//                    HStack(spacing: 6) {
+//                        Text(title)
+//                            .font(.title3.bold())
+//                            .foregroundStyle(.primary)
+//
+//                        if address != nil {
+//                            Image(systemName: isAddressShown ? "chevron.up" : "chevron.down")
+//                                .font(.caption.weight(.semibold))
+//                                .foregroundStyle(.secondary)
+//                        }
+//                    }
+//                }
+//                .buttonStyle(.plain)
+//
+//                Text("Selected store")
+//                    .font(.footnote)
+//                    .foregroundStyle(.secondary)
+//
+//                if isAddressShown, let address, !address.isEmpty {
+//                    Text(address)
+//                        .font(.footnote)
+//                        .foregroundStyle(.secondary)
+//                        .transition(.opacity.combined(with: .move(edge: .top)))
+//                }
+//            }
+//
+//            Spacer()
+//
+//            Button(action: trailingAction) {
+//                Label(trailingButtonTitle, systemImage: "arrow.triangle.2.circlepath")
+//            }
+//            .buttonStyle(.bordered)
+//        }
+//        .padding(16)
+//        .background(
+//            RoundedRectangle(cornerRadius: 20, style: .continuous)
+//                .fill(.thinMaterial)
+//                .overlay(
+//                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+//                        .strokeBorder(color(for: accentSeed).opacity(0.25), lineWidth: 1)
+//                )
+//        )
+//    }
+//
+//    private func color(for seed: String) -> Color {
+//        let hash = seed.unicodeScalars.reduce(0) { ($0 &* 131) &+ Int($1.value) }
+//        let palette: [Color] = [.blue, .purple, .indigo, .teal, .mint, .pink, .orange]
+//        return palette[abs(hash) % palette.count]
+//    }
+//}
+
 private struct SelectedStoreCard: View {
     let title: String
+    let address: String?
+    let isAddressShown: Bool
+    let onToggleAddress: () -> Void
+    let onEdit: () -> Void
+
     let accentSeed: String
     let trailingButtonTitle: String
     let trailingAction: () -> Void
 
+    private var hasAddress: Bool {
+        let a = (address ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return !a.isEmpty
+    }
+
     var body: some View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 6) {
-                Text(title)
-                    .font(.title3.bold())
+
+                // ✅ אם אין כתובת: השם הוא Text (לא לחיץ)
+                // ✅ אם יש כתובת: השם הוא Button שמטגל כתובת
+                Group {
+                    if hasAddress {
+                        Button(action: onToggleAddress) {
+                            titleRow
+                        }
+                        .buttonStyle(.plain)
+                        .simultaneousGesture(
+                            LongPressGesture(minimumDuration: 0.5)
+                                .onEnded { _ in onEdit() }
+                        )
+                    } else {
+                        titleRow
+                            .onLongPressGesture(minimumDuration: 0.5) {
+                                onEdit()
+                            }
+                    }
+                }
+
                 Text("Selected store")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+
+                if isAddressShown, hasAddress, let address {
+                    Text(address)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
             }
 
             Spacer()
 
             Button(action: trailingAction) {
-                Label("Change store", systemImage: "arrow.triangle.2.circlepath")
+                Label(trailingButtonTitle, systemImage: "arrow.triangle.2.circlepath")
             }
             .buttonStyle(.bordered)
         }
@@ -902,12 +1118,27 @@ private struct SelectedStoreCard: View {
         )
     }
 
+    private var titleRow: some View {
+        HStack(spacing: 6) {
+            Text(title)
+                .font(.title3.bold())
+                .foregroundStyle(.primary)
+
+            if hasAddress {
+                Image(systemName: isAddressShown ? "chevron.up" : "chevron.down")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
     private func color(for seed: String) -> Color {
         let hash = seed.unicodeScalars.reduce(0) { ($0 &* 131) &+ Int($1.value) }
         let palette: [Color] = [.blue, .purple, .indigo, .teal, .mint, .pink, .orange]
         return palette[abs(hash) % palette.count]
     }
 }
+
 
 private struct ActionCard<Content: View>: View {
     @ViewBuilder var content: Content
@@ -921,6 +1152,62 @@ private struct ActionCard<Content: View>: View {
                     .fill(.thinMaterial)
                     .shadow(radius: 10, y: 5)
             )
+    }
+}
+
+private struct EditStoreSheet: View {
+    let store: Store
+    let onSave: (_ name: String, _ address: String?, _ city: String?) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var name: String
+    @State private var addressLine: String
+    @State private var city: String
+
+    init(store: Store,
+         onSave: @escaping (_ name: String, _ address: String?, _ city: String?) -> Void) {
+        self.store = store
+        self.onSave = onSave
+        _name = State(initialValue: store.name)
+        _addressLine = State(initialValue: store.addressLine ?? "")
+        _city = State(initialValue: store.city ?? "")
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Store") {
+                    TextField("Store name", text: $name)
+                    TextField("Address", text: $addressLine)
+                    TextField("City", text: $city)
+                }
+
+                Section {
+                    Button("Save") {
+                        let n = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !n.isEmpty else { return }
+
+                        let a = addressLine.trimmingCharacters(in: .whitespacesAndNewlines)
+                        let c = city.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                        onSave(n,
+                               a.isEmpty ? nil : a,
+                               c.isEmpty ? nil : c)
+
+                        dismiss()
+                    }
+                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            .navigationTitle("Edit store")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+        }
     }
 }
 
