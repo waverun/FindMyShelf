@@ -743,8 +743,10 @@ struct ContentView: View {
                     // בניית keywords: גם מקור וגם אנגלית + שתי הכותרות
                     var all = [String]()
 
-                    if let ko = result.keywords_original { all.append(contentsOf: ko) }
-                    if let ke = result.keywords_en { all.append(contentsOf: ke) }
+//                    if let ko = result.keywords_original { all.append(contentsOf: ko) }
+//                    if let ke = result.keywords_en { all.append(contentsOf: ke) }
+                    all.append(contentsOf: result.keywords_original)
+                    all.append(contentsOf: result.keywords_en)
 
                     if !titleOriginal.isEmpty { all.append(titleOriginal) }
                     if !titleEn.isEmpty { all.append(titleEn) }

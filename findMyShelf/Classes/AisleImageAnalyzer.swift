@@ -36,8 +36,8 @@ final class AisleImageAnalyzer {
         let en = (r.title_en ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
 
         var all: [String] = []
-        all.append(contentsOf: r.keywords_original ?? [])
-        all.append(contentsOf: r.keywords_en ?? [])
+        all.append(contentsOf: r.keywords_original)
+        all.append(contentsOf: r.keywords_en)
         if !orig.isEmpty { all.append(orig) }
         if !en.isEmpty { all.append(en) }
 
