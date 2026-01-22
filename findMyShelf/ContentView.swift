@@ -409,26 +409,6 @@ struct ContentView: View {
             Text("Your store")
                 .font(.headline)
 
-//            if let store = selectedStore {
-//                SelectedStoreCard(
-//                    title: store.name,
-//                    address: storeAddressLine(store),
-//                    isAddressShown: showSelectedStoreAddress,
-//                    onToggleAddress: {
-//                        withAnimation(.easeInOut(duration: 0.15)) {
-//                            showSelectedStoreAddress.toggle()
-//                        }
-//                    },
-//                    accentSeed: store.name,
-//                    trailingButtonTitle: "Change store",
-//                    trailingAction: {
-//                        previousSelectedStoreId = selectedStoreId
-//                        selectedStoreId = nil
-//                        quickQuery = ""
-//                        showSelectedStoreAddress = false // ✅ שלא “יידבק” לחנות הבאה
-//                    }
-//                )
-//            }
             if let store = selectedStore {
                 SelectedStoreCard(
                     title: store.name,

@@ -40,10 +40,27 @@ struct ProductSearchView: View {
                         runSearch()
                     }
 
-                Button("Find aisle for product") {
+                Button {
                     runSearch()
+                } label: {
+                    HStack {
+                        Spacer()
+                        Label("Find aisle", systemImage: "magnifyingglass")
+                            .font(.headline)
+                        Spacer()
+                    }
+                    .padding(.vertical, 10)
                 }
+                .background(.thinMaterial)
+                .foregroundStyle(.blue)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
                 .disabled(productQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .opacity(productQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.6 : 1)
+                
+//                Button("Find aisle for product") {
+//                    runSearch()
+//                }
+//                .disabled(productQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
 
             if let msg = statusMessage {
