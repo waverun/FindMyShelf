@@ -33,8 +33,16 @@ struct AisleListView: View {
 
     // שורות רק של החנות הזו
     private var aislesForStore: [Aisle] {
-        allAisles.filter { $0.storeId == store.id }
+        allAisles
+            .filter { $0.storeId == store.id }
+            .sorted {
+                $0.nameOrNumber.localizedStandardCompare($1.nameOrNumber) == .orderedAscending
+            }
     }
+
+    //    private var aislesForStore: [Aisle] {
+    //        allAisles.filter { $0.storeId == store.id }
+    //    }
 
     // שורות אחרי פילטר
     private var filteredAisles: [Aisle] {
@@ -311,15 +319,6 @@ private struct AisleBottomPanel: View {
                 } message: {
                     Text("This action cannot be undone.")
                 }
-
-//                Button(role: .destructive) {
-//                    onDelete()
-//                } label: {
-//                    Label("Delete aisle", systemImage: "trash")
-//                        .frame(maxWidth: .infinity)
-//                }
-//                .buttonStyle(.bordered)
-
             } else {
                 TextField("Aisle name/number", text: $draftName)
                     .textFieldStyle(.roundedBorder)

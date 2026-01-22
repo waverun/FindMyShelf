@@ -10,6 +10,9 @@ struct ProductSearchView: View {
     private var allAisles: [Aisle]
 
     let initialQuery: String   // ✅ חדש
+
+    @FocusState private var isProductQueryFocused: Bool
+
     @State private var didAutoSearch = false   // ✅ חדש
 
     @Query(sort: \ProductItem.createdAt, order: .forward)
@@ -34,9 +37,18 @@ struct ProductSearchView: View {
     var body: some View {
         Form {
             Section("Product Search") {
+//                TextField("Type a product name…", text: $productQuery)
+//                    .textInputAutocapitalization(.never)
+//                    .onSubmit {
+//                        runSearch()
+//                    }
+
                 TextField("Type a product name…", text: $productQuery)
                     .textInputAutocapitalization(.never)
+                    .focused($isProductQueryFocused)
+                    .submitLabel(.search)
                     .onSubmit {
+                        isProductQueryFocused = false   // ✅ סוגר מקלדת
                         runSearch()
                     }
 
@@ -56,11 +68,6 @@ struct ProductSearchView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 10))
                 .disabled(productQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .opacity(productQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.6 : 1)
-                
-//                Button("Find aisle for product") {
-//                    runSearch()
-//                }
-//                .disabled(productQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
 
             if let msg = statusMessage {
@@ -147,6 +154,18 @@ struct ProductSearchView: View {
                 }
             }
 
+        }
+        .scrollDismissesKeyboard(.interactively)
+//        .toolbar {
+//            ToolbarItemGroup(placement: .keyboard) {
+//                Spacer()
+//                Button("Done") {
+//                    isProductQueryFocused = false
+//                }
+//            }
+//        }
+        .onTapGesture {
+            isProductQueryFocused = false
         }
         .navigationTitle("Product Search")
         .onAppear {
