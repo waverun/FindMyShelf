@@ -14,14 +14,6 @@ struct NearbyStore: Identifiable {
     let rawItem: MKMapItem
 }
 
-//struct NearbyStore: Identifiable {
-//    let id = UUID()
-//    let name: String
-//    let coordinate: CLLocationCoordinate2D
-//    let distance: CLLocationDistance?
-//    let rawItem: MKMapItem
-//}
-
 /// מחלקה שמבצעת חיפוש חנויות ליד מיקום נתון
 final class StoreFinder: ObservableObject {
     @Published var results: [NearbyStore] = []
@@ -54,14 +46,14 @@ final class StoreFinder: ObservableObject {
 
             if let error {
                 DispatchQueue.main.async {
-                    self.errorMessage = "שגיאה בחיפוש: \(error.localizedDescription)"
+                    self.errorMessage = "Search error: \(error.localizedDescription)"
                 }
                 return
             }
 
             guard let response = response else {
                 DispatchQueue.main.async {
-                    self.errorMessage = "לא נמצאו תוצאות."
+                    self.errorMessage = "No results found."
                 }
                 return
             }
@@ -73,20 +65,13 @@ final class StoreFinder: ObservableObject {
                 let addr = (pm as MKPlacemark).shortAddressLine
                 let city = pm.locality
                 return NearbyStore(
-                    name: item.name ?? "חנות ללא שם",
+                    name: item.name ?? "Unnamed store",
                     addressLine: addr,
                     city: city,
                     coordinate: pm.coordinate,
                     distance: dist,
                     rawItem: item
                 )
-
-//                return NearbyStore(
-//                    name: item.name ?? "חנות ללא שם",
-//                    coordinate: item.placemark.coordinate,
-//                    distance: dist,
-//                    rawItem: item
-//                )
             }
                 .sorted {
                     ($0.distance ?? .greatestFiniteMagnitude) <
@@ -96,7 +81,7 @@ final class StoreFinder: ObservableObject {
             DispatchQueue.main.async {
                 self.results = mapped
                 if mapped.isEmpty {
-                    self.errorMessage = "לא נמצאו חנויות קרובות."
+                    self.errorMessage = "No nearby stores found."
                 }
             }
         }

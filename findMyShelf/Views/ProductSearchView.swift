@@ -33,21 +33,21 @@ struct ProductSearchView: View {
 
     var body: some View {
         Form {
-            Section("חיפוש מוצר") {
-                TextField("הקלד שם מוצר…", text: $productQuery)
+            Section("Product Search") {
+                TextField("Type a product name…", text: $productQuery)
                     .textInputAutocapitalization(.never)
                     .onSubmit {
                         runSearch()
                     }
 
-                Button("מצא שורה למוצר") {
+                Button("Find aisle for product") {
                     runSearch()
                 }
                 .disabled(productQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
 
             if let msg = statusMessage {
-                Section("תוצאה") {
+                Section("Result") {
                     Text(msg)
                         .foregroundStyle(.primary)
                 }
@@ -57,24 +57,24 @@ struct ProductSearchView: View {
                let aisleId = existing.aisleId,
                let aisle = aislesForStore.first(where: { $0.id == aisleId }) {
 
-                Section("המוצר כבר מוכר") {
-                    Text("\"\(existing.name)\" משויך כבר לשורה \(aisle.nameOrNumber).")
+                Section("Product already known") {
+                    Text("\"\(existing.name)\" is already assigned to aisle \(aisle.nameOrNumber).")
                         .font(.body)
                 }
             } else if let aisle = suggestedAisle {
-                Section("הצעה לשורה מתאימה") {
-                    Text("נראה שהמוצר שייך לשורה:")
+                Section("Suggested aisle") {
+                    Text("It looks like the product belongs to aisle:")
                         .font(.subheadline)
-                    Text("שורה \(aisle.nameOrNumber)")
+                    Text("Aisle \(aisle.nameOrNumber)")
                         .font(.headline)
 
                     if !aisle.keywords.isEmpty {
-                        Text("על השלט: \(aisle.keywords.joined(separator: ", "))")
+                        Text("On the sign: \(aisle.keywords.joined(separator: ", "))")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
 
-                    Button("שייך את המוצר לשורה זו ושמור") {
+                    Button("Assign and save") {
                         assignProduct(to: aisle)
                     }
                 }
@@ -131,7 +131,7 @@ struct ProductSearchView: View {
             }
 
         }
-        .navigationTitle("חיפוש מוצר בחנות")
+        .navigationTitle("Product Search")
         .onAppear {
             // ✅ רץ פעם אחת בלבד, ורק אם הגיע טקסט מהמסך הקודם
             guard !didAutoSearch else { return }
@@ -152,7 +152,7 @@ struct ProductSearchView: View {
             .lowercased()
 
         guard !q.isEmpty else {
-            statusMessage = "הקלד שם מוצר לחיפוש."
+            statusMessage = "Type a product name to search."
             foundExistingProduct = nil
             suggestedAisle = nil
             return
@@ -166,9 +166,9 @@ struct ProductSearchView: View {
         if let existing = productsForStore.first(where: { $0.name.lowercased().contains(q) }) {
             foundExistingProduct = existing
             if existing.aisleId == nil {
-                statusMessage = "המוצר מוכר אבל עדיין לא משויך לשורה."
+                statusMessage = "This product is known, but it is not assigned to any aisle yet."
             } else {
-                statusMessage = "המוצר נמצא כבר בבסיס הנתונים."
+                statusMessage = "This product is already in the database."
             }
             return
         }
@@ -301,10 +301,10 @@ struct ProductSearchView: View {
             try context.save()
             foundExistingProduct = item
             suggestedAisle = nil
-            statusMessage = "המוצר \"\(name)\" נשמר כשייך לשורה \(aisle.nameOrNumber)."
+            statusMessage = "The product \"\(name)\" was saved and assigned to aisle \(aisle.nameOrNumber)."
         } catch {
             print("Failed to save product:", error)
-            statusMessage = "שגיאה בשמירת המוצר."
+            statusMessage = "Failed to save the product."
         }
     }
 }
