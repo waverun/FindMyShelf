@@ -9,6 +9,8 @@ struct ContentView: View {
         locationManager.currentLocation != nil
     }
 
+    @State private var pendingAisleToSelectID: UUID?
+
     @State private var showSelectedStoreAddress: Bool = false
     @State private var editingStore: Store?
     @State private var showEditStoreSheet: Bool = false
@@ -240,9 +242,18 @@ struct ContentView: View {
             }
             .navigationDestination(isPresented: $goToAisles) {
                 if let store = selectedStore {
-                    AisleListView(store: store)
+                    AisleListView(store: store, initialSelectedAisleID: pendingAisleToSelectID)
+                        .onDisappear {
+                            pendingAisleToSelectID = nil
+                        }
                 }
             }
+            
+//            .navigationDestination(isPresented: $goToAisles) {
+//                if let store = selectedStore {
+//                    AisleListView(store: store)
+//                }
+//            }
             .navigationDestination(isPresented: $goToSearch) {
                 if let store = selectedStore {
                     ProductSearchView(store: store, initialQuery: pendingProductQuery)
@@ -540,7 +551,8 @@ struct ContentView: View {
 
                     HStack(spacing: 10) {
                         NavigationLink {
-                            AisleListView(store: store)
+//                            AisleListView(store: store)
+                            AisleListView(store: store, initialSelectedAisleID: nil)
                         } label: {
                             Label("Lines", systemImage: "list.bullet")
                                 .frame(maxWidth: .infinity)
@@ -763,6 +775,9 @@ struct ContentView: View {
                     do {
                         try context.save()
                         showBanner("Aisle added: \(displayTitle)", isError: false)
+
+                        pendingAisleToSelectID = aisle.id
+                        goToAisles = true
                     } catch {
                         showBanner("Failed to save the new aisle", isError: true)
                     }

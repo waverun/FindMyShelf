@@ -6,6 +6,9 @@ struct AisleListView: View {
     @Environment(\.modelContext) private var context
 
     let store: Store
+    let initialSelectedAisleID: UUID?   // ✅ add this
+
+    @State private var isNewAisleSelection: Bool = false
 
     // כל השורות בבסיס הנתונים
     @Query(sort: \Aisle.createdAt, order: .forward)
@@ -74,29 +77,80 @@ struct AisleListView: View {
                 .padding([.horizontal, .top])
 
                 // כרטיסיות שורות – אופקי
-                ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(spacing: 14) {
-                        if filteredAisles.isEmpty {
-                            Text("No aisles were found matching your search.")
-                                .foregroundStyle(.secondary)
-                                .padding(.horizontal, 16)
-                        } else {
-                            ForEach(Array(filteredAisles.enumerated()), id: \.element.id) { index, aisle in
-                                AisleCard(
-                                    title: aisle.nameOrNumber,
-                                    keywords: aisle.keywords,
-                                    colorIndex: index,
-                                    isSelected: aisle.id == selectedAisleID
-                                ) {
-                                    // בחירה בלבד (לא עריכה)
-                                    selectedAisleID = aisle.id
-                                    isEditingSelected = false
+//                ScrollView(.horizontal, showsIndicators: false) {
+//                    LazyHStack(spacing: 14) {
+//                        if filteredAisles.isEmpty {
+//                            Text("No aisles were found matching your search.")
+//                                .foregroundStyle(.secondary)
+//                                .padding(.horizontal, 16)
+//                        } else {
+//                            ForEach(Array(filteredAisles.enumerated()), id: \.element.id) { index, aisle in
+//                                AisleCard(
+//                                    title: aisle.nameOrNumber,
+//                                    keywords: aisle.keywords,
+//                                    colorIndex: index,
+//                                    isSelected: aisle.id == selectedAisleID
+//                                ) {
+//                                    // בחירה בלבד (לא עריכה)
+//                                    selectedAisleID = aisle.id
+//                                    isEditingSelected = false
+//                                }
+//                            }
+//                        }
+//                    }
+//                    .padding(.horizontal, 16)
+//                    .padding(.vertical, 8)
+//                }
+
+// כרטיסיות שורות – אופקי
+                ScrollViewReader { proxy in
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        LazyHStack(spacing: 14) {
+                            if filteredAisles.isEmpty {
+                                Text("No aisles were found matching your search.")
+                                    .foregroundStyle(.secondary)
+                                    .padding(.horizontal, 16)
+                            } else {
+                                ForEach(Array(filteredAisles.enumerated()), id: \.element.id) { index, aisle in
+                                    AisleCard(
+                                        title: aisle.nameOrNumber,
+                                        keywords: aisle.keywords,
+                                        colorIndex: index,
+                                        isSelected: aisle.id == selectedAisleID
+                                    ) {
+                                        selectedAisleID = aisle.id
+                                        isEditingSelected = false
+                                        isNewAisleSelection = false
+
+                                        // ✅ אופציונלי: גם כשבוחרים ידנית, לגלול למרכז
+                                        withAnimation(.easeInOut(duration: 0.25)) {
+                                            proxy.scrollTo(aisle.id, anchor: .center)
+                                        }
+                                    }
+                                    .id(aisle.id) // ✅ חובה בשביל scrollTo
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                    }
+                    .onAppear {
+                        // ✅ אם נכנסנו עם שורה לבחור – גלול אליה
+                        if let id = selectedAisleID {
+                            DispatchQueue.main.async {
+                                withAnimation(.easeInOut(duration: 0.35)) {
+                                    proxy.scrollTo(id, anchor: .center)
                                 }
                             }
                         }
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
+                    .onChange(of: selectedAisleID) { _, newId in
+                        guard let newId else { return }
+                        // ✅ אם השורה משתנה (כולל זו שהגיעה מהמסך הקודם)
+                        withAnimation(.easeInOut(duration: 0.35)) {
+                            proxy.scrollTo(newId, anchor: .center)
+                        }
+                    }
                 }
                 .simultaneousGesture(
                     DragGesture(minimumDistance: 6)
@@ -115,6 +169,7 @@ struct AisleListView: View {
                     if let aisle = selectedAisle {
                         AisleBottomPanel(
                             aisle: aisle,
+                            headerTitle: isNewAisleSelection ? "New aisle" : "Selected aisle",
                             isEditing: $isEditingSelected,
                             onDelete: {
                                 context.delete(aisle)
@@ -165,6 +220,13 @@ struct AisleListView: View {
         }
         .navigationTitle("Aisles map \(store.name)")
         .scrollDismissesKeyboard(.interactively)
+        .onAppear {
+            if let id = initialSelectedAisleID {
+                selectedAisleID = id
+                isEditingSelected = false
+                isNewAisleSelection = true
+            }
+        }
     }
 
     // MARK: - פעולות בסיסיות
@@ -249,6 +311,7 @@ private struct AisleCard: View {
 
 private struct AisleBottomPanel: View {
     @Bindable var aisle: Aisle
+    let headerTitle: String          // ✅ new
     @Binding var isEditing: Bool
 
     let onDelete: () -> Void
@@ -263,7 +326,8 @@ private struct AisleBottomPanel: View {
         VStack(alignment: .leading, spacing: 12) {
 
             HStack {
-                Text("Selected aisle")
+//                Text("Selected aisle")
+                Text(headerTitle)
                     .font(.headline)
                 Spacer()
 
