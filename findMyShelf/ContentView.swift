@@ -5,6 +5,8 @@ import PhotosUI
 import UIKit
 
 struct ContentView: View {
+    @EnvironmentObject private var firebase: FirebaseService   // ✅ add
+
     private var hasLocation: Bool {
         locationManager.currentLocation != nil
     }
@@ -260,6 +262,10 @@ struct ContentView: View {
                 }
             }
 
+        }
+        .onChange(of: selectedStoreId) { _, _ in
+            guard let store = selectedStore else { return }
+            Task { await ensureStoreRemoteId(store) }
         }
         .sheet(isPresented: $showManualStoreSheet) {
             ManualStoreSheet(
@@ -574,6 +580,29 @@ struct ContentView: View {
     }
 
     // MARK: - Logic
+
+    @MainActor
+    private func ensureStoreRemoteId(_ store: Store) async {
+        if store.remoteId != nil { return }
+
+        let addressCombined = [store.addressLine, store.city]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
+
+        do {
+            let rid = try await firebase.fetchOrCreateStore(
+                name: store.name,
+                address: addressCombined.isEmpty ? store.addressLine : addressCombined,
+                latitude: store.latitude,
+                longitude: store.longitude
+            )
+            store.remoteId = rid
+            try? context.save()
+        } catch {
+            showBanner("Failed to sync store to Firebase", isError: true)
+        }
+    }
 
     private func storeAddressLine(_ store: Store) -> String? {
         let parts = [store.addressLine, store.city]
