@@ -582,6 +582,31 @@ struct ContentView: View {
     // MARK: - Logic
 
     @MainActor
+    private func syncCreatedAisleToFirebase(_ aisle: Aisle, store: Store) async {
+        // If already synced, skip
+        if aisle.remoteId != nil { return }
+
+        // Make sure store has remoteId
+        await ensureStoreRemoteId(store)
+        guard let storeRemoteId = store.remoteId else {
+            showBanner("Store is not synced to Firebase", isError: true)
+            return
+        }
+
+        do {
+            let rid = try await firebase.createAisle(storeRemoteId: storeRemoteId, aisle: aisle)
+            aisle.remoteId = rid
+            aisle.updatedAt = .now
+            try? context.save()
+
+            print("✅ Aisle synced to Firebase. aisleRemoteId:", rid)
+        } catch {
+            print("❌ Failed to create aisle in Firebase:", error)
+            showBanner("Failed to sync aisle to Firebase", isError: true)
+        }
+    }
+
+    @MainActor
     private func ensureStoreRemoteId(_ store: Store) async {
         if store.remoteId != nil { return }
 
@@ -804,6 +829,8 @@ struct ContentView: View {
                     do {
                         try context.save()
                         showBanner("Aisle added: \(displayTitle)", isError: false)
+
+                        Task { await syncCreatedAisleToFirebase(aisle, store: store) }
 
                         pendingAisleToSelectID = aisle.id
                         goToAisles = true
