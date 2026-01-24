@@ -4,8 +4,8 @@ import SwiftData
 @Model
 final class Aisle {
     var id: UUID
+    var remoteId: String?   // Firestore doc id
     var storeId: UUID
-    var remoteId: String?
     var nameOrNumber: String
     var keywords: [String]
     var createdAt: Date

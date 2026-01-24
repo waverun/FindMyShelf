@@ -188,7 +188,17 @@ struct ContentView: View {
                 if locationManager.authorizationStatus == .authorizedWhenInUse || locationManager.authorizationStatus == .authorizedAlways {
                     locationManager.startUpdating()
                 }
+
+                // ✅ start listener if store already selected (e.g., after relaunch)
+                if let store = selectedStore {
+                    Task { await startAislesSyncIfPossible(for: store) }
+                }
             }
+//            .onAppear {
+//                if locationManager.authorizationStatus == .authorizedWhenInUse || locationManager.authorizationStatus == .authorizedAlways {
+//                    locationManager.startUpdating()
+//                }
+//            }
             .sheet(isPresented: $isShowingCamera) {
                 CameraImagePicker(isPresented: $isShowingCamera) { image in
                     processImage(image)
@@ -263,10 +273,19 @@ struct ContentView: View {
             }
 
         }
-        .onChange(of: selectedStoreId) { _, _ in
+        .onChange(of: selectedStoreId) { _, newValue in
+            if newValue == nil {
+                Task { @MainActor in stopAislesSync() }
+                return
+            }
             guard let store = selectedStore else { return }
-            Task { await ensureStoreRemoteId(store) }
+            Task { await startAislesSyncIfPossible(for: store) }
         }
+
+//        .onChange(of: selectedStoreId) { _, _ in
+//            guard let store = selectedStore else { return }
+//            Task { await ensureStoreRemoteId(store) }
+//        }
         .sheet(isPresented: $showManualStoreSheet) {
             ManualStoreSheet(
                 existingStores: stores,
@@ -604,6 +623,31 @@ struct ContentView: View {
             print("❌ Failed to create aisle in Firebase:", error)
             showBanner("Failed to sync aisle to Firebase", isError: true)
         }
+    }
+
+    @MainActor
+    private func startAislesSyncIfPossible(for store: Store) async {
+        // Make sure we have store.remoteId (either already saved or fetched/created)
+        await ensureStoreRemoteId(store)
+
+        guard let storeRemoteId = store.remoteId else {
+            showBanner("Store is not synced to Firebase", isError: true)
+            return
+        }
+
+        firebase.startAislesListener(
+            storeRemoteId: storeRemoteId,
+            localStoreId: store.id,
+            context: context
+        )
+
+        print("✅ Started aisles listener for storeRemoteId:", storeRemoteId)
+    }
+
+    @MainActor
+    private func stopAislesSync() {
+        firebase.stopAislesListener()
+        print("🛑 Stopped aisles listener")
     }
 
     @MainActor
