@@ -5,6 +5,8 @@ import SwiftData
 struct AisleListView: View {
     @Environment(\.modelContext) private var context
 
+    @EnvironmentObject private var firebase: FirebaseService
+
     let store: Store
     let initialSelectedAisleID: UUID?   // ✅ add this
 
@@ -172,11 +174,18 @@ struct AisleListView: View {
                             headerTitle: isNewAisleSelection ? "New aisle" : "Selected aisle",
                             isEditing: $isEditingSelected,
                             onDelete: {
-                                context.delete(aisle)
-                                try? context.save()
-                                selectedAisleID = nil
-                                isEditingSelected = false
+                                Task { @MainActor in
+                                    await deleteAisleEverywhere(aisle)
+                                    selectedAisleID = nil
+                                    isEditingSelected = false
+                                }
                             },
+//                            onDelete: {
+//                                context.delete(aisle)
+//                                try? context.save()
+//                                selectedAisleID = nil
+//                                isEditingSelected = false
+//                            },
                             onSave: { newName, newKeywords in
                                 aisle.nameOrNumber = newName
                                 aisle.keywords = newKeywords
@@ -230,6 +239,28 @@ struct AisleListView: View {
     }
 
     // MARK: - פעולות בסיסיות
+
+    @MainActor
+    private func deleteAisleEverywhere(_ aisle: Aisle) async {
+        // If we can delete in Firebase, do it first
+        if let storeRemoteId = store.remoteId, let aisleRemoteId = aisle.remoteId {
+            do {
+                try await firebase.deleteAisle(storeRemoteId: storeRemoteId, aisleRemoteId: aisleRemoteId)
+            } catch {
+                // If Firebase delete failed, do NOT delete locally (keeps consistency)
+                print("❌ Failed to delete aisle in Firebase:", error)
+                return
+            }
+        }
+
+        // Always delete locally (also covers "not synced yet" aisles)
+        context.delete(aisle)
+        do {
+            try context.save()
+        } catch {
+            print("❌ Failed to delete aisle locally:", error)
+        }
+    }
 
     private func addAisle() {
         let trimmed = newAisleName.trimmingCharacters(in: .whitespaces)

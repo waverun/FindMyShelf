@@ -94,6 +94,10 @@ final class FirebaseService: ObservableObject {
         aislesListener = nil
     }
 
+    private func norm(_ s: String) -> String {
+        s.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
     private func applyAislesSnapshot(
         _ snap: QuerySnapshot,
         localStoreId: UUID,
@@ -128,7 +132,9 @@ final class FirebaseService: ObservableObject {
 
             } else {
                 // ✅ NEW: try merge with local aisle created offline (remoteId == nil)
-                if let match = localForStore.first(where: { $0.remoteId == nil && $0.nameOrNumber == name }) {
+//                if let match = localForStore.first(where: { $0.remoteId == nil && $0.nameOrNumber == name }) {
+                if let match = localForStore.first(where: { $0.remoteId == nil && norm($0.nameOrNumber) == norm(name) }) {
+
                     match.remoteId = rid
                     match.keywords = keywords
                     match.updatedAt = .now
