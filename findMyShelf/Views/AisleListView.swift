@@ -210,10 +210,26 @@ struct AisleListView: View {
                                                  // addAisle()
                         }
 
-                    Button("הוסף") {
+                    Button {
                         addAisle()
+                    } label: {
+                        Text("Add aisle")
                     }
-                    .disabled(newAisleName.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .buttonStyle(.bordered)
+                    .disabled(
+                        newAisleName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    )
+
+//                    Button {
+//                        addAisle()
+//                    } label: {
+//                        Text("Add aisle")
+//                            .frame(maxWidth: .infinity)
+//                    }
+//                    .buttonStyle(.bordered)
+//                    .disabled(
+//                        newAisleName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+//                    )
                 }
                 .padding()
             }
