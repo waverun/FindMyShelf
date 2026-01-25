@@ -282,4 +282,17 @@ final class FirebaseService: ObservableObject {
             onError("Failed to sync aisle to Firebase")
         }
     }
+
+    func deleteStore(storeRemoteId: String) async throws {
+        let storeRef = db.collection("stores").document(storeRemoteId)
+
+        // 🔥 delete all aisles first
+        let aislesSnap = try await storeRef.collection("aisles").getDocuments()
+        for doc in aislesSnap.documents {
+            try await doc.reference.delete()
+        }
+
+        // 🔥 delete store itself
+        try await storeRef.delete()
+    }
 }

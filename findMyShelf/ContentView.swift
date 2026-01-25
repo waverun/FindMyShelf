@@ -13,6 +13,8 @@ struct ContentView: View {
         locationManager.currentLocation != nil
     }
 
+    @State private var ensuringStoreRemoteId = Set<UUID>()
+
     @State private var pendingAisleToSelectID: UUID?
 
     @State private var showSelectedStoreAddress: Bool = false
@@ -305,13 +307,30 @@ struct ContentView: View {
                         previousSelectedStoreId = nil
                     }
 
-                    context.delete(store)          // ✅ cascade ימחק aisles/products
-                    do {
-                        try context.save()
-                    } catch {
-                        showBanner("Failed to delete store", isError: true)
+                    Task { @MainActor in
+                        await deleteStoreEverywhere(store)
+                        showManualStoreSheet = false
                     }
                 }
+
+//                onDelete: { store in
+//                    // אם מוחקים חנות שנבחרה – נקה בחירה
+//                    if selectedStoreId == store.id.uuidString {
+//                        selectedStoreId = nil
+//                    }
+//                    if previousSelectedStoreId == store.id.uuidString {
+//                        previousSelectedStoreId = nil
+//                    }
+//
+//                    context.delete(store)
+//
+//                    // ✅ cascade ימחק aisles/products
+//                    do {
+//                        try context.save()
+//                    } catch {
+//                        showBanner("Failed to delete store", isError: true)
+//                    }
+//                }
             )
         }
         .sheet(isPresented: $showEditStoreSheet) {
@@ -571,6 +590,29 @@ struct ContentView: View {
     // MARK: - Logic
 
     @MainActor
+    private func deleteStoreEverywhere(_ store: Store) async {
+        // 1. Firebase (אם יש remoteId)
+        if let storeRemoteId = store.remoteId {
+            do {
+                try await firebase.deleteStore(storeRemoteId: storeRemoteId)
+            } catch {
+                print("❌ Failed to delete store in Firebase:", error)
+                showBanner("Failed to delete store in cloud", isError: true)
+                return
+            }
+        }
+
+        // 2. Local delete (cascade deletes aisles/products)
+        context.delete(store)
+        do {
+            try context.save()
+        } catch {
+            print("❌ Failed to delete store locally:", error)
+            showBanner("Failed to delete store locally", isError: true)
+        }
+    }
+
+    @MainActor
     private func stopAislesSync() {
         firebase.stopAislesListener()
         print("🛑 Stopped aisles listener")
@@ -599,6 +641,11 @@ struct ContentView: View {
     private func ensureStoreRemoteId(_ store: Store) async {
         if store.remoteId != nil { return }
 
+        // ✅ guard against double calls in parallel
+        if ensuringStoreRemoteId.contains(store.id) { return }
+        ensuringStoreRemoteId.insert(store.id)
+        defer { ensuringStoreRemoteId.remove(store.id) }
+
         let addressCombined = [store.addressLine, store.city]
             .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
@@ -617,6 +664,29 @@ struct ContentView: View {
             showBanner("Failed to sync store to Firebase", isError: true)
         }
     }
+
+//    @MainActor
+//    private func ensureStoreRemoteId(_ store: Store) async {
+//        if store.remoteId != nil { return }
+//
+//        let addressCombined = [store.addressLine, store.city]
+//            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+//            .filter { !$0.isEmpty }
+//            .joined(separator: ", ")
+//
+//        do {
+//            let rid = try await firebase.fetchOrCreateStore(
+//                name: store.name,
+//                address: addressCombined.isEmpty ? store.addressLine : addressCombined,
+//                latitude: store.latitude,
+//                longitude: store.longitude
+//            )
+//            store.remoteId = rid
+//            try? context.save()
+//        } catch {
+//            showBanner("Failed to sync store to Firebase", isError: true)
+//        }
+//    }
 
     private func storeAddressLine(_ store: Store) -> String? {
         let parts = [store.addressLine, store.city]
