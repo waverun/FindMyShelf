@@ -151,11 +151,42 @@ struct AisleListView: View {
                                 }
                             },
                             onSave: { newName, newKeywords in
-                                aisle.nameOrNumber = newName
-                                aisle.keywords = newKeywords
-                                try? context.save()
-                                isEditingSelected = false
+                                Task { @MainActor in
+                                    aisle.nameOrNumber = newName
+                                    aisle.keywords = newKeywords
+                                    aisle.updatedAt = Date()
+
+                                    do {
+                                        try context.save()
+                                    } catch {
+                                        print("❌ Failed to save aisle locally:", error)
+                                        return
+                                    }
+
+                                    // Sync to Firebase only if we can
+                                    guard let storeRemoteId = store.remoteId,
+                                          aisle.remoteId != nil else {
+                                        isEditingSelected = false
+                                        return
+                                    }
+
+                                    do {
+                                        try await firebase.updateAisle(storeRemoteId: storeRemoteId, aisle: aisle)
+                                    } catch {
+                                        print("❌ Failed to update aisle in Firebase:", error)
+                                        // Optional: keep editing open or show banner
+                                    }
+
+                                    isEditingSelected = false
+                                }
                             }
+                            
+//                            onSave: { newName, newKeywords in
+//                                aisle.nameOrNumber = newName
+//                                aisle.keywords = newKeywords
+//                                try? context.save()
+//                                isEditingSelected = false
+//                            }
                         )
                         .padding(.horizontal, 16)
                         .padding(.bottom, 8)
