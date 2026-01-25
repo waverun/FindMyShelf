@@ -5,9 +5,12 @@ struct ManualStoreSheet: View {
     let existingStores: [Store]
     let onPickExisting: (Store) -> Void
     let onSaveNew: (_ name: String, _ address: String?, _ city: String?) -> Void
-    let onDelete: (Store) -> Void   // ✅ חדש
+    let onDelete: (Store) -> Void
+//    let onEdit: (Store) -> Void      // ✅ NEW
 
     @Environment(\.dismiss) private var dismiss
+
+    @State private var editingStore: Store? = nil
 
     @State private var storePendingDelete: Store?
     @State private var confirmText: String = ""
@@ -79,6 +82,12 @@ struct ManualStoreSheet: View {
                                             storePendingDelete = store
                                             confirmText = ""
                                             showDeleteConfirm = true
+                                        },
+                                        onEdit: {                    // ✅ NEW
+                                            editingStore = store
+                                            name = store.name
+                                            addressLine = store.addressLine ?? ""
+                                            city = store.city ?? ""
                                         }
                                     )
                                 }
@@ -90,7 +99,9 @@ struct ManualStoreSheet: View {
 
                     // Add manually
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Add a store manually")
+//                        Text("Add a store manually")
+//                            .font(.headline)
+                        Text(editingStore == nil ? "Add a store manually" : "Edit a store")
                             .font(.headline)
 
                         VStack(spacing: 10) {
@@ -103,6 +114,23 @@ struct ManualStoreSheet: View {
                             TextField("City (optional)", text: $city)
                                 .textFieldStyle(.roundedBorder)
 
+//                            Button {
+//                                let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+//                                guard !trimmedName.isEmpty else { return }
+//
+//                                let addr = addressLine.trimmingCharacters(in: .whitespacesAndNewlines)
+//                                let c = city.trimmingCharacters(in: .whitespacesAndNewlines)
+//
+//                                onSaveNew(
+//                                    trimmedName,
+//                                    addr.isEmpty ? nil : addr,
+//                                    c.isEmpty ? nil : c
+//                                )
+//                                dismiss()
+//                            } label: {
+//                                Text("Save store")
+//                                    .frame(maxWidth: .infinity)
+//                            }
                             Button {
                                 let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
                                 guard !trimmedName.isEmpty else { return }
@@ -110,14 +138,26 @@ struct ManualStoreSheet: View {
                                 let addr = addressLine.trimmingCharacters(in: .whitespacesAndNewlines)
                                 let c = city.trimmingCharacters(in: .whitespacesAndNewlines)
 
-                                onSaveNew(
-                                    trimmedName,
-                                    addr.isEmpty ? nil : addr,
-                                    c.isEmpty ? nil : c
-                                )
-                                dismiss()
+                                if let store = editingStore {
+                                    // ✏️ עריכה
+                                    store.name = trimmedName
+                                    store.addressLine = addr.isEmpty ? nil : addr
+                                    store.city = c.isEmpty ? nil : c
+                                    editingStore = nil
+                                } else {
+                                    // ➕ הוספה
+                                    onSaveNew(
+                                        trimmedName,
+                                        addr.isEmpty ? nil : addr,
+                                        c.isEmpty ? nil : c
+                                    )
+                                }
+
+                                name = ""
+                                addressLine = ""
+                                city = ""
                             } label: {
-                                Text("Save store")
+                                Text(editingStore == nil ? "Save store" : "Save changes")
                                     .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.borderedProminent)
@@ -171,6 +211,7 @@ private struct ManualStoreCard: View {
     let colorIndex: Int
     let onPick: () -> Void
     let onRequestDelete: () -> Void   // ✅ חדש
+    let onEdit: () -> Void            // ✅ NEW
 
     var body: some View {
         let base = color(for: colorIndex)
@@ -221,36 +262,78 @@ private struct ManualStoreCard: View {
             }
             .buttonStyle(.plain)
 
-            VStack(spacing: 8) {
-
-                // כפתור מחיקה – אותו דבר כמו שהיה
+            ZStack {
+                // 🗑 top-right
                 Button(role: .destructive) {
                     onRequestDelete()
                 } label: {
                     Image(systemName: "trash")
                         .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .padding(12) // 👈 מגדיל שטח לחיצה
+                        .background(.ultraThinMaterial) // 👈 רקע שקוף
+                        .clipShape(Circle())
                 }
-                Spacer()
-                // כפתור עריכה – חדש
+                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                    .padding(8)
+                // ✏️ bottom-right
                 Button {
-                    // כרגע ריק – נוסיף פעולה בשלב הבא
+                    onEdit()
                 } label: {
                     Image(systemName: "pencil")
                         .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .padding(12) // 👈 מגדיל שטח לחיצה
+                        .background(.ultraThinMaterial) // 👈 רקע שקוף
+                        .clipShape(Circle())
                 }
+                .buttonStyle(.plain)
+//                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                .padding(8)   // ← נסה 10–16 לפי העין
             }
-
-//            Button(role: .destructive) {
-//                onRequestDelete()
-//            } label: {
-//                Image(systemName: "trash")
-//                    .font(.system(size: 14, weight: .semibold))
-//                    .padding(10)
-//                    .background(.ultraThinMaterial)
-//                    .clipShape(Circle())
+            .frame(width: 280, height: 150)
+//            .padding(.trailing, 8)
+//            .padding(.top, 6)
+//
+//            VStack(spacing: 8) {
+//
+//                // כפתור מחיקה – אותו דבר כמו שהיה
+//                Button(role: .destructive) {
+//                    onRequestDelete()
+//                } label: {
+//                    Image(systemName: "trash")
+//                        .font(.system(size: 16, weight: .semibold))
+//                }
+//                Spacer()
+//                // כפתור עריכה – חדש
+//                Button {
+//                    onEdit()
+//                } label: {
+//                    Image(systemName: "pencil")
+//                        .font(.system(size: 16, weight: .semibold))
+//                }
 //            }
-            .buttonStyle(.plain)
-            .padding(10)
+//            VStack(spacing: 8) {
+//
+//                Button(role: .destructive) {
+//                    onRequestDelete()
+//                } label: {
+//                    Image(systemName: "trash")
+//                        .font(.system(size: 16, weight: .semibold))
+//                }
+//                Spacer()
+//                Button {
+//                    onEdit()
+//                } label: {
+//                    Image(systemName: "pencil")
+//                        .font(.system(size: 16, weight: .semibold))
+//                }
+//            }
+//            .buttonStyle(.plain)
+//            .padding(10)
+            
         }
     }
 
