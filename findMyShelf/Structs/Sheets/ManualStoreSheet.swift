@@ -114,6 +114,53 @@ struct ManualStoreSheet: View {
                             TextField("City (optional)", text: $city)
                                 .textFieldStyle(.roundedBorder)
 
+                            HStack(spacing: 12) {
+
+                                // 💾 Save
+                                Button {
+                                    let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    guard !trimmedName.isEmpty else { return }
+
+                                    let addr = addressLine.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    let c = city.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                                    if let store = editingStore {
+                                        store.name = trimmedName
+                                        store.addressLine = addr.isEmpty ? nil : addr
+                                        store.city = c.isEmpty ? nil : c
+                                        editingStore = nil
+                                    } else {
+                                        onSaveNew(
+                                            trimmedName,
+                                            addr.isEmpty ? nil : addr,
+                                            c.isEmpty ? nil : c
+                                        )
+                                    }
+
+                                    name = ""
+                                    addressLine = ""
+                                    city = ""
+                                } label: {
+                                    Text(editingStore == nil ? "Save store" : "Save changes")
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                                // ❌ Cancel
+                                Button {
+                                    editingStore = nil
+                                    name = ""
+                                    addressLine = ""
+                                    city = ""
+                                } label: {
+                                    Text("Cancel")
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.bordered)
+                                .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            }
+
 //                            Button {
 //                                let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
 //                                guard !trimmedName.isEmpty else { return }
@@ -131,37 +178,37 @@ struct ManualStoreSheet: View {
 //                                Text("Save store")
 //                                    .frame(maxWidth: .infinity)
 //                            }
-                            Button {
-                                let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                                guard !trimmedName.isEmpty else { return }
-
-                                let addr = addressLine.trimmingCharacters(in: .whitespacesAndNewlines)
-                                let c = city.trimmingCharacters(in: .whitespacesAndNewlines)
-
-                                if let store = editingStore {
-                                    // ✏️ עריכה
-                                    store.name = trimmedName
-                                    store.addressLine = addr.isEmpty ? nil : addr
-                                    store.city = c.isEmpty ? nil : c
-                                    editingStore = nil
-                                } else {
-                                    // ➕ הוספה
-                                    onSaveNew(
-                                        trimmedName,
-                                        addr.isEmpty ? nil : addr,
-                                        c.isEmpty ? nil : c
-                                    )
-                                }
-
-                                name = ""
-                                addressLine = ""
-                                city = ""
-                            } label: {
-                                Text(editingStore == nil ? "Save store" : "Save changes")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+//                            Button {
+//                                let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+//                                guard !trimmedName.isEmpty else { return }
+//
+//                                let addr = addressLine.trimmingCharacters(in: .whitespacesAndNewlines)
+//                                let c = city.trimmingCharacters(in: .whitespacesAndNewlines)
+//
+//                                if let store = editingStore {
+//                                    // ✏️ עריכה
+//                                    store.name = trimmedName
+//                                    store.addressLine = addr.isEmpty ? nil : addr
+//                                    store.city = c.isEmpty ? nil : c
+//                                    editingStore = nil
+//                                } else {
+//                                    // ➕ הוספה
+//                                    onSaveNew(
+//                                        trimmedName,
+//                                        addr.isEmpty ? nil : addr,
+//                                        c.isEmpty ? nil : c
+//                                    )
+//                                }
+//
+//                                name = ""
+//                                addressLine = ""
+//                                city = ""
+//                            } label: {
+//                                Text(editingStore == nil ? "Save store" : "Save changes")
+//                                    .frame(maxWidth: .infinity)
+//                            }
+//                            .buttonStyle(.borderedProminent)
+//                            .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         }
                     }
                     .padding(16)
