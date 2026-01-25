@@ -188,6 +188,10 @@ struct ContentView: View {
                 if locationManager.authorizationStatus == .authorizedWhenInUse || locationManager.authorizationStatus == .authorizedAlways {
                     locationManager.startUpdating()
                 }
+
+                if let store = selectedStore {
+                    Task { await startAislesSyncIfPossible(for: store) }
+                }
             }
             .sheet(isPresented: $isShowingCamera) {
                 CameraImagePicker(isPresented: $isShowingCamera) { image in
@@ -263,9 +267,20 @@ struct ContentView: View {
             }
 
         }
+        .onChange(of: selectedStoreId) { _, newValue in
+            if newValue == nil {
+                Task { @MainActor in stopAislesSync() }
+                return
+            }
+            guard let store = selectedStore else { return }
+            Task { await ensureStoreRemoteId(store)
+                await startAislesSyncIfPossible(for: store) }
+        }
         .onChange(of: selectedStoreId) { _, _ in
             guard let store = selectedStore else { return }
-            Task { await ensureStoreRemoteId(store) }
+            Task { await ensureStoreRemoteId(store)
+                await startAislesSyncIfPossible(for: store)
+            }
         }
         .sheet(isPresented: $showManualStoreSheet) {
             ManualStoreSheet(
@@ -580,6 +595,31 @@ struct ContentView: View {
     }
 
     // MARK: - Logic
+
+    @MainActor
+    private func stopAislesSync() {
+        firebase.stopAislesListener()
+        print("🛑 Stopped aisles listener")
+    }
+
+    @MainActor
+    private func startAislesSyncIfPossible(for store: Store) async {
+        // Make sure we have store.remoteId (either already saved or fetched/created)
+        await ensureStoreRemoteId(store)
+
+        guard let storeRemoteId = store.remoteId else {
+            showBanner("Store is not synced to Firebase", isError: true)
+            return
+        }
+
+        firebase.startAislesListener(
+            storeRemoteId: storeRemoteId,
+            localStoreId: store.id,
+            context: context
+        )
+
+        print("✅ Started aisles listener for storeRemoteId:", storeRemoteId)
+    }
 
     @MainActor
     private func syncCreatedAisleToFirebase(_ aisle: Aisle, store: Store) async {
