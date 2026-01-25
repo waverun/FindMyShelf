@@ -138,7 +138,6 @@ struct ContentView: View {
     @State private var showPhotoSourceDialog: Bool = false
     @State private var isShowingCamera: Bool = false
     @State private var pickedPhotoItem: PhotosPickerItem?
-//    @State private var isProcessingOCR: Bool = false
 
     @State private var bannerText: String?
     @State private var bannerIsError: Bool = false
@@ -257,11 +256,6 @@ struct ContentView: View {
                 }
             }
             
-//            .navigationDestination(isPresented: $goToAisles) {
-//                if let store = selectedStore {
-//                    AisleListView(store: store)
-//                }
-//            }
             .navigationDestination(isPresented: $goToSearch) {
                 if let store = selectedStore {
                     ProductSearchView(store: store, initialQuery: pendingProductQuery)
@@ -411,7 +405,6 @@ struct ContentView: View {
                                 .joined(separator: " • ")
                             StorePosterCard(
                                 title: store.name,
-//                                subtitle: store.distance.map { formatDistance($0) },
                                 subtitle: sub.isEmpty ? nil : sub,
                                 colorIndex: index,
                                 isHighlighted: matchesPreviousStore(store),
@@ -469,26 +462,6 @@ struct ContentView: View {
             }
         }
     }
-
-//    private var selectedStoreSection: some View {
-//        VStack(alignment: .leading, spacing: 10) {
-//            Text("Your store")
-//                .font(.headline)
-//
-//            if let store = selectedStore {
-//                SelectedStoreCard(
-//                    title: store.name,
-//                    accentSeed: store.name,
-//                    trailingButtonTitle: "Change store",
-//                    trailingAction: {
-//                        previousSelectedStoreId = selectedStoreId   // שמור את מה שהיה
-//                        selectedStoreId = nil                       // עבור למסך בחירת חנות
-//                        quickQuery = ""
-//                    }
-//                )
-//            }
-//        }
-//    }
 
     // MARK: - Actions
 
@@ -574,7 +547,6 @@ struct ContentView: View {
 
                     HStack(spacing: 10) {
                         NavigationLink {
-//                            AisleListView(store: store)
                             AisleListView(store: store, initialSelectedAisleID: nil)
                         } label: {
                             Label("Lines", systemImage: "list.bullet")
@@ -622,31 +594,6 @@ struct ContentView: View {
 
         print("✅ Started aisles listener for storeRemoteId:", storeRemoteId)
     }
-
-//    @MainActor
-//    private func syncCreatedAisleToFirebase(_ aisle: Aisle, store: Store) async {
-//        // If already synced, skip
-//        if aisle.remoteId != nil { return }
-//
-//        // Make sure store has remoteId
-//        await ensureStoreRemoteId(store)
-//        guard let storeRemoteId = store.remoteId else {
-//            showBanner("Store is not synced to Firebase", isError: true)
-//            return
-//        }
-//
-//        do {
-//            let rid = try await firebase.createAisle(storeRemoteId: storeRemoteId, aisle: aisle)
-//            aisle.remoteId = rid
-//            aisle.updatedAt = .now
-//            try? context.save()
-//
-//            print("✅ Aisle synced to Firebase. aisleRemoteId:", rid)
-//        } catch {
-//            print("❌ Failed to create aisle in Firebase:", error)
-//            showBanner("Failed to sync aisle to Firebase", isError: true)
-//        }
-//    }
 
     @MainActor
     private func ensureStoreRemoteId(_ store: Store) async {
@@ -749,30 +696,6 @@ struct ContentView: View {
         }
     }
 
-//    private func handleStoreChosen(_ nearby: NearbyStore) {
-//        if let existing = stores.first(where: { s in
-//            s.name == nearby.name &&
-//            abs((s.latitude ?? 0) - nearby.coordinate.latitude) < 0.0005 &&
-//            abs((s.longitude ?? 0) - nearby.coordinate.longitude) < 0.0005
-//        }) {
-//            selectedStoreId = existing.id.uuidString
-//            return
-//        }
-//
-//        let newStore = Store(
-//            name: nearby.name,
-//            latitude: nearby.coordinate.latitude,
-//            longitude: nearby.coordinate.longitude
-//        )
-//        context.insert(newStore)
-//        do {
-//            try context.save()
-//            selectedStoreId = newStore.id.uuidString
-//        } catch {
-//            showBanner("Failed to save the store", isError: true)
-//        }
-//    }
-
     private func handlePickedPhoto(_ item: PhotosPickerItem) {
         Task {
             guard let data = try? await item.loadTransferable(type: Data.self),
@@ -789,106 +712,6 @@ struct ContentView: View {
             }
         }
     }
-
-//    private func processImage(_ image: UIImage) {
-//        guard let store = selectedStore else {
-//            showBanner("Please select a store before uploading an image", isError: true)
-//            return
-//        }
-//
-//        isQuickQueryFocused = false
-//        ocr.isProcessingOCR = true
-//
-//        Task {
-//            do {
-//                guard !apiKey.isEmpty else {
-//                    throw NSError(domain: "Config", code: 0, userInfo: [NSLocalizedDescriptionKey: "OPENAI_API_KEY is missing"])
-//                }
-//
-//                // JPEG דחוס כדי להקטין משקל (עלות/מהירות)
-//                guard let jpeg = image.jpegData(compressionQuality: 0.8) else {
-//                    throw NSError(domain: "Image", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to encode JPEG"])
-//                }
-//
-//                let result = try await visionService.analyzeAisle(imageJPEGData: jpeg)
-//
-//                await MainActor.run {
-//                    ocr.isProcessingOCR = false
-//
-//                    let titleOriginal = (result.title_original ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-//                    let titleEn = (result.title_en ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-//
-//                    let aisleCode = (result.aisle_code ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-//
-//                    // חייבים כותרת כלשהי כדי ליצור Aisle
-//                    let displayTitle = !aisleCode.isEmpty ? aisleCode : !titleEn.isEmpty ? titleEn : (!titleOriginal.isEmpty ? titleOriginal : "")
-//
-//                    guard !displayTitle.isEmpty else {
-//                        showBanner("No aisle title could be detected from the sign", isError: true)
-//                        return
-//                    }
-//
-//                    // בניית keywords: גם מקור וגם אנגלית + שתי הכותרות
-//                    var all = [String]()
-//
-////                    if let ko = result.keywords_original { all.append(contentsOf: ko) }
-////                    if let ke = result.keywords_en { all.append(contentsOf: ke) }
-//                    all.append(contentsOf: result.keywords_original)
-//                    all.append(contentsOf: result.keywords_en)
-//
-//                    if !titleOriginal.isEmpty { all.append(titleOriginal) }
-//                    if !titleEn.isEmpty { all.append(titleEn) }
-//
-//                    // ניקוי/נרמול: trim, lowercased, הסרת ריקים, ייחוד
-//                    let normalized = all
-//                        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-//                        .filter { !$0.isEmpty }
-//                        .map { $0.lowercased() }
-//
-//                    let uniqueKeywords = Array(Set(normalized)).sorted()
-//
-//                    // בדיקת כפילות לפי שם (אנגלית/מקור) — בגרסה שלך יש רק nameOrNumber, אז נבדוק מול displayTitle.
-//                    let storeID = store.id
-//                    let descriptor = FetchDescriptor<Aisle>(
-//                        predicate: #Predicate<Aisle> { aisle in
-//                            aisle.storeId == storeID
-//                        }
-//                    )
-//                    let aisles = (try? context.fetch(descriptor)) ?? []
-//                    if aisles.contains(where: { $0.nameOrNumber == displayTitle }) {
-//                        showBanner("Aisle '\(displayTitle)' already exists", isError: true)
-//                        return
-//                    }
-//
-//                    // יצירה ושמירה
-//                    let aisle = Aisle(
-//                        nameOrNumber: displayTitle,
-//                        storeId: store.id,
-//                        keywords: uniqueKeywords
-//                    )
-//
-//                    context.insert(aisle)
-//                    do {
-//                        try context.save()
-//                        showBanner("Aisle added: \(displayTitle)", isError: false)
-//
-//                        Task { await syncCreatedAisleToFirebase(aisle, store: store) }
-//
-//                        pendingAisleToSelectID = aisle.id
-//                        goToAisles = true
-//                    } catch {
-//                        showBanner("Failed to save the new aisle", isError: true)
-//                    }
-//                }
-//
-//            } catch {
-//                await MainActor.run {
-//                    ocr.isProcessingOCR = false
-//                    showBanner("Failed to analyze image: \(error.localizedDescription)", isError: true)
-//                }
-//            }
-//        }
-//    }
 
     private func processImage(_ image: UIImage) {
         guard let store = selectedStore else {
@@ -913,7 +736,6 @@ struct ContentView: View {
             },
             onSyncToFirebase: { aisle in
                 Task { @MainActor in
-//                    await firebase.syncCreatedAisleToFirebase(aisle, store: store, context: context) { msg in
                     await fb.syncCreatedAisleToFirebase(
                         aisle,
                         store: store,
@@ -947,402 +769,9 @@ struct ContentView: View {
         }
         return String(format: "%.1f k\"m", meters / 1000.0)
     }
-
-//    private struct ConfirmImageSheet: View {
-//        let image: UIImage?
-//        let onCancel: () -> Void
-//        let onConfirm: (UIImage) -> Void
-//
-//        var body: some View {
-//            NavigationStack {
-//                VStack(spacing: 16) {
-//
-//                    ZStack {
-//                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-//                            .fill(Color.secondary.opacity(0.1))
-//                            .frame(maxWidth: .infinity)
-//                            .aspectRatio(3/4, contentMode: .fit)
-//
-//                        if let image {
-//                            Image(uiImage: image)
-//                                .resizable()
-//                                .scaledToFit()
-//                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-//                                .transition(.opacity)
-//                        } else {
-//                            ProgressView("Loading image…")
-//                                .progressViewStyle(.circular)
-//                        }
-//                    }
-//                    .padding(.horizontal, 16)
-//                    .padding(.top, 8)
-//
-//                    Text("Use this photo?")
-//                        .font(.headline)
-//
-//                    Text("The app will analyze the aisle sign and add an aisle.")
-//                        .font(.footnote)
-//                        .foregroundStyle(.secondary)
-//                        .multilineTextAlignment(.center)
-//                        .padding(.horizontal, 24)
-//
-//                    Spacer()
-//                }
-//                .navigationTitle("Confirm photo")
-//                .navigationBarTitleDisplayMode(.inline)
-//                .toolbar {
-//                    ToolbarItem(placement: .cancellationAction) {
-//                        Button("Cancel") { onCancel() }
-//                    }
-//                    ToolbarItem(placement: .confirmationAction) {
-//                        Button("Use photo") {
-//                            if let image { onConfirm(image) }
-//                        }
-//                        .disabled(image == nil)
-//                    }
-//                }
-//            }
-//        }
-//    }
-
-//    private struct ConfirmImageSheet: View {
-//        let image: UIImage?
-//        let onCancel: () -> Void
-//        let onConfirm: (UIImage) -> Void
-//
-//        var body: some View {
-//            NavigationStack {
-//                VStack(spacing: 16) {
-//                    if let image {
-//                        Image(uiImage: image)
-//                            .resizable()
-//                            .scaledToFit()
-//                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-//                            .padding(.horizontal, 16)
-//                            .padding(.top, 8)
-//
-//                        Text("Use this photo?")
-//                            .font(.headline)
-//
-//                        Text("The app will analyze the aisle sign and add an aisle.")
-//                            .font(.footnote)
-//                            .foregroundStyle(.secondary)
-//                            .multilineTextAlignment(.center)
-//                            .padding(.horizontal, 24)
-//
-//                    } else {
-//                        Text("No image")
-//                            .foregroundStyle(.secondary)
-//                    }
-//
-//                    Spacer()
-//                }
-//                .navigationTitle("Confirm photo")
-//                .navigationBarTitleDisplayMode(.inline)
-//                .toolbar {
-//                    ToolbarItem(placement: .cancellationAction) {
-//                        Button("Cancel") { onCancel() }
-//                    }
-//                    ToolbarItem(placement: .confirmationAction) {
-//                        Button("Use photo") {
-//                            if let image { onConfirm(image) }
-//                        }
-//                        .disabled(image == nil)
-//                    }
-//                }
-//            }
-//        }
-//    }
 }
 
 // MARK: - UI building blocks
-
-//private struct StorePosterCard: View {
-//    let title: String
-//    let subtitle: String?
-//    let colorIndex: Int
-//    let isHighlighted: Bool
-//    let badgeText: String?
-//    let buttonTitle: String
-//    let buttonAction: () -> Void
-//
-//    var body: some View {
-//        let baseColor = color(for: colorIndex)
-//
-//        ZStack(alignment: .bottomLeading) {
-//            RoundedRectangle(cornerRadius: 20, style: .continuous)
-//                .fill(LinearGradient(
-//                    colors: [baseColor.opacity(0.95), baseColor.opacity(0.55)],
-//                    startPoint: .topLeading,
-//                    endPoint: .bottomTrailing
-//                ))
-//                .overlay(
-//                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-//                        .strokeBorder(isHighlighted ? .white.opacity(0.85) : .white.opacity(0.18),
-//                                      lineWidth: isHighlighted ? 2 : 1)
-//                )
-//                .shadow(radius: isHighlighted ? 16 : 12, y: isHighlighted ? 8 : 6)
-//                .scaleEffect(isHighlighted ? 1.03 : 1.0)
-//                .animation(.easeInOut(duration: 0.15), value: isHighlighted)
-//
-//            VStack(alignment: .leading, spacing: 10) {
-//                VStack(alignment: .leading, spacing: 6) {
-//
-//                    if let badgeText {
-//                        Text(badgeText)
-//                            .font(.caption2.bold())
-//                            .padding(.horizontal, 8)
-//                            .padding(.vertical, 4)
-//                            .background(.white.opacity(0.22))
-//                            .clipShape(Capsule())
-//                            .foregroundStyle(.white)
-//                    }
-//
-//                    Text(title)
-//                        .font(.headline)
-//                        .foregroundStyle(.white)
-//                        .lineLimit(2)
-//
-//                    if let subtitle {
-//                        Text(subtitle)
-//                            .font(.subheadline)
-//                            .foregroundStyle(.white.opacity(0.85))
-//                    }
-//                }
-//
-//                Button(buttonTitle, action: buttonAction)
-//                    .font(.subheadline.bold())
-//                    .buttonStyle(.borderedProminent)
-//                    .tint(.white.opacity(0.25))
-//            }
-//            .padding(16)
-//        }
-//        .frame(width: 280, height: 170)
-//        .accessibilityElement(children: .combine)
-//    }
-//
-//    private func color(for index: Int) -> Color {
-//        let palette: [Color] = [
-//            .blue, .purple, .indigo, .teal, .mint, .pink, .orange
-//        ]
-//        return palette[index % palette.count]
-//    }
-//}
-
-//private struct SelectedStoreCard: View {
-//    let title: String
-//    let accentSeed: String
-//    let trailingButtonTitle: String
-//    let trailingAction: () -> Void
-//
-//    var body: some View {
-//        HStack(alignment: .center) {
-//            VStack(alignment: .leading, spacing: 6) {
-//                Text(title)
-//                    .font(.title3.bold())
-//                Text("Selected store")
-//                    .font(.footnote)
-//                    .foregroundStyle(.secondary)
-//            }
-//
-//            Spacer()
-//
-//            Button(action: trailingAction) {
-//                Label("Change store", systemImage: "arrow.triangle.2.circlepath")
-//            }
-//            .buttonStyle(.bordered)
-//        }
-//        .padding(16)
-//        .background(
-//            RoundedRectangle(cornerRadius: 20, style: .continuous)
-//                .fill(.thinMaterial)
-//                .overlay(
-//                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-//                        .strokeBorder(color(for: accentSeed).opacity(0.25), lineWidth: 1)
-//                )
-//        )
-//    }
-//
-//    private func color(for seed: String) -> Color {
-//        let hash = seed.unicodeScalars.reduce(0) { ($0 &* 131) &+ Int($1.value) }
-//        let palette: [Color] = [.blue, .purple, .indigo, .teal, .mint, .pink, .orange]
-//        return palette[abs(hash) % palette.count]
-//    }
-//}
-
-//private struct SelectedStoreCard: View {
-//    let title: String
-//    let address: String?
-//    let isAddressShown: Bool
-//    let onToggleAddress: () -> Void
-//
-//    let accentSeed: String
-//    let trailingButtonTitle: String
-//    let trailingAction: () -> Void
-//
-//    var body: some View {
-//        HStack(alignment: .center) {
-//            VStack(alignment: .leading, spacing: 6) {
-//
-//                // רק הכותרת לחיצה (ולא כל הכרטיס)
-//                Button(action: onToggleAddress) {
-//                    HStack(spacing: 6) {
-//                        Text(title)
-//                            .font(.title3.bold())
-//                            .foregroundStyle(.primary)
-//
-//                        if address != nil {
-//                            Image(systemName: isAddressShown ? "chevron.up" : "chevron.down")
-//                                .font(.caption.weight(.semibold))
-//                                .foregroundStyle(.secondary)
-//                        }
-//                    }
-//                }
-//                .buttonStyle(.plain)
-//
-//                Text("Selected store")
-//                    .font(.footnote)
-//                    .foregroundStyle(.secondary)
-//
-//                if isAddressShown, let address, !address.isEmpty {
-//                    Text(address)
-//                        .font(.footnote)
-//                        .foregroundStyle(.secondary)
-//                        .transition(.opacity.combined(with: .move(edge: .top)))
-//                }
-//            }
-//
-//            Spacer()
-//
-//            Button(action: trailingAction) {
-//                Label(trailingButtonTitle, systemImage: "arrow.triangle.2.circlepath")
-//            }
-//            .buttonStyle(.bordered)
-//        }
-//        .padding(16)
-//        .background(
-//            RoundedRectangle(cornerRadius: 20, style: .continuous)
-//                .fill(.thinMaterial)
-//                .overlay(
-//                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-//                        .strokeBorder(color(for: accentSeed).opacity(0.25), lineWidth: 1)
-//                )
-//        )
-//    }
-//
-//    private func color(for seed: String) -> Color {
-//        let hash = seed.unicodeScalars.reduce(0) { ($0 &* 131) &+ Int($1.value) }
-//        let palette: [Color] = [.blue, .purple, .indigo, .teal, .mint, .pink, .orange]
-//        return palette[abs(hash) % palette.count]
-//    }
-//}
-
-//private struct SelectedStoreCard: View {
-//    let title: String
-//    let address: String?
-//    let isAddressShown: Bool
-//    let onToggleAddress: () -> Void
-//    let onEdit: () -> Void
-//
-//    let accentSeed: String
-//    let trailingButtonTitle: String
-//    let trailingAction: () -> Void
-//
-//    private var hasAddress: Bool {
-//        let a = (address ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-//        return !a.isEmpty
-//    }
-//
-//    var body: some View {
-//        HStack(alignment: .center) {
-//            VStack(alignment: .leading, spacing: 6) {
-//
-//                // ✅ אם אין כתובת: השם הוא Text (לא לחיץ)
-//                // ✅ אם יש כתובת: השם הוא Button שמטגל כתובת
-//                Group {
-//                    if hasAddress {
-//                        Button(action: onToggleAddress) {
-//                            titleRow
-//                        }
-//                        .buttonStyle(.plain)
-//                        .simultaneousGesture(
-//                            LongPressGesture(minimumDuration: 0.5)
-//                                .onEnded { _ in onEdit() }
-//                        )
-//                    } else {
-//                        titleRow
-//                            .onLongPressGesture(minimumDuration: 0.5) {
-//                                onEdit()
-//                            }
-//                    }
-//                }
-//
-//                Text("Selected store")
-//                    .font(.footnote)
-//                    .foregroundStyle(.secondary)
-//
-//                if isAddressShown, hasAddress, let address {
-//                    Text(address)
-//                        .font(.footnote)
-//                        .foregroundStyle(.secondary)
-//                        .transition(.opacity.combined(with: .move(edge: .top)))
-//                }
-//            }
-//
-//            Spacer()
-//
-//            Button(action: trailingAction) {
-//                Label(trailingButtonTitle, systemImage: "arrow.triangle.2.circlepath")
-//            }
-//            .buttonStyle(.bordered)
-//        }
-//        .padding(16)
-//        .background(
-//            RoundedRectangle(cornerRadius: 20, style: .continuous)
-//                .fill(.thinMaterial)
-//                .overlay(
-//                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-//                        .strokeBorder(color(for: accentSeed).opacity(0.25), lineWidth: 1)
-//                )
-//        )
-//    }
-//
-//    private var titleRow: some View {
-//        HStack(spacing: 6) {
-//            Text(title)
-//                .font(.title3.bold())
-//                .foregroundStyle(.primary)
-//
-//            if hasAddress {
-//                Image(systemName: isAddressShown ? "chevron.up" : "chevron.down")
-//                    .font(.caption.weight(.semibold))
-//                    .foregroundStyle(.secondary)
-//            }
-//        }
-//    }
-//
-//    private func color(for seed: String) -> Color {
-//        let hash = seed.unicodeScalars.reduce(0) { ($0 &* 131) &+ Int($1.value) }
-//        let palette: [Color] = [.blue, .purple, .indigo, .teal, .mint, .pink, .orange]
-//        return palette[abs(hash) % palette.count]
-//    }
-//}
-
-
-//private struct ActionCard<Content: View>: View {
-//    @ViewBuilder var content: Content
-//
-//    var body: some View {
-//        content
-//            .padding(16)
-//            .frame(maxWidth: .infinity)
-//            .background(
-//                RoundedRectangle(cornerRadius: 20, style: .continuous)
-//                    .fill(.thinMaterial)
-//                    .shadow(radius: 10, y: 5)
-//            )
-//    }
-//}
 
 private struct EditStoreSheet: View {
     let store: Store
@@ -1399,69 +828,3 @@ private struct EditStoreSheet: View {
         }
     }
 }
-
-//private struct PermissionCard: View {
-//    let title: String
-//    let subtitle: String
-//    let primaryButtonTitle: String
-//    let primaryAction: () -> Void
-//    let secondaryButtonTitle: String
-//    let secondaryAction: () -> Void
-//
-//    var body: some View {
-//        VStack(alignment: .leading, spacing: 10) {
-//            Text(title)
-//                .font(.headline)
-//            Text(subtitle)
-//                .font(.subheadline)
-//                .foregroundStyle(.secondary)
-//
-//            HStack(spacing: 10) {
-//                Button(primaryButtonTitle, action: primaryAction)
-//                    .buttonStyle(.borderedProminent)
-//                Button(secondaryButtonTitle, action: secondaryAction)
-//                    .buttonStyle(.bordered)
-//            }
-//        }
-//        .padding(16)
-//        .frame(maxWidth: .infinity, alignment: .leading)
-//        .background(
-//            RoundedRectangle(cornerRadius: 20, style: .continuous)
-//                .fill(.thinMaterial)
-//        )
-//    }
-//}
-
-//private struct BannerView: View {
-//    let text: String
-//    let isError: Bool
-//    let onClose: () -> Void
-//
-//    var body: some View {
-//        HStack(spacing: 10) {
-//            Image(systemName: isError ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
-//                .symbolRenderingMode(.hierarchical)
-//
-//            Text(text)
-//                .font(.footnote)
-//                .lineLimit(2)
-//
-//            Spacer()
-//
-//            Button(action: onClose) {
-//                Image(systemName: "xmark")
-//                    .font(.footnote.bold())
-//            }
-//        }
-//        .padding(12)
-//        .background(
-//            RoundedRectangle(cornerRadius: 16, style: .continuous)
-//                .fill(isError ? Color.red.opacity(0.18) : Color.green.opacity(0.16))
-//                .overlay(
-//                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-//                        .strokeBorder(.white.opacity(0.18), lineWidth: 1)
-//                )
-//        )
-//        .shadow(radius: 10, y: 6)
-//    }
-//}
