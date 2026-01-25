@@ -45,10 +45,6 @@ struct AisleListView: View {
             }
     }
 
-    //    private var aislesForStore: [Aisle] {
-    //        allAisles.filter { $0.storeId == store.id }
-    //    }
-
     // שורות אחרי פילטר
     private var filteredAisles: [Aisle] {
         let text = filterText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -69,8 +65,6 @@ struct AisleListView: View {
             VStack {
                 // שורת חיפוש
                 HStack {
-                    //                TextField("Search for an aisle or keywords…", text: $filterText)
-                    //                    .textFieldStyle(.roundedBorder)
                     TextField("Search for an aisle or keywords…", text: $filterText)
                         .textFieldStyle(.roundedBorder)
                         .focused($focusedField, equals: .filter)
@@ -79,30 +73,6 @@ struct AisleListView: View {
                 .padding([.horizontal, .top])
 
                 // כרטיסיות שורות – אופקי
-//                ScrollView(.horizontal, showsIndicators: false) {
-//                    LazyHStack(spacing: 14) {
-//                        if filteredAisles.isEmpty {
-//                            Text("No aisles were found matching your search.")
-//                                .foregroundStyle(.secondary)
-//                                .padding(.horizontal, 16)
-//                        } else {
-//                            ForEach(Array(filteredAisles.enumerated()), id: \.element.id) { index, aisle in
-//                                AisleCard(
-//                                    title: aisle.nameOrNumber,
-//                                    keywords: aisle.keywords,
-//                                    colorIndex: index,
-//                                    isSelected: aisle.id == selectedAisleID
-//                                ) {
-//                                    // בחירה בלבד (לא עריכה)
-//                                    selectedAisleID = aisle.id
-//                                    isEditingSelected = false
-//                                }
-//                            }
-//                        }
-//                    }
-//                    .padding(.horizontal, 16)
-//                    .padding(.vertical, 8)
-//                }
 
 // כרטיסיות שורות – אופקי
                 ScrollViewReader { proxy in
@@ -180,12 +150,6 @@ struct AisleListView: View {
                                     isEditingSelected = false
                                 }
                             },
-//                            onDelete: {
-//                                context.delete(aisle)
-//                                try? context.save()
-//                                selectedAisleID = nil
-//                                isEditingSelected = false
-//                            },
                             onSave: { newName, newKeywords in
                                 aisle.nameOrNumber = newName
                                 aisle.keywords = newKeywords
@@ -262,19 +226,56 @@ struct AisleListView: View {
         }
     }
 
+    @MainActor
     private func addAisle() {
-        let trimmed = newAisleName.trimmingCharacters(in: .whitespaces)
+        let trimmed = newAisleName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
-        let aisle = Aisle(nameOrNumber: trimmed, storeId: store.id)
+        // 1) create locally first (fast UI)
+        let aisle = Aisle(nameOrNumber: trimmed, storeId: store.id, keywords: [])
         context.insert(aisle)
+
         do {
             try context.save()
             newAisleName = ""
+            focusedField = nil
         } catch {
-            print("Failed to save aisle:", error)
+            print("❌ Failed to save aisle locally:", error)
+            return
+        }
+
+        // 2) then sync to Firebase (if store is synced)
+        guard let storeRemoteId = store.remoteId else {
+            print("⚠️ Store has no remoteId yet, aisle stays local-only for now.")
+            return
+        }
+
+        Task { @MainActor in
+            do {
+                let rid = try await firebase.createAisle(storeRemoteId: storeRemoteId, aisle: aisle)
+                aisle.remoteId = rid
+                aisle.updatedAt = Date()
+                try? context.save()
+            } catch {
+                print("❌ Failed to create aisle in Firebase:", error)
+                // optional: you can show a banner or mark unsynced state
+            }
         }
     }
+
+//    private func addAisle() {
+//        let trimmed = newAisleName.trimmingCharacters(in: .whitespaces)
+//        guard !trimmed.isEmpty else { return }
+//
+//        let aisle = Aisle(nameOrNumber: trimmed, storeId: store.id)
+//        context.insert(aisle)
+//        do {
+//            try context.save()
+//            newAisleName = ""
+//        } catch {
+//            print("Failed to save aisle:", error)
+//        }
+//    }
 }
 
 private struct AisleCard: View {
@@ -395,25 +396,6 @@ private struct AisleBottomPanel: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    //                Button(role: .destructive) {
-                    //                    showDeleteConfirm = true
-                    //                } label: {
-                    //                    Label("Delete aisle", systemImage: "trash")
-                    //                        .frame(maxWidth: .infinity)
-                    //                }
-                    //                .buttonStyle(.bordered)
-                    //                .confirmationDialog(
-                    //                    "Delete this aisle?",
-                    //                    isPresented: $showDeleteConfirm,
-                    //                    titleVisibility: .visible
-                    //                ) {
-                    //                    Button("Delete", role: .destructive) {
-                    //                        onDelete()
-                    //                    }
-                    //                    Button("Cancel", role: .cancel) { }
-                    //                } message: {
-                    //                    Text("This action cannot be undone.")
-                    //                }
                     // 🗑️ Trash icon
                     if !isEditing {
                         HStack {
