@@ -7,6 +7,8 @@ import UIKit
 struct ContentView: View {
     @EnvironmentObject private var firebase: FirebaseService   // ✅ add
 
+    @StateObject private var ocr = AisleOCRController()
+
     private var hasLocation: Bool {
         locationManager.currentLocation != nil
     }
@@ -136,7 +138,7 @@ struct ContentView: View {
     @State private var showPhotoSourceDialog: Bool = false
     @State private var isShowingCamera: Bool = false
     @State private var pickedPhotoItem: PhotosPickerItem?
-    @State private var isProcessingOCR: Bool = false
+//    @State private var isProcessingOCR: Bool = false
 
     @State private var bannerText: String?
     @State private var bannerIsError: Bool = false
@@ -532,7 +534,7 @@ struct ContentView: View {
                         Label("Add aisle sign", systemImage: "camera.viewfinder")
                             .font(.headline)
                         Spacer()
-                        if isProcessingOCR {
+                        if ocr.isProcessingOCR {
                             ProgressView()
                         }
                     }
@@ -549,7 +551,7 @@ struct ContentView: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
-                    .disabled(isProcessingOCR)
+                    .disabled(ocr.isProcessingOCR)
 
                     Button {
                         goToAisles = true
@@ -621,30 +623,30 @@ struct ContentView: View {
         print("✅ Started aisles listener for storeRemoteId:", storeRemoteId)
     }
 
-    @MainActor
-    private func syncCreatedAisleToFirebase(_ aisle: Aisle, store: Store) async {
-        // If already synced, skip
-        if aisle.remoteId != nil { return }
-
-        // Make sure store has remoteId
-        await ensureStoreRemoteId(store)
-        guard let storeRemoteId = store.remoteId else {
-            showBanner("Store is not synced to Firebase", isError: true)
-            return
-        }
-
-        do {
-            let rid = try await firebase.createAisle(storeRemoteId: storeRemoteId, aisle: aisle)
-            aisle.remoteId = rid
-            aisle.updatedAt = .now
-            try? context.save()
-
-            print("✅ Aisle synced to Firebase. aisleRemoteId:", rid)
-        } catch {
-            print("❌ Failed to create aisle in Firebase:", error)
-            showBanner("Failed to sync aisle to Firebase", isError: true)
-        }
-    }
+//    @MainActor
+//    private func syncCreatedAisleToFirebase(_ aisle: Aisle, store: Store) async {
+//        // If already synced, skip
+//        if aisle.remoteId != nil { return }
+//
+//        // Make sure store has remoteId
+//        await ensureStoreRemoteId(store)
+//        guard let storeRemoteId = store.remoteId else {
+//            showBanner("Store is not synced to Firebase", isError: true)
+//            return
+//        }
+//
+//        do {
+//            let rid = try await firebase.createAisle(storeRemoteId: storeRemoteId, aisle: aisle)
+//            aisle.remoteId = rid
+//            aisle.updatedAt = .now
+//            try? context.save()
+//
+//            print("✅ Aisle synced to Firebase. aisleRemoteId:", rid)
+//        } catch {
+//            print("❌ Failed to create aisle in Firebase:", error)
+//            showBanner("Failed to sync aisle to Firebase", isError: true)
+//        }
+//    }
 
     @MainActor
     private func ensureStoreRemoteId(_ store: Store) async {
@@ -788,105 +790,142 @@ struct ContentView: View {
         }
     }
 
+//    private func processImage(_ image: UIImage) {
+//        guard let store = selectedStore else {
+//            showBanner("Please select a store before uploading an image", isError: true)
+//            return
+//        }
+//
+//        isQuickQueryFocused = false
+//        ocr.isProcessingOCR = true
+//
+//        Task {
+//            do {
+//                guard !apiKey.isEmpty else {
+//                    throw NSError(domain: "Config", code: 0, userInfo: [NSLocalizedDescriptionKey: "OPENAI_API_KEY is missing"])
+//                }
+//
+//                // JPEG דחוס כדי להקטין משקל (עלות/מהירות)
+//                guard let jpeg = image.jpegData(compressionQuality: 0.8) else {
+//                    throw NSError(domain: "Image", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to encode JPEG"])
+//                }
+//
+//                let result = try await visionService.analyzeAisle(imageJPEGData: jpeg)
+//
+//                await MainActor.run {
+//                    ocr.isProcessingOCR = false
+//
+//                    let titleOriginal = (result.title_original ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+//                    let titleEn = (result.title_en ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+//
+//                    let aisleCode = (result.aisle_code ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+//
+//                    // חייבים כותרת כלשהי כדי ליצור Aisle
+//                    let displayTitle = !aisleCode.isEmpty ? aisleCode : !titleEn.isEmpty ? titleEn : (!titleOriginal.isEmpty ? titleOriginal : "")
+//
+//                    guard !displayTitle.isEmpty else {
+//                        showBanner("No aisle title could be detected from the sign", isError: true)
+//                        return
+//                    }
+//
+//                    // בניית keywords: גם מקור וגם אנגלית + שתי הכותרות
+//                    var all = [String]()
+//
+////                    if let ko = result.keywords_original { all.append(contentsOf: ko) }
+////                    if let ke = result.keywords_en { all.append(contentsOf: ke) }
+//                    all.append(contentsOf: result.keywords_original)
+//                    all.append(contentsOf: result.keywords_en)
+//
+//                    if !titleOriginal.isEmpty { all.append(titleOriginal) }
+//                    if !titleEn.isEmpty { all.append(titleEn) }
+//
+//                    // ניקוי/נרמול: trim, lowercased, הסרת ריקים, ייחוד
+//                    let normalized = all
+//                        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+//                        .filter { !$0.isEmpty }
+//                        .map { $0.lowercased() }
+//
+//                    let uniqueKeywords = Array(Set(normalized)).sorted()
+//
+//                    // בדיקת כפילות לפי שם (אנגלית/מקור) — בגרסה שלך יש רק nameOrNumber, אז נבדוק מול displayTitle.
+//                    let storeID = store.id
+//                    let descriptor = FetchDescriptor<Aisle>(
+//                        predicate: #Predicate<Aisle> { aisle in
+//                            aisle.storeId == storeID
+//                        }
+//                    )
+//                    let aisles = (try? context.fetch(descriptor)) ?? []
+//                    if aisles.contains(where: { $0.nameOrNumber == displayTitle }) {
+//                        showBanner("Aisle '\(displayTitle)' already exists", isError: true)
+//                        return
+//                    }
+//
+//                    // יצירה ושמירה
+//                    let aisle = Aisle(
+//                        nameOrNumber: displayTitle,
+//                        storeId: store.id,
+//                        keywords: uniqueKeywords
+//                    )
+//
+//                    context.insert(aisle)
+//                    do {
+//                        try context.save()
+//                        showBanner("Aisle added: \(displayTitle)", isError: false)
+//
+//                        Task { await syncCreatedAisleToFirebase(aisle, store: store) }
+//
+//                        pendingAisleToSelectID = aisle.id
+//                        goToAisles = true
+//                    } catch {
+//                        showBanner("Failed to save the new aisle", isError: true)
+//                    }
+//                }
+//
+//            } catch {
+//                await MainActor.run {
+//                    ocr.isProcessingOCR = false
+//                    showBanner("Failed to analyze image: \(error.localizedDescription)", isError: true)
+//                }
+//            }
+//        }
+//    }
+
     private func processImage(_ image: UIImage) {
         guard let store = selectedStore else {
             showBanner("Please select a store before uploading an image", isError: true)
             return
         }
-
         isQuickQueryFocused = false
-        isProcessingOCR = true
 
-        Task {
-            do {
-                guard !apiKey.isEmpty else {
-                    throw NSError(domain: "Config", code: 0, userInfo: [NSLocalizedDescriptionKey: "OPENAI_API_KEY is missing"])
-                }
+        let fb = firebase   // ✅ capture EnvironmentObject value (not the wrapper)
 
-                // JPEG דחוס כדי להקטין משקל (עלות/מהירות)
-                guard let jpeg = image.jpegData(compressionQuality: 0.8) else {
-                    throw NSError(domain: "Image", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to encode JPEG"])
-                }
-
-                let result = try await visionService.analyzeAisle(imageJPEGData: jpeg)
-
-                await MainActor.run {
-                    isProcessingOCR = false
-
-                    let titleOriginal = (result.title_original ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-                    let titleEn = (result.title_en ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-
-                    let aisleCode = (result.aisle_code ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-
-                    // חייבים כותרת כלשהי כדי ליצור Aisle
-                    let displayTitle = !aisleCode.isEmpty ? aisleCode : !titleEn.isEmpty ? titleEn : (!titleOriginal.isEmpty ? titleOriginal : "")
-
-                    guard !displayTitle.isEmpty else {
-                        showBanner("No aisle title could be detected from the sign", isError: true)
-                        return
+        ocr.processImage(
+            image,
+            store: store,
+            context: context,
+            visionService: visionService,
+            onBanner: { text, isError in
+                showBanner(text, isError: isError)
+            },
+            onAisleCreated: { newId in
+                pendingAisleToSelectID = newId
+                goToAisles = true
+            },
+            onSyncToFirebase: { aisle in
+                Task { @MainActor in
+//                    await firebase.syncCreatedAisleToFirebase(aisle, store: store, context: context) { msg in
+                    await fb.syncCreatedAisleToFirebase(
+                        aisle,
+                        store: store,
+                        context: context
+                    ) { msg in
+                        showBanner(msg, isError: true)
                     }
-
-                    // בניית keywords: גם מקור וגם אנגלית + שתי הכותרות
-                    var all = [String]()
-
-//                    if let ko = result.keywords_original { all.append(contentsOf: ko) }
-//                    if let ke = result.keywords_en { all.append(contentsOf: ke) }
-                    all.append(contentsOf: result.keywords_original)
-                    all.append(contentsOf: result.keywords_en)
-
-                    if !titleOriginal.isEmpty { all.append(titleOriginal) }
-                    if !titleEn.isEmpty { all.append(titleEn) }
-
-                    // ניקוי/נרמול: trim, lowercased, הסרת ריקים, ייחוד
-                    let normalized = all
-                        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                        .filter { !$0.isEmpty }
-                        .map { $0.lowercased() }
-
-                    let uniqueKeywords = Array(Set(normalized)).sorted()
-
-                    // בדיקת כפילות לפי שם (אנגלית/מקור) — בגרסה שלך יש רק nameOrNumber, אז נבדוק מול displayTitle.
-                    let storeID = store.id
-                    let descriptor = FetchDescriptor<Aisle>(
-                        predicate: #Predicate<Aisle> { aisle in
-                            aisle.storeId == storeID
-                        }
-                    )
-                    let aisles = (try? context.fetch(descriptor)) ?? []
-                    if aisles.contains(where: { $0.nameOrNumber == displayTitle }) {
-                        showBanner("Aisle '\(displayTitle)' already exists", isError: true)
-                        return
-                    }
-
-                    // יצירה ושמירה
-                    let aisle = Aisle(
-                        nameOrNumber: displayTitle,
-                        storeId: store.id,
-                        keywords: uniqueKeywords
-                    )
-
-                    context.insert(aisle)
-                    do {
-                        try context.save()
-                        showBanner("Aisle added: \(displayTitle)", isError: false)
-
-                        Task { await syncCreatedAisleToFirebase(aisle, store: store) }
-
-                        pendingAisleToSelectID = aisle.id
-                        goToAisles = true
-                    } catch {
-                        showBanner("Failed to save the new aisle", isError: true)
-                    }
-                }
-
-            } catch {
-                await MainActor.run {
-                    isProcessingOCR = false
-                    showBanner("Failed to analyze image: \(error.localizedDescription)", isError: true)
                 }
             }
-        }
+        )
     }
+
 
     private func showBanner(_ text: String, isError: Bool) {
         bannerIsError = isError

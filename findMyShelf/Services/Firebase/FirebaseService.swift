@@ -253,4 +253,33 @@ final class FirebaseService: ObservableObject {
         let lngR = (lng * 1000).rounded() / 1000
         return "\(latR)|\(lngR)"
     }
+
+    @MainActor
+    func syncCreatedAisleToFirebase(
+        _ aisle: Aisle,
+        store: Store,
+        context: ModelContext,
+        onError: @escaping (String) -> Void
+    ) async {
+        // already synced
+        if aisle.remoteId != nil { return }
+
+        // make sure store has remoteId (ContentView already calls ensureStoreRemoteId,
+        // but we keep it safe)
+        guard let storeRemoteId = store.remoteId else {
+            onError("Store is not synced to Firebase")
+            return
+        }
+
+        do {
+            let rid = try await createAisle(storeRemoteId: storeRemoteId, aisle: aisle)
+            aisle.remoteId = rid
+            aisle.updatedAt = Date()
+            try? context.save()
+            print("✅ Aisle synced to Firebase. aisleRemoteId:", rid)
+        } catch {
+            print("❌ Failed to create aisle in Firebase:", error)
+            onError("Failed to sync aisle to Firebase")
+        }
+    }
 }
