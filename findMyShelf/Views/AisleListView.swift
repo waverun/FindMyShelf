@@ -323,102 +323,135 @@ private struct AisleBottomPanel: View {
     @State private var draftKeywordsText: String = ""
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-
-            HStack {
-//                Text("Selected aisle")
-                Text(headerTitle)
-                    .font(.headline)
-                Spacer()
-
-                if isEditing {
-                    Button("Done") {
-                        let kws = draftKeywordsText
-                            .split(separator: ",")
-                            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                            .filter { !$0.isEmpty }
-                        onSave(draftName.trimmingCharacters(in: .whitespacesAndNewlines), kws)
-                    }
-                    .buttonStyle(.borderedProminent)
-                } else {
-                    Button("Edit") {
-                        draftName = aisle.nameOrNumber
-                        draftKeywordsText = aisle.keywords.joined(separator: ", ")
-                        isEditing = true
-                    }
-                    .buttonStyle(.bordered)
-                }
-            }
-
-            if !isEditing {
-                Text("Aisle \(aisle.nameOrNumber)")
-                    .font(.title3.bold())
-
-                if !aisle.keywords.isEmpty {
-                    Text("Keywords: \(aisle.keywords.joined(separator: ", "))")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text("No keywords yet.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-
-                Button(role: .destructive) {
-                    showDeleteConfirm = true
-                } label: {
-                    Label("Delete aisle", systemImage: "trash")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .confirmationDialog(
-                    "Delete this aisle?",
-                    isPresented: $showDeleteConfirm,
-                    titleVisibility: .visible
-                ) {
-                    Button("Delete", role: .destructive) {
-                        onDelete()
-                    }
-                    Button("Cancel", role: .cancel) { }
-                } message: {
-                    Text("This action cannot be undone.")
-                }
-            } else {
-                TextField("Aisle name/number", text: $draftName)
-                    .textFieldStyle(.roundedBorder)
-
-                TextField("Keywords (comma separated)", text: $draftKeywordsText, axis: .vertical)
-                    .textFieldStyle(.roundedBorder)
-                    .lineLimit(3...6)
-
+        ZStack(alignment: .bottomTrailing) {
+            VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Button(role: .destructive) {
-                        isEditing = false
-                    } label: {
-                        Text("Cancel")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
+                    //                Text("Selected aisle")
+                    Text(headerTitle)
+                        .font(.headline)
+                    Spacer()
 
-                    Button {
-                        let kws = draftKeywordsText
-                            .split(separator: ",")
-                            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                            .filter { !$0.isEmpty }
-                        onSave(draftName.trimmingCharacters(in: .whitespacesAndNewlines), kws)
-                    } label: {
-                        Text("Save")
-                            .frame(maxWidth: .infinity)
+                    if isEditing {
+                        Button("Done") {
+                            let kws = draftKeywordsText
+                                .split(separator: ",")
+                                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                                .filter { !$0.isEmpty }
+                            onSave(draftName.trimmingCharacters(in: .whitespacesAndNewlines), kws)
+                        }
+                        .buttonStyle(.borderedProminent)
+                    } else {
+                        Button("Edit") {
+                            draftName = aisle.nameOrNumber
+                            draftKeywordsText = aisle.keywords.joined(separator: ", ")
+                            isEditing = true
+                        }
+                        .buttonStyle(.bordered)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(draftName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+
+                if !isEditing {
+                    Text("Aisle \(aisle.nameOrNumber)")
+                        .font(.title3.bold())
+
+                    if !aisle.keywords.isEmpty {
+                        Text("Keywords: \(aisle.keywords.joined(separator: ", "))")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("No keywords yet.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    //                Button(role: .destructive) {
+                    //                    showDeleteConfirm = true
+                    //                } label: {
+                    //                    Label("Delete aisle", systemImage: "trash")
+                    //                        .frame(maxWidth: .infinity)
+                    //                }
+                    //                .buttonStyle(.bordered)
+                    //                .confirmationDialog(
+                    //                    "Delete this aisle?",
+                    //                    isPresented: $showDeleteConfirm,
+                    //                    titleVisibility: .visible
+                    //                ) {
+                    //                    Button("Delete", role: .destructive) {
+                    //                        onDelete()
+                    //                    }
+                    //                    Button("Cancel", role: .cancel) { }
+                    //                } message: {
+                    //                    Text("This action cannot be undone.")
+                    //                }
+                    // 🗑️ Trash icon
+                    if !isEditing {
+                        HStack {
+                            Spacer()
+                            
+                            Button {
+                                showDeleteConfirm = true
+                            } label: {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 18, weight: .regular))
+                                    .foregroundStyle(.secondary)
+                                    .padding(10)
+                                    .background(
+                                        Circle()
+                                            .fill(.ultraThinMaterial)
+                                    )
+                            }
+                            .padding(10)
+                            .confirmationDialog(
+                                "Delete this aisle?",
+                                isPresented: $showDeleteConfirm,
+                                titleVisibility: .visible
+                            ) {
+                                Button("Delete", role: .destructive) {
+                                    onDelete()
+                                }
+                                Button("Cancel", role: .cancel) { }
+                            } message: {
+                                Text("This action cannot be undone.")
+                            }
+                        }
+                    }
+                } else {
+                    TextField("Aisle name/number", text: $draftName)
+                        .textFieldStyle(.roundedBorder)
+
+                    TextField("Keywords (comma separated)", text: $draftKeywordsText, axis: .vertical)
+                        .textFieldStyle(.roundedBorder)
+                        .lineLimit(3...6)
+
+                    HStack {
+                        Button(role: .destructive) {
+                            isEditing = false
+                        } label: {
+                            Text("Cancel")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+
+                        Button {
+                            let kws = draftKeywordsText
+                                .split(separator: ",")
+                                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                                .filter { !$0.isEmpty }
+                            onSave(draftName.trimmingCharacters(in: .whitespacesAndNewlines), kws)
+                        } label: {
+                            Text("Save")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(draftName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
                 }
             }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(.thinMaterial)
+            )
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(.thinMaterial)
-        )
     }
 }
