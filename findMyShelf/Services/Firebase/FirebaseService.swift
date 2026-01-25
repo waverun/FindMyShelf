@@ -121,20 +121,55 @@ final class FirebaseService: ObservableObject {
             let keywords = (doc.get("keywords") as? [String]) ?? []
 
             if let local = localByRemoteId[rid] {
+                // ✅ already linked by remoteId -> normal update
                 local.nameOrNumber = name
                 local.keywords = keywords
                 local.updatedAt = .now
+
             } else {
-                let newAisle = Aisle(
-                    nameOrNumber: name,
-                    storeId: localStoreId,
-                    keywords: keywords
-                )
-                newAisle.remoteId = rid
-                newAisle.updatedAt = .now
-                context.insert(newAisle)
+                // ✅ NEW: try merge with local aisle created offline (remoteId == nil)
+                if let match = localForStore.first(where: { $0.remoteId == nil && $0.nameOrNumber == name }) {
+                    match.remoteId = rid
+                    match.keywords = keywords
+                    match.updatedAt = .now
+                } else {
+                    // ✅ truly new -> create locally
+                    let newAisle = Aisle(
+                        nameOrNumber: name,
+                        storeId: localStoreId,
+                        keywords: keywords
+                    )
+                    newAisle.remoteId = rid
+                    newAisle.updatedAt = .now
+                    context.insert(newAisle)
+                }
             }
         }
+
+//        for doc in snap.documents {
+//            let rid = doc.documentID
+//            seen.insert(rid)
+//
+//            let name = (doc.get("nameOrNumber") as? String) ?? ""
+//            let keywords = (doc.get("keywords") as? [String]) ?? []
+//
+//            if let local = localByRemoteId[rid] {
+//                local.nameOrNumber = name
+//                local.keywords = keywords
+//                local.updatedAt = .now
+//
+////            } else {
+////                let newAisle = Aisle(
+////                    nameOrNumber: name,
+////                    storeId: localStoreId,
+////                    keywords: keywords
+////                )
+////                newAisle.remoteId = rid
+////                newAisle.updatedAt = .now
+//                
+////                context.insert(newAisle)
+//            }
+//        }
 
         for local in localForStore {
             if let rid = local.remoteId, !seen.contains(rid) {
