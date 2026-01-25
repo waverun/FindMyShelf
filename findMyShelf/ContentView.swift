@@ -909,62 +909,62 @@ struct ContentView: View {
         return String(format: "%.1f k\"m", meters / 1000.0)
     }
 
-    private struct ConfirmImageSheet: View {
-        let image: UIImage?
-        let onCancel: () -> Void
-        let onConfirm: (UIImage) -> Void
-
-        var body: some View {
-            NavigationStack {
-                VStack(spacing: 16) {
-
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(Color.secondary.opacity(0.1))
-                            .frame(maxWidth: .infinity)
-                            .aspectRatio(3/4, contentMode: .fit)
-
-                        if let image {
-                            Image(uiImage: image)
-                                .resizable()
-                                .scaledToFit()
-                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                .transition(.opacity)
-                        } else {
-                            ProgressView("Loading image…")
-                                .progressViewStyle(.circular)
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-
-                    Text("Use this photo?")
-                        .font(.headline)
-
-                    Text("The app will analyze the aisle sign and add an aisle.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
-
-                    Spacer()
-                }
-                .navigationTitle("Confirm photo")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") { onCancel() }
-                    }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Use photo") {
-                            if let image { onConfirm(image) }
-                        }
-                        .disabled(image == nil)
-                    }
-                }
-            }
-        }
-    }
+//    private struct ConfirmImageSheet: View {
+//        let image: UIImage?
+//        let onCancel: () -> Void
+//        let onConfirm: (UIImage) -> Void
+//
+//        var body: some View {
+//            NavigationStack {
+//                VStack(spacing: 16) {
+//
+//                    ZStack {
+//                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+//                            .fill(Color.secondary.opacity(0.1))
+//                            .frame(maxWidth: .infinity)
+//                            .aspectRatio(3/4, contentMode: .fit)
+//
+//                        if let image {
+//                            Image(uiImage: image)
+//                                .resizable()
+//                                .scaledToFit()
+//                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+//                                .transition(.opacity)
+//                        } else {
+//                            ProgressView("Loading image…")
+//                                .progressViewStyle(.circular)
+//                        }
+//                    }
+//                    .padding(.horizontal, 16)
+//                    .padding(.top, 8)
+//
+//                    Text("Use this photo?")
+//                        .font(.headline)
+//
+//                    Text("The app will analyze the aisle sign and add an aisle.")
+//                        .font(.footnote)
+//                        .foregroundStyle(.secondary)
+//                        .multilineTextAlignment(.center)
+//                        .padding(.horizontal, 24)
+//
+//                    Spacer()
+//                }
+//                .navigationTitle("Confirm photo")
+//                .navigationBarTitleDisplayMode(.inline)
+//                .toolbar {
+//                    ToolbarItem(placement: .cancellationAction) {
+//                        Button("Cancel") { onCancel() }
+//                    }
+//                    ToolbarItem(placement: .confirmationAction) {
+//                        Button("Use photo") {
+//                            if let image { onConfirm(image) }
+//                        }
+//                        .disabled(image == nil)
+//                    }
+//                }
+//            }
+//        }
+//    }
 
 //    private struct ConfirmImageSheet: View {
 //        let image: UIImage?
@@ -1393,36 +1393,36 @@ private struct PermissionCard: View {
     }
 }
 
-private struct BannerView: View {
-    let text: String
-    let isError: Bool
-    let onClose: () -> Void
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: isError ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
-                .symbolRenderingMode(.hierarchical)
-
-            Text(text)
-                .font(.footnote)
-                .lineLimit(2)
-
-            Spacer()
-
-            Button(action: onClose) {
-                Image(systemName: "xmark")
-                    .font(.footnote.bold())
-            }
-        }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(isError ? Color.red.opacity(0.18) : Color.green.opacity(0.16))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(.white.opacity(0.18), lineWidth: 1)
-                )
-        )
-        .shadow(radius: 10, y: 6)
-    }
-}
+//private struct BannerView: View {
+//    let text: String
+//    let isError: Bool
+//    let onClose: () -> Void
+//
+//    var body: some View {
+//        HStack(spacing: 10) {
+//            Image(systemName: isError ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+//                .symbolRenderingMode(.hierarchical)
+//
+//            Text(text)
+//                .font(.footnote)
+//                .lineLimit(2)
+//
+//            Spacer()
+//
+//            Button(action: onClose) {
+//                Image(systemName: "xmark")
+//                    .font(.footnote.bold())
+//            }
+//        }
+//        .padding(12)
+//        .background(
+//            RoundedRectangle(cornerRadius: 16, style: .continuous)
+//                .fill(isError ? Color.red.opacity(0.18) : Color.green.opacity(0.16))
+//                .overlay(
+//                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+//                        .strokeBorder(.white.opacity(0.18), lineWidth: 1)
+//                )
+//        )
+//        .shadow(radius: 10, y: 6)
+//    }
+//}

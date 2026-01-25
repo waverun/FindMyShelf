@@ -14,10 +14,10 @@
             filePath = "findMyShelf/ContentView.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1029"
-            endingLineNumber = "1029"
-            landmarkName = "StorePosterCard"
-            landmarkType = "14">
+            startingLineNumber = "1041"
+            endingLineNumber = "1041"
+            landmarkName = "body"
+            landmarkType = "24">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -78,8 +78,8 @@
             filePath = "findMyShelf/ContentView.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1038"
-            endingLineNumber = "1038"
+            startingLineNumber = "1050"
+            endingLineNumber = "1050"
             landmarkName = "body"
             landmarkType = "24">
          </BreakpointContent>
@@ -94,10 +94,10 @@
             filePath = "findMyShelf/ContentView.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "966"
-            endingLineNumber = "966"
-            landmarkName = "body"
-            landmarkType = "24">
+            startingLineNumber = "978"
+            endingLineNumber = "978"
+            landmarkName = "ContentView"
+            landmarkType = "14">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -110,10 +110,10 @@
             filePath = "findMyShelf/ContentView.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "941"
-            endingLineNumber = "941"
-            landmarkName = "body"
-            landmarkType = "24">
+            startingLineNumber = "953"
+            endingLineNumber = "953"
+            landmarkName = "ContentView"
+            landmarkType = "14">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -126,10 +126,10 @@
             filePath = "findMyShelf/ContentView.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "952"
-            endingLineNumber = "952"
-            landmarkName = "body"
-            landmarkType = "24">
+            startingLineNumber = "964"
+            endingLineNumber = "964"
+            landmarkName = "ContentView"
+            landmarkType = "14">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -142,9 +142,9 @@
             filePath = "findMyShelf/ContentView.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "787"
-            endingLineNumber = "787"
-            landmarkName = "handlePickedPhoto(_:)"
+            startingLineNumber = "799"
+            endingLineNumber = "799"
+            landmarkName = "processImage(_:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
