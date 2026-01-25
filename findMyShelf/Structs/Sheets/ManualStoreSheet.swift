@@ -221,15 +221,34 @@ private struct ManualStoreCard: View {
             }
             .buttonStyle(.plain)
 
-            Button(role: .destructive) {
-                onRequestDelete()
-            } label: {
-                Image(systemName: "trash")
-                    .font(.system(size: 14, weight: .semibold))
-                    .padding(10)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Circle())
+            VStack(spacing: 8) {
+
+                // כפתור מחיקה – אותו דבר כמו שהיה
+                Button(role: .destructive) {
+                    onRequestDelete()
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 16, weight: .semibold))
+                }
+                Spacer()
+                // כפתור עריכה – חדש
+                Button {
+                    // כרגע ריק – נוסיף פעולה בשלב הבא
+                } label: {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 16, weight: .semibold))
+                }
             }
+
+//            Button(role: .destructive) {
+//                onRequestDelete()
+//            } label: {
+//                Image(systemName: "trash")
+//                    .font(.system(size: 14, weight: .semibold))
+//                    .padding(10)
+//                    .background(.ultraThinMaterial)
+//                    .clipShape(Circle())
+//            }
             .buttonStyle(.plain)
             .padding(10)
         }
