@@ -311,8 +311,43 @@ struct ContentView: View {
                         await deleteStoreEverywhere(store)
                         showManualStoreSheet = false
                     }
-                }
+                },
+                onUpdate: { store, name, address, city in
+                    // 1) Update locally
+                    store.name = name
+                    store.addressLine = address
+                    store.city = city
 
+                    do {
+                        try context.save()
+                        showBanner("Store updated", isError: false)
+                    } catch {
+                        showBanner("Failed to update store locally", isError: true)
+                        return
+                    }
+
+                    // 2) Update Firebase
+                    Task { @MainActor in
+                        // ensure remoteId exists
+                        await ensureStoreRemoteId(store)
+
+                        guard let rid = store.remoteId else {
+                            showBanner("Store is not synced to Firebase", isError: true)
+                            return
+                        }
+
+                        do {
+                            try await firebase.updateStore(
+                                storeRemoteId: rid,
+                                name: store.name,
+                                address: store.addressLine,
+                                city: store.city
+                            )
+                        } catch {
+                            showBanner("Failed to update store in Firebase", isError: true)
+                        }
+                    }
+                }
 //                onDelete: { store in
 //                    // אם מוחקים חנות שנבחרה – נקה בחירה
 //                    if selectedStoreId == store.id.uuidString {

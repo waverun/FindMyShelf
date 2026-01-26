@@ -11,6 +11,30 @@ final class FirebaseService: ObservableObject {
 
     // MARK: - STORE
 
+    func updateStore(
+        storeRemoteId: String,
+        name: String,
+        address: String?,
+        city: String?
+    ) async throws {
+        var data: [String: Any] = [
+            "name": name,
+            "updatedAt": FieldValue.serverTimestamp()
+        ]
+
+        // store address in ONE field or two—pick what you use in Firestore:
+        let combined = [address, city]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
+
+        data["address"] = combined.isEmpty ? NSNull() : combined
+
+        try await db.collection("stores")
+            .document(storeRemoteId)
+            .setData(data, merge: true)
+    }
+    
     /// Fetch existing store by geoCell + name similarity, or create new one
     func fetchOrCreateStore(
         name: String,

@@ -6,7 +6,7 @@ struct ManualStoreSheet: View {
     let onPickExisting: (Store) -> Void
     let onSaveNew: (_ name: String, _ address: String?, _ city: String?) -> Void
     let onDelete: (Store) -> Void
-//    let onEdit: (Store) -> Void      // ✅ NEW
+    let onUpdate: (_ store: Store, _ name: String, _ address: String?, _ city: String?) -> Void//    let onEdit: (Store) -> Void      // ✅ NEW
 
     @Environment(\.dismiss) private var dismiss
 
@@ -124,18 +124,28 @@ struct ManualStoreSheet: View {
                                     let addr = addressLine.trimmingCharacters(in: .whitespacesAndNewlines)
                                     let c = city.trimmingCharacters(in: .whitespacesAndNewlines)
 
+                                    let addrOrNil = addr.isEmpty ? nil : addr
+                                    let cityOrNil = c.isEmpty ? nil : c
+
                                     if let store = editingStore {
-                                        store.name = trimmedName
-                                        store.addressLine = addr.isEmpty ? nil : addr
-                                        store.city = c.isEmpty ? nil : c
+                                        onUpdate(store, trimmedName, addrOrNil, cityOrNil)   // ✅ call parent
                                         editingStore = nil
                                     } else {
-                                        onSaveNew(
-                                            trimmedName,
-                                            addr.isEmpty ? nil : addr,
-                                            c.isEmpty ? nil : c
-                                        )
+                                        onSaveNew(trimmedName, addrOrNil, cityOrNil)
                                     }
+                                    
+//                                    if let store = editingStore {
+//                                        store.name = trimmedName
+//                                        store.addressLine = addr.isEmpty ? nil : addr
+//                                        store.city = c.isEmpty ? nil : c
+//                                        editingStore = nil
+//                                    } else {
+//                                        onSaveNew(
+//                                            trimmedName,
+//                                            addr.isEmpty ? nil : addr,
+//                                            c.isEmpty ? nil : c
+//                                        )
+//                                    }
 
                                     name = ""
                                     addressLine = ""
