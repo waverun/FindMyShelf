@@ -7,25 +7,27 @@ struct ManualStoreSheet: View {
     let onSaveNew: (_ name: String, _ address: String?, _ city: String?) -> Void
     let onDelete: (Store) -> Void
     let onUpdate: (_ store: Store, _ name: String, _ address: String?, _ city: String?) -> Void//    let onEdit: (Store) -> Void      // ✅ NEW
-
+    
     @Environment(\.dismiss) private var dismiss
-
+    
     @State private var editingStore: Store? = nil
-
+    
     @State private var storePendingDelete: Store?
     @State private var confirmText: String = ""
     @State private var showDeleteConfirm: Bool = false
-
+    
     @State private var searchText: String = ""
-
+    
     @State private var name: String = ""
     @State private var addressLine: String = ""
     @State private var city: String = ""
-
+    
+    @FocusState private var isKeyboardFocused: Bool
+    
     private var filteredExisting: [Store] {
         let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !q.isEmpty else { return existingStores }
-
+        
         return existingStores.filter { s in
             let n = s.name.lowercased()
             let a = (s.addressLine ?? "").lowercased()
@@ -33,24 +35,25 @@ struct ManualStoreSheet: View {
             return n.contains(q) || a.contains(q) || c.contains(q)
         }
     }
-
+    
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-
+                    
                     // Search
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Find a saved store")
                             .font(.headline)
-
+                        
                         TextField("Search by name / address / city…", text: $searchText)
                             .textFieldStyle(.roundedBorder)
                             .textInputAutocapitalization(.never)
+                            .focused($isKeyboardFocused)
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
-
+                    
                     // Cards
                     if filteredExisting.isEmpty {
                         EmptyStateCard(
@@ -96,37 +99,41 @@ struct ManualStoreSheet: View {
                             .padding(.vertical, 8)
                         }
                     }
-
+                    
                     // Add manually
                     VStack(alignment: .leading, spacing: 10) {
-//                        Text("Add a store manually")
-//                            .font(.headline)
+                        //                        Text("Add a store manually")
+                        //                            .font(.headline)
                         Text(editingStore == nil ? "Add a store manually" : "Edit a store")
                             .font(.headline)
-
+                        
                         VStack(spacing: 10) {
                             TextField("Store name (required)", text: $name)
                                 .textFieldStyle(.roundedBorder)
-
+                                .focused($isKeyboardFocused)
+                            
                             TextField("Address (optional)", text: $addressLine)
                                 .textFieldStyle(.roundedBorder)
-
+                                .focused($isKeyboardFocused)
+                            
                             TextField("City (optional)", text: $city)
                                 .textFieldStyle(.roundedBorder)
-
+                                .focused($isKeyboardFocused)
+                            
                             HStack(spacing: 12) {
-
+                                
                                 // 💾 Save
                                 Button {
+                                    isKeyboardFocused = false
                                     let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
                                     guard !trimmedName.isEmpty else { return }
-
+                                    
                                     let addr = addressLine.trimmingCharacters(in: .whitespacesAndNewlines)
                                     let c = city.trimmingCharacters(in: .whitespacesAndNewlines)
-
+                                    
                                     let addrOrNil = addr.isEmpty ? nil : addr
                                     let cityOrNil = c.isEmpty ? nil : c
-
+                                    
                                     if let store = editingStore {
                                         onUpdate(store, trimmedName, addrOrNil, cityOrNil)   // ✅ call parent
                                         editingStore = nil
@@ -134,19 +141,6 @@ struct ManualStoreSheet: View {
                                         onSaveNew(trimmedName, addrOrNil, cityOrNil)
                                     }
                                     
-//                                    if let store = editingStore {
-//                                        store.name = trimmedName
-//                                        store.addressLine = addr.isEmpty ? nil : addr
-//                                        store.city = c.isEmpty ? nil : c
-//                                        editingStore = nil
-//                                    } else {
-//                                        onSaveNew(
-//                                            trimmedName,
-//                                            addr.isEmpty ? nil : addr,
-//                                            c.isEmpty ? nil : c
-//                                        )
-//                                    }
-
                                     name = ""
                                     addressLine = ""
                                     city = ""
@@ -156,9 +150,10 @@ struct ManualStoreSheet: View {
                                 }
                                 .buttonStyle(.borderedProminent)
                                 .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
+                                
                                 // ❌ Cancel
                                 Button {
+                                    isKeyboardFocused = false
                                     editingStore = nil
                                     name = ""
                                     addressLine = ""
@@ -170,55 +165,55 @@ struct ManualStoreSheet: View {
                                 .buttonStyle(.bordered)
                                 .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                             }
-
-//                            Button {
-//                                let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-//                                guard !trimmedName.isEmpty else { return }
-//
-//                                let addr = addressLine.trimmingCharacters(in: .whitespacesAndNewlines)
-//                                let c = city.trimmingCharacters(in: .whitespacesAndNewlines)
-//
-//                                onSaveNew(
-//                                    trimmedName,
-//                                    addr.isEmpty ? nil : addr,
-//                                    c.isEmpty ? nil : c
-//                                )
-//                                dismiss()
-//                            } label: {
-//                                Text("Save store")
-//                                    .frame(maxWidth: .infinity)
-//                            }
-//                            Button {
-//                                let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-//                                guard !trimmedName.isEmpty else { return }
-//
-//                                let addr = addressLine.trimmingCharacters(in: .whitespacesAndNewlines)
-//                                let c = city.trimmingCharacters(in: .whitespacesAndNewlines)
-//
-//                                if let store = editingStore {
-//                                    // ✏️ עריכה
-//                                    store.name = trimmedName
-//                                    store.addressLine = addr.isEmpty ? nil : addr
-//                                    store.city = c.isEmpty ? nil : c
-//                                    editingStore = nil
-//                                } else {
-//                                    // ➕ הוספה
-//                                    onSaveNew(
-//                                        trimmedName,
-//                                        addr.isEmpty ? nil : addr,
-//                                        c.isEmpty ? nil : c
-//                                    )
-//                                }
-//
-//                                name = ""
-//                                addressLine = ""
-//                                city = ""
-//                            } label: {
-//                                Text(editingStore == nil ? "Save store" : "Save changes")
-//                                    .frame(maxWidth: .infinity)
-//                            }
-//                            .buttonStyle(.borderedProminent)
-//                            .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            
+                            //                            Button {
+                            //                                let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                            //                                guard !trimmedName.isEmpty else { return }
+                            //
+                            //                                let addr = addressLine.trimmingCharacters(in: .whitespacesAndNewlines)
+                            //                                let c = city.trimmingCharacters(in: .whitespacesAndNewlines)
+                            //
+                            //                                onSaveNew(
+                            //                                    trimmedName,
+                            //                                    addr.isEmpty ? nil : addr,
+                            //                                    c.isEmpty ? nil : c
+                            //                                )
+                            //                                dismiss()
+                            //                            } label: {
+                            //                                Text("Save store")
+                            //                                    .frame(maxWidth: .infinity)
+                            //                            }
+                            //                            Button {
+                            //                                let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                            //                                guard !trimmedName.isEmpty else { return }
+                            //
+                            //                                let addr = addressLine.trimmingCharacters(in: .whitespacesAndNewlines)
+                            //                                let c = city.trimmingCharacters(in: .whitespacesAndNewlines)
+                            //
+                            //                                if let store = editingStore {
+                            //                                    // ✏️ עריכה
+                            //                                    store.name = trimmedName
+                            //                                    store.addressLine = addr.isEmpty ? nil : addr
+                            //                                    store.city = c.isEmpty ? nil : c
+                            //                                    editingStore = nil
+                            //                                } else {
+                            //                                    // ➕ הוספה
+                            //                                    onSaveNew(
+                            //                                        trimmedName,
+                            //                                        addr.isEmpty ? nil : addr,
+                            //                                        c.isEmpty ? nil : c
+                            //                                    )
+                            //                                }
+                            //
+                            //                                name = ""
+                            //                                addressLine = ""
+                            //                                city = ""
+                            //                            } label: {
+                            //                                Text(editingStore == nil ? "Save store" : "Save changes")
+                            //                                    .frame(maxWidth: .infinity)
+                            //                            }
+                            //                            .buttonStyle(.borderedProminent)
+                            //                            .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         }
                     }
                     .padding(16)
@@ -232,11 +227,24 @@ struct ManualStoreSheet: View {
                     .padding(.bottom, 24)
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
+            .onTapGesture {
+                isKeyboardFocused = false
+            }
             .navigationTitle("Choose store")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("Cancel") {
+                        isKeyboardFocused = false
+                        dismiss()
+                    }
+                }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        isKeyboardFocused = false
+                    }
                 }
             }
         }
@@ -269,10 +277,10 @@ private struct ManualStoreCard: View {
     let onPick: () -> Void
     let onRequestDelete: () -> Void   // ✅ חדש
     let onEdit: () -> Void            // ✅ NEW
-
+    
     var body: some View {
         let base = color(for: colorIndex)
-
+        
         ZStack(alignment: .topTrailing) {
             Button(action: onPick) {
                 ZStack(alignment: .bottomLeading) {
@@ -287,13 +295,13 @@ private struct ManualStoreCard: View {
                                 .strokeBorder(.white.opacity(0.18), lineWidth: 1)
                         )
                         .shadow(radius: 12, y: 6)
-
+                    
                     VStack(alignment: .leading, spacing: 8) {
                         Text(title)
                             .font(.headline)
                             .foregroundStyle(.white)
                             .lineLimit(2)
-
+                        
                         if !subtitle.isEmpty {
                             Text(subtitle)
                                 .font(.footnote)
@@ -304,7 +312,7 @@ private struct ManualStoreCard: View {
                                 .font(.footnote)
                                 .foregroundStyle(.white.opacity(0.75))
                         }
-
+                        
                         Text("Tap to choose")
                             .font(.caption2.bold())
                             .padding(.horizontal, 8)
@@ -318,7 +326,7 @@ private struct ManualStoreCard: View {
                 .frame(width: 280, height: 150)
             }
             .buttonStyle(.plain)
-
+            
             ZStack {
                 // 🗑 top-right
                 Button(role: .destructive) {
@@ -333,7 +341,7 @@ private struct ManualStoreCard: View {
                 }
                 .buttonStyle(.plain)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                    .padding(8)
+                .padding(8)
                 // ✏️ bottom-right
                 Button {
                     onEdit()
@@ -346,54 +354,54 @@ private struct ManualStoreCard: View {
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
-//                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                //                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                 .padding(8)   // ← נסה 10–16 לפי העין
             }
             .frame(width: 280, height: 150)
-//            .padding(.trailing, 8)
-//            .padding(.top, 6)
-//
-//            VStack(spacing: 8) {
-//
-//                // כפתור מחיקה – אותו דבר כמו שהיה
-//                Button(role: .destructive) {
-//                    onRequestDelete()
-//                } label: {
-//                    Image(systemName: "trash")
-//                        .font(.system(size: 16, weight: .semibold))
-//                }
-//                Spacer()
-//                // כפתור עריכה – חדש
-//                Button {
-//                    onEdit()
-//                } label: {
-//                    Image(systemName: "pencil")
-//                        .font(.system(size: 16, weight: .semibold))
-//                }
-//            }
-//            VStack(spacing: 8) {
-//
-//                Button(role: .destructive) {
-//                    onRequestDelete()
-//                } label: {
-//                    Image(systemName: "trash")
-//                        .font(.system(size: 16, weight: .semibold))
-//                }
-//                Spacer()
-//                Button {
-//                    onEdit()
-//                } label: {
-//                    Image(systemName: "pencil")
-//                        .font(.system(size: 16, weight: .semibold))
-//                }
-//            }
-//            .buttonStyle(.plain)
-//            .padding(10)
+            //            .padding(.trailing, 8)
+            //            .padding(.top, 6)
+            //
+            //            VStack(spacing: 8) {
+            //
+            //                // כפתור מחיקה – אותו דבר כמו שהיה
+            //                Button(role: .destructive) {
+            //                    onRequestDelete()
+            //                } label: {
+            //                    Image(systemName: "trash")
+            //                        .font(.system(size: 16, weight: .semibold))
+            //                }
+            //                Spacer()
+            //                // כפתור עריכה – חדש
+            //                Button {
+            //                    onEdit()
+            //                } label: {
+            //                    Image(systemName: "pencil")
+            //                        .font(.system(size: 16, weight: .semibold))
+            //                }
+            //            }
+            //            VStack(spacing: 8) {
+            //
+            //                Button(role: .destructive) {
+            //                    onRequestDelete()
+            //                } label: {
+            //                    Image(systemName: "trash")
+            //                        .font(.system(size: 16, weight: .semibold))
+            //                }
+            //                Spacer()
+            //                Button {
+            //                    onEdit()
+            //                } label: {
+            //                    Image(systemName: "pencil")
+            //                        .font(.system(size: 16, weight: .semibold))
+            //                }
+            //            }
+            //            .buttonStyle(.plain)
+            //            .padding(10)
             
         }
     }
-
+    
     private func color(for index: Int) -> Color {
         let palette: [Color] = [.blue, .purple, .indigo, .teal, .mint, .pink, .orange]
         return palette[index % palette.count]
