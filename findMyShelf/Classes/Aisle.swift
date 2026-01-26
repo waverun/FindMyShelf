@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 
+
 @Model
 final class Aisle {
     var id: UUID
