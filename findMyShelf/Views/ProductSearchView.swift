@@ -204,11 +204,11 @@ struct ProductSearchView: View {
                 runSearch()
             }
         }
-        .simultaneousGesture(
-            TapGesture().onEnded {
-                isProductQueryFocused = false
-            }
-        )
+//        .simultaneousGesture(
+//            TapGesture().onEnded {
+//                isProductQueryFocused = false
+//            }
+//        )
     }
 
     // MARK: - לוגיקה
