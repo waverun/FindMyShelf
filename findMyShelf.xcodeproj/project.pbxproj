@@ -21,7 +21,6 @@
 		50D397132F1D5A4F008B7A57 /* Exceptions for "findMyShelf" folder in "findMyShelf" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Config.xcconfig,
 				Info.plist,
 			);
 			target = 503824702ECC7778006B36C1 /* findMyShelf */;

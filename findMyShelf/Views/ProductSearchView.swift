@@ -35,149 +35,180 @@ struct ProductSearchView: View {
     }
 
     var body: some View {
-        Form {
-            Section("Product Search") {
-//                TextField("Type a product name…", text: $productQuery)
-//                    .textInputAutocapitalization(.never)
-//                    .onSubmit {
-//                        runSearch()
-//                    }
+        ZStack {
+            Form {
+                Section("Product Search") {
+                    //                TextField("Type a product name…", text: $productQuery)
+                    //                    .textInputAutocapitalization(.never)
+                    //                    .onSubmit {
+                    //                        runSearch()
+                    //                    }
 
-                TextField("Type a product name…", text: $productQuery)
-                    .textInputAutocapitalization(.never)
-                    .focused($isProductQueryFocused)
-                    .submitLabel(.search)
-                    .onSubmit {
-                        isProductQueryFocused = false   // ✅ סוגר מקלדת
+                    TextField("Type a product name…", text: $productQuery)
+                        .textInputAutocapitalization(.never)
+                        .focused($isProductQueryFocused)
+                        .submitLabel(.search)
+                        .onSubmit {
+                            isProductQueryFocused = false   // ✅ סוגר מקלדת
+                            runSearch()
+                        }
+
+                    Button {
                         runSearch()
+                    } label: {
+                        HStack {
+                            Spacer()
+                            Label("Find aisle", systemImage: "magnifyingglass")
+                                .font(.headline)
+                            Spacer()
+                        }
+                        .padding(.vertical, 10)
                     }
+                    .background(.thinMaterial)
+                    .foregroundStyle(.blue)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .disabled(productQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .opacity(productQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.6 : 1)
+                }
 
-                Button {
-                    runSearch()
-                } label: {
-                    HStack {
-                        Spacer()
-                        Label("Find aisle", systemImage: "magnifyingglass")
+                if let msg = statusMessage {
+                    Section("Result") {
+                        Text(msg)
+                            .foregroundStyle(.primary)
+                    }
+                }
+
+                if let existing = foundExistingProduct,
+                   let aisleId = existing.aisleId,
+                   let aisle = aislesForStore.first(where: { $0.id == aisleId }) {
+
+                    Section("Product already known") {
+                        Text("\"\(existing.name)\" is already assigned to aisle \(aisle.nameOrNumber).")
+                            .font(.body)
+                    }
+                } else if let aisle = suggestedAisle {
+                    Section("Suggested aisle") {
+                        Text("It looks like the product belongs to aisle:")
+                            .font(.subheadline)
+                        Text("Aisle \(aisle.nameOrNumber)")
                             .font(.headline)
-                        Spacer()
-                    }
-                    .padding(.vertical, 10)
-                }
-                .background(.thinMaterial)
-                .foregroundStyle(.blue)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-                .disabled(productQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .opacity(productQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.6 : 1)
-            }
 
-            if let msg = statusMessage {
-                Section("Result") {
-                    Text(msg)
-                        .foregroundStyle(.primary)
-                }
-            }
+                        if !aisle.keywords.isEmpty {
+                            Text("On the sign: \(aisle.keywords.joined(separator: ", "))")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
 
-            if let existing = foundExistingProduct,
-               let aisleId = existing.aisleId,
-               let aisle = aislesForStore.first(where: { $0.id == aisleId }) {
-
-                Section("Product already known") {
-                    Text("\"\(existing.name)\" is already assigned to aisle \(aisle.nameOrNumber).")
-                        .font(.body)
-                }
-            } else if let aisle = suggestedAisle {
-                Section("Suggested aisle") {
-                    Text("It looks like the product belongs to aisle:")
-                        .font(.subheadline)
-                    Text("Aisle \(aisle.nameOrNumber)")
-                        .font(.headline)
-
-                    if !aisle.keywords.isEmpty {
-                        Text("On the sign: \(aisle.keywords.joined(separator: ", "))")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Button("Assign and save") {
-                        assignProduct(to: aisle)
-                    }
-                }
-            }
-
-            if isCallingGPT {
-                Section("AI") {
-                    ProgressView("Asking AI…")
-                }
-            }
-
-            if let existing = foundExistingProduct,
-               let aisleId = existing.aisleId,
-               let aisle = aislesForStore.first(where: { $0.id == aisleId }) {
-
-                Section("Known product") {
-                    Text("\"\(existing.name)\" is already assigned to aisle \(aisle.nameOrNumber).")
-                }
-
-            } else if !gptCandidates.isEmpty {
-                Section("AI aisle suggestions") {
-                    ForEach(gptCandidates.prefix(3), id: \.aisleId) { cand in
-                        if let uuid = UUID(uuidString: cand.aisleId),
-                           let aisle = aislesForStore.first(where: { $0.id == uuid }) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Aisle \(aisle.nameOrNumber)")
-                                    .font(.headline)
-                                Text("Confidence: \(cand.confidence_label) (\(Int(cand.confidence_score * 100))%)")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                Text(cand.reason)
-                                    .font(.footnote)
-                            }
-                            Button("Assign product to this aisle") {
-                                assignProduct(to: aisle)
-                            }
+                        Button("Assign and save") {
+                            assignProduct(to: aisle)
                         }
                     }
                 }
 
-                if suggestedAisle == nil {
-                    Section("No confident match") {
-                        Text("AI could not confidently pick a single aisle. You can assign manually or add a new aisle.")
-                            .font(.footnote)
+                if isCallingGPT {
+                    Section("AI") {
+                        ProgressView("Asking AI…")
                     }
                 }
-            } else if let aisle = suggestedAisle {
-                Section("Local suggestion") {
-                    Text("Looks like the product belongs to aisle \(aisle.nameOrNumber).")
-                    Button("Assign product to this aisle") {
-                        assignProduct(to: aisle)
+
+                if let existing = foundExistingProduct,
+                   let aisleId = existing.aisleId,
+                   let aisle = aislesForStore.first(where: { $0.id == aisleId }) {
+
+                    Section("Known product") {
+                        Text("\"\(existing.name)\" is already assigned to aisle \(aisle.nameOrNumber).")
+                    }
+
+                } else if !gptCandidates.isEmpty {
+                    Section("AI aisle suggestions") {
+                        ForEach(gptCandidates.prefix(3), id: \.aisleId) { cand in
+                            if let uuid = UUID(uuidString: cand.aisleId),
+                               let aisle = aislesForStore.first(where: { $0.id == uuid }) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Aisle \(aisle.nameOrNumber)")
+                                        .font(.headline)
+                                    Text("Confidence: \(cand.confidence_label) (\(Int(cand.confidence_score * 100))%)")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                    Text(cand.reason)
+                                        .font(.footnote)
+                                }
+                                Button("Assign product to this aisle") {
+                                    assignProduct(to: aisle)
+                                }
+                            }
+                        }
+                    }
+
+                    if suggestedAisle == nil {
+                        Section("No confident match") {
+                            Text("AI could not confidently pick a single aisle. You can assign manually or add a new aisle.")
+                                .font(.footnote)
+                        }
+                    }
+                } else if let aisle = suggestedAisle {
+                    Section("Local suggestion") {
+                        Text("Looks like the product belongs to aisle \(aisle.nameOrNumber).")
+                        Button("Assign product to this aisle") {
+                            assignProduct(to: aisle)
+                        }
+                    }
+                }
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        isProductQueryFocused = false
+                    }
+                    .allowsHitTesting(true)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            //            .simultaneousGesture(
+            //                TapGesture().onEnded {
+            //                    isProductQueryFocused = false
+            //                }
+            //            )
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        isProductQueryFocused = false
                     }
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
+            //        .toolbar {
+            //            ToolbarItemGroup(placement: .keyboard) {
+            //                Spacer()
+            //                Button("Done") {
+            //                    isProductQueryFocused = false
+            //                }
+            //            }
+            //        }
+            //        .onTapGesture {
+            //            isProductQueryFocused = false
+            //        }
+            //        .simultaneousGesture(
+            //            TapGesture().onEnded {
+            //                isProductQueryFocused = false
+            //            }
+            //        )
+            .navigationTitle("Product Search")
+            .onAppear {
+                // ✅ רץ פעם אחת בלבד, ורק אם הגיע טקסט מהמסך הקודם
+                guard !didAutoSearch else { return }
+                let q = initialQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !q.isEmpty else { return }
 
+                didAutoSearch = true
+                productQuery = q
+                runSearch()
+            }
         }
-        .scrollDismissesKeyboard(.interactively)
-//        .toolbar {
-//            ToolbarItemGroup(placement: .keyboard) {
-//                Spacer()
-//                Button("Done") {
-//                    isProductQueryFocused = false
-//                }
-//            }
-//        }
-        .onTapGesture {
-            isProductQueryFocused = false
-        }
-        .navigationTitle("Product Search")
-        .onAppear {
-            // ✅ רץ פעם אחת בלבד, ורק אם הגיע טקסט מהמסך הקודם
-            guard !didAutoSearch else { return }
-            let q = initialQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !q.isEmpty else { return }
-
-            didAutoSearch = true
-            productQuery = q
-            runSearch()
-        }
+        .simultaneousGesture(
+            TapGesture().onEnded {
+                isProductQueryFocused = false
+            }
+        )
     }
 
     // MARK: - לוגיקה
