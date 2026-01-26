@@ -78,32 +78,32 @@ struct ProductSearchView: View {
                     }
                 }
 
-                if let existing = foundExistingProduct,
-                   let aisleId = existing.aisleId,
-                   let aisle = aislesForStore.first(where: { $0.id == aisleId }) {
-
-                    Section("Product already known") {
-                        Text("\"\(existing.name)\" is already assigned to aisle \(aisle.nameOrNumber).")
-                            .font(.body)
-                    }
-                } else if let aisle = suggestedAisle {
-                    Section("Suggested aisle") {
-                        Text("It looks like the product belongs to aisle:")
-                            .font(.subheadline)
-                        Text("Aisle \(aisle.nameOrNumber)")
-                            .font(.headline)
-
-                        if !aisle.keywords.isEmpty {
-                            Text("On the sign: \(aisle.keywords.joined(separator: ", "))")
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Button("Assign and save") {
-                            assignProduct(to: aisle)
-                        }
-                    }
-                }
+//                if let existing = foundExistingProduct,
+//                   let aisleId = existing.aisleId,
+//                   let aisle = aislesForStore.first(where: { $0.id == aisleId }) {
+//
+//                    Section("Product already known") {
+//                        Text("\"\(existing.name)\" is already assigned to aisle \(aisle.nameOrNumber).")
+//                            .font(.body)
+//                    }
+//                } else if let aisle = suggestedAisle {
+//                    Section("Suggested aisle") {
+//                        Text("It looks like the product belongs to aisle:")
+//                            .font(.subheadline)
+//                        Text("Aisle \(aisle.nameOrNumber)")
+//                            .font(.headline)
+//
+//                        if !aisle.keywords.isEmpty {
+//                            Text("On the sign: \(aisle.keywords.joined(separator: ", "))")
+//                                .font(.footnote)
+//                                .foregroundStyle(.secondary)
+//                        }
+//
+//                        Button("Assign and save") {
+//                            assignProduct(to: aisle)
+//                        }
+//                    }
+//                }
 
                 if isCallingGPT {
                     Section("AI") {
@@ -154,12 +154,12 @@ struct ProductSearchView: View {
                         }
                     }
                 }
-                Color.clear
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        isProductQueryFocused = false
-                    }
-                    .allowsHitTesting(true)
+//                Color.clear
+//                    .contentShape(Rectangle())
+//                    .onTapGesture {
+//                        isProductQueryFocused = false
+//                    }
+//                    .allowsHitTesting(true)
             }
             .scrollDismissesKeyboard(.interactively)
             //            .simultaneousGesture(
