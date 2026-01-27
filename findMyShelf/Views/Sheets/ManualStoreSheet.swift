@@ -10,9 +10,9 @@ struct ManualStoreSheet: View {
     let onUpdate: (_ store: Store, _ name: String, _ address: String?, _ city: String?) -> Void//    let onEdit: (Store) -> Void      // ✅ NEW
     
     @Environment(\.dismiss) private var dismiss
-
+    
     @State private var isLoggedIn: Bool = Auth.auth().currentUser != nil
-
+    
     @State private var editingStore: Store? = nil
     
     @State private var storePendingDelete: Store?
@@ -129,6 +129,10 @@ struct ManualStoreSheet: View {
                                 // 💾 Save
                                 Button {
                                     isKeyboardFocused = false
+                                    // Prevent updating an existing store when not logged in
+                                    if editingStore != nil && !isLoggedIn {
+                                        return
+                                    }
                                     let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
                                     guard !trimmedName.isEmpty else { return }
                                     
@@ -153,7 +157,7 @@ struct ManualStoreSheet: View {
                                         .frame(maxWidth: .infinity)
                                 }
                                 .buttonStyle(.borderedProminent)
-                                .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                                .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || (editingStore != nil && !isLoggedIn))
                                 
                                 // ❌ Cancel
                                 Button {
@@ -291,16 +295,16 @@ private struct ManualStoreCard: View {
             .buttonStyle(.plain)
             
             ZStack {
-//                // 🗑 top-right
-//                Button(role: .destructive) {
-//                    onRequestDelete()
-//                } label: {
-//                    Image(systemName: "trash")
-//                        .font(.system(size: 16, weight: .semibold))
-//                        .foregroundStyle(.white)
-//                        .padding(12) // 👈 מגדיל שטח לחיצה
-//                        .background(.ultraThinMaterial) // 👈 רקע שקוף
-//                        .clipShape(Circle())
+                //                // 🗑 top-right
+                //                Button(role: .destructive) {
+                //                    onRequestDelete()
+                //                } label: {
+                //                    Image(systemName: "trash")
+                //                        .font(.system(size: 16, weight: .semibold))
+                //                        .foregroundStyle(.white)
+                //                        .padding(12) // 👈 מגדיל שטח לחיצה
+                //                        .background(.ultraThinMaterial) // 👈 רקע שקוף
+                //                        .clipShape(Circle())
                 if canEdit {
                     // 🗑 top-right
                     Button(role: .destructive) {
@@ -316,7 +320,7 @@ private struct ManualStoreCard: View {
                     .buttonStyle(.plain)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
                     .padding(8)
-
+                    
                     // ✏️ bottom-right
                     Button {
                         onEdit()
@@ -332,24 +336,24 @@ private struct ManualStoreCard: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                     .padding(8)   // ← נסה 10–16 לפי העין
                 }
-//                .buttonStyle(.plain)
-//                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-//                .padding(8)
-//                // ✏️ bottom-right
-//                Button {
-//                    onEdit()
-//                } label: {
-//                    Image(systemName: "pencil")
-//                        .font(.system(size: 16, weight: .semibold))
-//                        .foregroundStyle(.white)
-//                        .padding(12) // 👈 מגדיל שטח לחיצה
-//                        .background(.ultraThinMaterial) // 👈 רקע שקוף
-//                        .clipShape(Circle())
-//                }
-//                .buttonStyle(.plain)
-//                //                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-//                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-//                .padding(8)   // ← נסה 10–16 לפי העין
+                //                .buttonStyle(.plain)
+                //                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                //                .padding(8)
+                //                // ✏️ bottom-right
+                //                Button {
+                //                    onEdit()
+                //                } label: {
+                //                    Image(systemName: "pencil")
+                //                        .font(.system(size: 16, weight: .semibold))
+                //                        .foregroundStyle(.white)
+                //                        .padding(12) // 👈 מגדיל שטח לחיצה
+                //                        .background(.ultraThinMaterial) // 👈 רקע שקוף
+                //                        .clipShape(Circle())
+                //                }
+                //                .buttonStyle(.plain)
+                //                //                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                //                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                //                .padding(8)   // ← נסה 10–16 לפי העין
             }
             .frame(width: 280, height: 150)            
         }
