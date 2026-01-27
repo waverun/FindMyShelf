@@ -11,6 +11,8 @@ struct AisleListView: View {
     let store: Store
     let initialSelectedAisleID: UUID?   // ✅ add this
     
+    @State private var isLoggedIn: Bool = Auth.auth().currentUser != nil
+    
     @State private var isNewAisleSelection: Bool = false
     
     // כל השורות בבסיס הנתונים
@@ -113,6 +115,15 @@ struct AisleListView: View {
                     }
                     .onAppear {
                         // ✅ אם נכנסנו עם שורה לבחור – גלול אליה
+                        isLoggedIn = Auth.auth().currentUser != nil
+                        _ = Auth.auth().addStateDidChangeListener { _, user in
+                            isLoggedIn = (user != nil)
+                            if user == nil {
+                                // אם המשתמש התנתק בזמן עריכה – לצאת מעריכה
+                                isEditingSelected = false
+                            }
+                        }
+                        
                         if let id = selectedAisleID {
                             DispatchQueue.main.async {
                                 withAnimation(.easeInOut(duration: 0.35)) {
@@ -147,6 +158,7 @@ struct AisleListView: View {
                         AisleBottomPanel(
                             aisle: aisle,
                             headerTitle: isNewAisleSelection ? "New aisle" : "Selected aisle",
+                            canEdit: isLoggedIn,
                             isEditing: $isEditingSelected,
                             onDelete: {
                                 Task { @MainActor in
@@ -388,6 +400,7 @@ private struct AisleCard: View {
 private struct AisleBottomPanel: View {
     @Bindable var aisle: Aisle
     let headerTitle: String          // ✅ new
+    let canEdit: Bool
     @Binding var isEditing: Bool
     
     let onDelete: () -> Void
@@ -406,23 +419,24 @@ private struct AisleBottomPanel: View {
                     Text(headerTitle)
                         .font(.headline)
                     Spacer()
-                    
-                    if isEditing {
-                        Button("Done") {
-                            let kws = draftKeywordsText
-                                .split(separator: ",")
-                                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                                .filter { !$0.isEmpty }
-                            onSave(draftName.trimmingCharacters(in: .whitespacesAndNewlines), kws)
+                    if canEdit {
+                        if isEditing {
+                            Button("Done") {
+                                let kws = draftKeywordsText
+                                    .split(separator: ",")
+                                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                                    .filter { !$0.isEmpty }
+                                onSave(draftName.trimmingCharacters(in: .whitespacesAndNewlines), kws)
+                            }
+                            .buttonStyle(.borderedProminent)
+                        } else {
+                            Button("Edit") {
+                                draftName = aisle.nameOrNumber
+                                draftKeywordsText = aisle.keywords.joined(separator: ", ")
+                                isEditing = true
+                            }
+                            .buttonStyle(.bordered)
                         }
-                        .buttonStyle(.borderedProminent)
-                    } else {
-                        Button("Edit") {
-                            draftName = aisle.nameOrNumber
-                            draftKeywordsText = aisle.keywords.joined(separator: ", ")
-                            isEditing = true
-                        }
-                        .buttonStyle(.bordered)
                     }
                 }
                 
@@ -441,7 +455,8 @@ private struct AisleBottomPanel: View {
                     }
                     
                     // 🗑️ Trash icon
-                    if !isEditing {
+                    //                    if !isEditing {
+                    if canEdit && !isEditing {
                         HStack {
                             Spacer()
                             
