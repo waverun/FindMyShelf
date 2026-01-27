@@ -290,11 +290,6 @@ struct ContentView: View {
             }
 
         }
-//        .toolbar {
-//            ToolbarItem(placement: .topBarTrailing) {
-//                AuthButtons()
-//            }
-//        }
         .onChange(of: selectedStoreId) { _, newValue in
             if newValue == nil {
                 Task { @MainActor in stopAislesSync() }
@@ -378,31 +373,41 @@ struct ContentView: View {
                         }
                     }
                 }
-//                onDelete: { store in
-//                    // אם מוחקים חנות שנבחרה – נקה בחירה
-//                    if selectedStoreId == store.id.uuidString {
-//                        selectedStoreId = nil
-//                    }
-//                    if previousSelectedStoreId == store.id.uuidString {
-//                        previousSelectedStoreId = nil
-//                    }
-//
-//                    context.delete(store)
-//
-//                    // ✅ cascade ימחק aisles/products
-//                    do {
-//                        try context.save()
-//                    } catch {
-//                        showBanner("Failed to delete store", isError: true)
-//                    }
-//                }
             )
         }
+//        .sheet(isPresented: $showEditStoreSheet) {
+//            if let store = editingStore {
+//                EditStoreSheet(
+//                    store: store,
+//                    onSave: { updatedName, updatedAddress, updatedCity in
+//                        store.name = updatedName
+//                        store.addressLine = updatedAddress
+//                        store.city = updatedCity
+//
+//                        do {
+//                            try context.save()
+//                            showBanner("Store updated", isError: false)
+//
+//                            // אם נמחקה כתובת בזמן עריכה — סגור תצוגת כתובת
+//                            let addr = storeAddressLine(store) ?? ""
+//                            if addr.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+//                                showSelectedStoreAddress = false
+//                            }
+//
+//                        } catch {
+//                            showBanner("Failed to update store", isError: true)
+//                        }
+//                    }
+//                )
+//            }
+//        }
         .sheet(isPresented: $showEditStoreSheet) {
             if let store = editingStore {
                 EditStoreSheet(
                     store: store,
                     onSave: { updatedName, updatedAddress, updatedCity in
+
+                        // 1) Update locally
                         store.name = updatedName
                         store.addressLine = updatedAddress
                         store.city = updatedCity
@@ -411,14 +416,34 @@ struct ContentView: View {
                             try context.save()
                             showBanner("Store updated", isError: false)
 
-                            // אם נמחקה כתובת בזמן עריכה — סגור תצוגת כתובת
                             let addr = storeAddressLine(store) ?? ""
                             if addr.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                                 showSelectedStoreAddress = false
                             }
-
                         } catch {
-                            showBanner("Failed to update store", isError: true)
+                            showBanner("Failed to update store locally", isError: true)
+                            return
+                        }
+
+                        // 2) Update Firebase  ✅ (same as ManualStoreSheet)
+                        Task { @MainActor in
+                            await ensureStoreRemoteId(store)
+
+                            guard let rid = store.remoteId else {
+                                showBanner("Store is not synced to Firebase", isError: true)
+                                return
+                            }
+
+                            do {
+                                try await firebase.updateStore(
+                                    storeRemoteId: rid,
+                                    name: store.name,
+                                    address: store.addressLine,
+                                    city: store.city
+                                )
+                            } catch {
+                                showBanner("Failed to update store in Firebase", isError: true)
+                            }
                         }
                     }
                 )
@@ -600,13 +625,6 @@ struct ContentView: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
 
-//                    Button {
-//                        guard selectedStore != nil else { return }
-//                        showPhotoSourceDialog = true
-//                    } label: {
-//                        Text("Upload image")
-//                            .frame(maxWidth: .infinity)
-//                    }
                     Button {
                         guard selectedStore != nil else { return }
 
@@ -742,29 +760,6 @@ struct ContentView: View {
             showBanner("Failed to sync store to Firebase", isError: true)
         }
     }
-
-//    @MainActor
-//    private func ensureStoreRemoteId(_ store: Store) async {
-//        if store.remoteId != nil { return }
-//
-//        let addressCombined = [store.addressLine, store.city]
-//            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-//            .filter { !$0.isEmpty }
-//            .joined(separator: ", ")
-//
-//        do {
-//            let rid = try await firebase.fetchOrCreateStore(
-//                name: store.name,
-//                address: addressCombined.isEmpty ? store.addressLine : addressCombined,
-//                latitude: store.latitude,
-//                longitude: store.longitude
-//            )
-//            store.remoteId = rid
-//            try? context.save()
-//        } catch {
-//            showBanner("Failed to sync store to Firebase", isError: true)
-//        }
-//    }
 
     private func storeAddressLine(_ store: Store) -> String? {
         let parts = [store.addressLine, store.city]
@@ -918,61 +913,3 @@ struct ContentView: View {
         return String(format: "%.1f k\"m", meters / 1000.0)
     }
 }
-
-//// MARK: - UI building blocks
-//
-//private struct EditStoreSheet: View {
-//    let store: Store
-//    let onSave: (_ name: String, _ address: String?, _ city: String?) -> Void
-//
-//    @Environment(\.dismiss) private var dismiss
-//
-//    @State private var name: String
-//    @State private var addressLine: String
-//    @State private var city: String
-//
-//    init(store: Store,
-//         onSave: @escaping (_ name: String, _ address: String?, _ city: String?) -> Void) {
-//        self.store = store
-//        self.onSave = onSave
-//        _name = State(initialValue: store.name)
-//        _addressLine = State(initialValue: store.addressLine ?? "")
-//        _city = State(initialValue: store.city ?? "")
-//    }
-//
-//    var body: some View {
-//        NavigationStack {
-//            Form {
-//                Section("Store") {
-//                    TextField("Store name", text: $name)
-//                    TextField("Address", text: $addressLine)
-//                    TextField("City", text: $city)
-//                }
-//
-//                Section {
-//                    Button("Save") {
-//                        let n = name.trimmingCharacters(in: .whitespacesAndNewlines)
-//                        guard !n.isEmpty else { return }
-//
-//                        let a = addressLine.trimmingCharacters(in: .whitespacesAndNewlines)
-//                        let c = city.trimmingCharacters(in: .whitespacesAndNewlines)
-//
-//                        onSave(n,
-//                               a.isEmpty ? nil : a,
-//                               c.isEmpty ? nil : c)
-//
-//                        dismiss()
-//                    }
-//                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-//                }
-//            }
-//            .navigationTitle("Edit store")
-//            .navigationBarTitleDisplayMode(.inline)
-//            .toolbar {
-//                ToolbarItem(placement: .cancellationAction) {
-//                    Button("Cancel") { dismiss() }
-//                }
-//            }
-//        }
-//    }
-//}

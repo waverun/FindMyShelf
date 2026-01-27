@@ -35,19 +35,6 @@ struct EditStoreSheet: View {
                 }
 
                 Section {
-//                    Button("Save") {
-//                        let n = name.trimmingCharacters(in: .whitespacesAndNewlines)
-//                        guard !n.isEmpty else { return }
-//
-//                        let a = addressLine.trimmingCharacters(in: .whitespacesAndNewlines)
-//                        let c = city.trimmingCharacters(in: .whitespacesAndNewlines)
-//
-//                        onSave(n,
-//                               a.isEmpty ? nil : a,
-//                               c.isEmpty ? nil : c)
-//
-//                        dismiss()
-//                    }
                     Button("Save") {
                         if Auth.auth().currentUser == nil {
                             showLoginRequiredAlert = true

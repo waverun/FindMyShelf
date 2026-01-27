@@ -165,55 +165,6 @@ struct ManualStoreSheet: View {
                                 .buttonStyle(.bordered)
                                 .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                             }
-                            
-                            //                            Button {
-                            //                                let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                            //                                guard !trimmedName.isEmpty else { return }
-                            //
-                            //                                let addr = addressLine.trimmingCharacters(in: .whitespacesAndNewlines)
-                            //                                let c = city.trimmingCharacters(in: .whitespacesAndNewlines)
-                            //
-                            //                                onSaveNew(
-                            //                                    trimmedName,
-                            //                                    addr.isEmpty ? nil : addr,
-                            //                                    c.isEmpty ? nil : c
-                            //                                )
-                            //                                dismiss()
-                            //                            } label: {
-                            //                                Text("Save store")
-                            //                                    .frame(maxWidth: .infinity)
-                            //                            }
-                            //                            Button {
-                            //                                let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                            //                                guard !trimmedName.isEmpty else { return }
-                            //
-                            //                                let addr = addressLine.trimmingCharacters(in: .whitespacesAndNewlines)
-                            //                                let c = city.trimmingCharacters(in: .whitespacesAndNewlines)
-                            //
-                            //                                if let store = editingStore {
-                            //                                    // ✏️ עריכה
-                            //                                    store.name = trimmedName
-                            //                                    store.addressLine = addr.isEmpty ? nil : addr
-                            //                                    store.city = c.isEmpty ? nil : c
-                            //                                    editingStore = nil
-                            //                                } else {
-                            //                                    // ➕ הוספה
-                            //                                    onSaveNew(
-                            //                                        trimmedName,
-                            //                                        addr.isEmpty ? nil : addr,
-                            //                                        c.isEmpty ? nil : c
-                            //                                    )
-                            //                                }
-                            //
-                            //                                name = ""
-                            //                                addressLine = ""
-                            //                                city = ""
-                            //                            } label: {
-                            //                                Text(editingStore == nil ? "Save store" : "Save changes")
-                            //                                    .frame(maxWidth: .infinity)
-                            //                            }
-                            //                            .buttonStyle(.borderedProminent)
-                            //                            .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         }
                     }
                     .padding(16)
@@ -358,47 +309,7 @@ private struct ManualStoreCard: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                 .padding(8)   // ← נסה 10–16 לפי העין
             }
-            .frame(width: 280, height: 150)
-            //            .padding(.trailing, 8)
-            //            .padding(.top, 6)
-            //
-            //            VStack(spacing: 8) {
-            //
-            //                // כפתור מחיקה – אותו דבר כמו שהיה
-            //                Button(role: .destructive) {
-            //                    onRequestDelete()
-            //                } label: {
-            //                    Image(systemName: "trash")
-            //                        .font(.system(size: 16, weight: .semibold))
-            //                }
-            //                Spacer()
-            //                // כפתור עריכה – חדש
-            //                Button {
-            //                    onEdit()
-            //                } label: {
-            //                    Image(systemName: "pencil")
-            //                        .font(.system(size: 16, weight: .semibold))
-            //                }
-            //            }
-            //            VStack(spacing: 8) {
-            //
-            //                Button(role: .destructive) {
-            //                    onRequestDelete()
-            //                } label: {
-            //                    Image(systemName: "trash")
-            //                        .font(.system(size: 16, weight: .semibold))
-            //                }
-            //                Spacer()
-            //                Button {
-            //                    onEdit()
-            //                } label: {
-            //                    Image(systemName: "pencil")
-            //                        .font(.system(size: 16, weight: .semibold))
-            //                }
-            //            }
-            //            .buttonStyle(.plain)
-            //            .padding(10)
-            
+            .frame(width: 280, height: 150)            
         }
     }
     
