@@ -3,6 +3,7 @@ import FirebaseCore
 import GoogleSignIn
 import GoogleSignInSwift
 
+@MainActor
 func signInWithGoogle() async throws {
     guard let clientID = FirebaseApp.app()?.options.clientID else {
         return
