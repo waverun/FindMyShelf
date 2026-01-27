@@ -1,19 +1,3 @@
-//
-//  helpTipsView.swift
-//  findMyShelf
-//
-//  Created by shay moreno on 28/01/2026.
-//
-
-import Foundation
-
-//
-//  HelpTipsView.swift
-//  findMyShelf
-//
-//  Created by shay moreno on 28/01/2026.
-//
-
 import SwiftUI
 
 // MARK: - Model
@@ -31,7 +15,7 @@ struct HelpTip: Identifiable {
 struct HelpTipsSection: View {
     @Binding var filterText: String
     @Binding var isExpanded: Bool
-
+    
     private let tips: [HelpTip] = [
         HelpTip(
             icon: "location",
@@ -76,7 +60,7 @@ struct HelpTipsSection: View {
             accent: "Safety"
         )
     ]
-
+    
     private var filteredTips: [HelpTip] {
         let q = filterText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return tips }
@@ -85,28 +69,28 @@ struct HelpTipsSection: View {
             $0.body.localizedCaseInsensitiveContains(q)
         }
     }
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             header
-
+            
             TextField("Search tips…", text: $filterText)
                 .textFieldStyle(.roundedBorder)
-
+            
             if isExpanded {
                 content
             }
         }
         .padding(.top, 6)
     }
-
+    
     // MARK: - Subviews
-
+    
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
             Text("Getting started")
                 .font(.headline)
-
+            
             Button(isExpanded ? "Hide" : "Show") {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isExpanded.toggle()
@@ -114,11 +98,11 @@ struct HelpTipsSection: View {
             }
             .font(.subheadline)
             .buttonStyle(.bordered)
-
+            
             Spacer()
         }
     }
-
+    
     private var content: some View {
         Group {
             if filteredTips.isEmpty {
@@ -145,26 +129,31 @@ struct HelpTipsSection: View {
 
 struct HelpTipCard: View {
     let tip: HelpTip
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
                 Image(systemName: tip.icon)
                     .font(.title3)
-
+                
                 Text(tip.title)
                     .font(.headline)
-
+                
                 Spacer()
             }
-
-            Text(tip.body)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .lineSpacing(2)
-
-            Spacer(minLength: 0)
-
+            
+            ScrollView(.vertical, showsIndicators: true) {
+                Text(tip.body)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineSpacing(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.trailing, 2) // keeps text away from the indicator
+            }
+            .frame(maxHeight: 86)
+            
+            Spacer(minLength: 6)
+            
             HStack {
                 Text(tip.accent)
                     .font(.caption.bold())
@@ -172,12 +161,12 @@ struct HelpTipCard: View {
                     .padding(.vertical, 6)
                     .background(.thinMaterial)
                     .clipShape(Capsule())
-
+                
                 Spacer()
             }
         }
         .padding(14)
-        .frame(width: 300, height: 170)
+        .frame(width: 320, height: 190)
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
@@ -185,9 +174,4 @@ struct HelpTipCard: View {
                 .strokeBorder(.white.opacity(0.08), lineWidth: 1)
         )
     }
-}
-
-#Preview {
-    HelpTipsSection(filterText: .constant(""), isExpanded: .constant(true))
-        .padding()
 }
