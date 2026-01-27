@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseAuth
 import SwiftData
 import CoreLocation
 import PhotosUI
@@ -6,6 +7,9 @@ import UIKit
 
 struct ContentView: View {
     @EnvironmentObject private var firebase: FirebaseService   // ✅ add
+
+    @State private var showLoginRequiredAlert = false
+    @State private var loginAppleCoordinator = AppleSignInCoordinator()
 
     @StateObject private var ocr = AisleOCRController()
 
@@ -240,6 +244,23 @@ struct ContentView: View {
                 Button("Cancel", role: .cancel) { }
             } message: {
                 Text("You can take a photo in the store or choose an existing image.")
+            }
+            .alert("Login required", isPresented: $showLoginRequiredAlert) {
+                Button("Cancel", role: .cancel) {}
+
+                Button("Continue with Google") {
+                    Task { @MainActor in
+                        try? await signInWithGoogle()
+                    }
+                }
+
+                Button("Continue with Apple") {
+                    Task { @MainActor in
+                        loginAppleCoordinator.start()
+                    }
+                }
+            } message: {
+                Text("Please sign in to upload images.")
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -579,8 +600,21 @@ struct ContentView: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
 
+//                    Button {
+//                        guard selectedStore != nil else { return }
+//                        showPhotoSourceDialog = true
+//                    } label: {
+//                        Text("Upload image")
+//                            .frame(maxWidth: .infinity)
+//                    }
                     Button {
                         guard selectedStore != nil else { return }
+
+                        if Auth.auth().currentUser == nil {
+                            showLoginRequiredAlert = true
+                            return
+                        }
+
                         showPhotoSourceDialog = true
                     } label: {
                         Text("Upload image")
@@ -885,60 +919,60 @@ struct ContentView: View {
     }
 }
 
-// MARK: - UI building blocks
-
-private struct EditStoreSheet: View {
-    let store: Store
-    let onSave: (_ name: String, _ address: String?, _ city: String?) -> Void
-
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var name: String
-    @State private var addressLine: String
-    @State private var city: String
-
-    init(store: Store,
-         onSave: @escaping (_ name: String, _ address: String?, _ city: String?) -> Void) {
-        self.store = store
-        self.onSave = onSave
-        _name = State(initialValue: store.name)
-        _addressLine = State(initialValue: store.addressLine ?? "")
-        _city = State(initialValue: store.city ?? "")
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("Store") {
-                    TextField("Store name", text: $name)
-                    TextField("Address", text: $addressLine)
-                    TextField("City", text: $city)
-                }
-
-                Section {
-                    Button("Save") {
-                        let n = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                        guard !n.isEmpty else { return }
-
-                        let a = addressLine.trimmingCharacters(in: .whitespacesAndNewlines)
-                        let c = city.trimmingCharacters(in: .whitespacesAndNewlines)
-
-                        onSave(n,
-                               a.isEmpty ? nil : a,
-                               c.isEmpty ? nil : c)
-
-                        dismiss()
-                    }
-                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-            }
-            .navigationTitle("Edit store")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-            }
-        }
-    }
-}
+//// MARK: - UI building blocks
+//
+//private struct EditStoreSheet: View {
+//    let store: Store
+//    let onSave: (_ name: String, _ address: String?, _ city: String?) -> Void
+//
+//    @Environment(\.dismiss) private var dismiss
+//
+//    @State private var name: String
+//    @State private var addressLine: String
+//    @State private var city: String
+//
+//    init(store: Store,
+//         onSave: @escaping (_ name: String, _ address: String?, _ city: String?) -> Void) {
+//        self.store = store
+//        self.onSave = onSave
+//        _name = State(initialValue: store.name)
+//        _addressLine = State(initialValue: store.addressLine ?? "")
+//        _city = State(initialValue: store.city ?? "")
+//    }
+//
+//    var body: some View {
+//        NavigationStack {
+//            Form {
+//                Section("Store") {
+//                    TextField("Store name", text: $name)
+//                    TextField("Address", text: $addressLine)
+//                    TextField("City", text: $city)
+//                }
+//
+//                Section {
+//                    Button("Save") {
+//                        let n = name.trimmingCharacters(in: .whitespacesAndNewlines)
+//                        guard !n.isEmpty else { return }
+//
+//                        let a = addressLine.trimmingCharacters(in: .whitespacesAndNewlines)
+//                        let c = city.trimmingCharacters(in: .whitespacesAndNewlines)
+//
+//                        onSave(n,
+//                               a.isEmpty ? nil : a,
+//                               c.isEmpty ? nil : c)
+//
+//                        dismiss()
+//                    }
+//                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+//                }
+//            }
+//            .navigationTitle("Edit store")
+//            .navigationBarTitleDisplayMode(.inline)
+//            .toolbar {
+//                ToolbarItem(placement: .cancellationAction) {
+//                    Button("Cancel") { dismiss() }
+//                }
+//            }
+//        }
+//    }
+//}
