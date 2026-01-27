@@ -1,41 +1,46 @@
 import SwiftUI
+import FirebaseAuth
 import SwiftData
 //import PhotosUI
 
 struct AisleListView: View {
     @Environment(\.modelContext) private var context
-
+    
     @EnvironmentObject private var firebase: FirebaseService
-
+    
     let store: Store
     let initialSelectedAisleID: UUID?   // ✅ add this
-
+    
     @State private var isNewAisleSelection: Bool = false
-
+    
     // כל השורות בבסיס הנתונים
     @Query(sort: \Aisle.createdAt, order: .forward)
     private var allAisles: [Aisle]
-
+    
     @State private var selectedAisleID: UUID?
     @State private var isEditingSelected: Bool = false
-
+    
     @State private var newAisleName: String = ""
-
+    
     // חיפוש / פילטר
     @State private var filterText: String = ""
-
+    
     @FocusState private var focusedField: FocusedField?
-
+    
+    // Login gating (same alert text/buttons as ContentView)
+    @State private var showLoginRequiredAlert = false
+    @State private var loginAppleCoordinator = AppleSignInCoordinator()
+    
     private enum FocusedField: Hashable {
         case newAisleName
         case filter
     }
-
+    
     private var selectedAisle: Aisle? {
         guard let id = selectedAisleID else { return nil }
         return aislesForStore.first(where: { $0.id == id })
     }
-
+    
     // שורות רק של החנות הזו
     private var aislesForStore: [Aisle] {
         allAisles
@@ -44,7 +49,7 @@ struct AisleListView: View {
                 $0.nameOrNumber.localizedStandardCompare($1.nameOrNumber) == .orderedAscending
             }
     }
-
+    
     // שורות אחרי פילטר
     private var filteredAisles: [Aisle] {
         let text = filterText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -59,7 +64,7 @@ struct AisleListView: View {
             return nameHit || keywordHit
         }
     }
-
+    
     var body: some View {
         ScrollView {
             VStack {
@@ -71,10 +76,10 @@ struct AisleListView: View {
                         .submitLabel(.search)
                 }
                 .padding([.horizontal, .top])
-
+                
                 // כרטיסיות שורות – אופקי
-
-// כרטיסיות שורות – אופקי
+                
+                // כרטיסיות שורות – אופקי
                 ScrollViewReader { proxy in
                     ScrollView(.horizontal, showsIndicators: false) {
                         LazyHStack(spacing: 14) {
@@ -93,7 +98,7 @@ struct AisleListView: View {
                                         selectedAisleID = aisle.id
                                         isEditingSelected = false
                                         isNewAisleSelection = false
-
+                                        
                                         // ✅ אופציונלי: גם כשבוחרים ידנית, לגלול למרכז
                                         withAnimation(.easeInOut(duration: 0.25)) {
                                             proxy.scrollTo(aisle.id, anchor: .center)
@@ -135,7 +140,7 @@ struct AisleListView: View {
                             }
                         }
                 )
-
+                
                 // פאנל למטה
                 Group {
                     if let aisle = selectedAisle {
@@ -155,38 +160,31 @@ struct AisleListView: View {
                                     aisle.nameOrNumber = newName
                                     aisle.keywords = newKeywords
                                     aisle.updatedAt = Date()
-
+                                    
                                     do {
                                         try context.save()
                                     } catch {
                                         print("❌ Failed to save aisle locally:", error)
                                         return
                                     }
-
+                                    
                                     // Sync to Firebase only if we can
                                     guard let storeRemoteId = store.remoteId,
                                           aisle.remoteId != nil else {
                                         isEditingSelected = false
                                         return
                                     }
-
+                                    
                                     do {
                                         try await firebase.updateAisle(storeRemoteId: storeRemoteId, aisle: aisle)
                                     } catch {
                                         print("❌ Failed to update aisle in Firebase:", error)
                                         // Optional: keep editing open or show banner
                                     }
-
+                                    
                                     isEditingSelected = false
                                 }
                             }
-                            
-//                            onSave: { newName, newKeywords in
-//                                aisle.nameOrNumber = newName
-//                                aisle.keywords = newKeywords
-//                                try? context.save()
-//                                isEditingSelected = false
-//                            }
                         )
                         .padding(.horizontal, 16)
                         .padding(.bottom, 8)
@@ -194,12 +192,12 @@ struct AisleListView: View {
                     }
                 }
                 .animation(.easeInOut(duration: 0.36), value: selectedAisleID)
-
+                
                 // הוספה ידנית
                 HStack {
                     //                TextField("...number / new asile name", text: $newAisleName)
                     //                    .textFieldStyle(.roundedBorder)
-
+                    
                     TextField("...number / new aisle name", text: $newAisleName)
                         .textFieldStyle(.roundedBorder)
                         .focused($focusedField, equals: .newAisleName)
@@ -209,27 +207,23 @@ struct AisleListView: View {
                                                  // אופציונלי: להוסיף שורה אוטומטית
                                                  // addAisle()
                         }
-
+                    
                     Button {
+                        let trimmed = newAisleName.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !trimmed.isEmpty else { return }
+                        
+                        // If not logged in, prompt login (do not block typing in the field)
+                        if Auth.auth().currentUser == nil {
+                            showLoginRequiredAlert = true
+                            return
+                        }
+                        
                         addAisle()
                     } label: {
                         Text("Add aisle")
                     }
                     .buttonStyle(.bordered)
-                    .disabled(
-                        newAisleName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                    )
-
-//                    Button {
-//                        addAisle()
-//                    } label: {
-//                        Text("Add aisle")
-//                            .frame(maxWidth: .infinity)
-//                    }
-//                    .buttonStyle(.bordered)
-//                    .disabled(
-//                        newAisleName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-//                    )
+                    .disabled(newAisleName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
                 .padding()
             }
@@ -247,10 +241,27 @@ struct AisleListView: View {
                 isNewAisleSelection = true
             }
         }
+        .alert("Login required", isPresented: $showLoginRequiredAlert) {
+            Button("Cancel", role: .cancel) {}
+            
+            Button("Continue with Google") {
+                Task { @MainActor in
+                    try? await signInWithGoogle()
+                }
+            }
+            
+            Button("Continue with Apple") {
+                Task { @MainActor in
+                    loginAppleCoordinator.start()
+                }
+            }
+        } message: {
+            Text("Please sign in to upload images.")
+        }
     }
-
+    
     // MARK: - פעולות בסיסיות
-
+    
     @MainActor
     private func deleteAisleEverywhere(_ aisle: Aisle) async {
         // If we can delete in Firebase, do it first
@@ -263,7 +274,7 @@ struct AisleListView: View {
                 return
             }
         }
-
+        
         // Always delete locally (also covers "not synced yet" aisles)
         context.delete(aisle)
         do {
@@ -272,16 +283,16 @@ struct AisleListView: View {
             print("❌ Failed to delete aisle locally:", error)
         }
     }
-
+    
     @MainActor
     private func addAisle() {
         let trimmed = newAisleName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-
+        
         // 1) create locally first (fast UI)
         let aisle = Aisle(nameOrNumber: trimmed, storeId: store.id, keywords: [])
         context.insert(aisle)
-
+        
         do {
             try context.save()
             newAisleName = ""
@@ -290,13 +301,13 @@ struct AisleListView: View {
             print("❌ Failed to save aisle locally:", error)
             return
         }
-
+        
         // 2) then sync to Firebase (if store is synced)
         guard let storeRemoteId = store.remoteId else {
             print("⚠️ Store has no remoteId yet, aisle stays local-only for now.")
             return
         }
-
+        
         Task { @MainActor in
             do {
                 let rid = try await firebase.createAisle(storeRemoteId: storeRemoteId, aisle: aisle)
@@ -309,20 +320,6 @@ struct AisleListView: View {
             }
         }
     }
-
-//    private func addAisle() {
-//        let trimmed = newAisleName.trimmingCharacters(in: .whitespaces)
-//        guard !trimmed.isEmpty else { return }
-//
-//        let aisle = Aisle(nameOrNumber: trimmed, storeId: store.id)
-//        context.insert(aisle)
-//        do {
-//            try context.save()
-//            newAisleName = ""
-//        } catch {
-//            print("Failed to save aisle:", error)
-//        }
-//    }
 }
 
 private struct AisleCard: View {
@@ -331,10 +328,10 @@ private struct AisleCard: View {
     let colorIndex: Int
     let isSelected: Bool
     let onSelect: () -> Void
-
+    
     var body: some View {
         let base = color(for: colorIndex)
-
+        
         Button(action: onSelect) {
             ZStack(alignment: .bottomLeading) {
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
@@ -349,13 +346,13 @@ private struct AisleCard: View {
                                           lineWidth: isSelected ? 2 : 1)
                     )
                     .shadow(radius: isSelected ? 16 : 12, y: isSelected ? 8 : 6)
-
+                
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Aisle \(title)")
                         .font(.headline)
                         .foregroundStyle(.white)
                         .lineLimit(1)
-
+                    
                     if !keywords.isEmpty {
                         Text(keywords.prefix(6).joined(separator: ", "))
                             .font(.footnote)
@@ -366,7 +363,7 @@ private struct AisleCard: View {
                             .font(.footnote)
                             .foregroundStyle(.white.opacity(0.8))
                     }
-
+                    
                     Text(isSelected ? "Selected" : "Tap to select")
                         .font(.caption2.bold())
                         .padding(.horizontal, 8)
@@ -381,7 +378,7 @@ private struct AisleCard: View {
         }
         .buttonStyle(.plain)
     }
-
+    
     private func color(for index: Int) -> Color {
         let palette: [Color] = [.blue, .purple, .indigo, .teal, .mint, .pink, .orange]
         return palette[index % palette.count]
@@ -392,15 +389,15 @@ private struct AisleBottomPanel: View {
     @Bindable var aisle: Aisle
     let headerTitle: String          // ✅ new
     @Binding var isEditing: Bool
-
+    
     let onDelete: () -> Void
     let onSave: (_ newName: String, _ newKeywords: [String]) -> Void
-
+    
     @State private var showDeleteConfirm = false
-
+    
     @State private var draftName: String = ""
     @State private var draftKeywordsText: String = ""
-
+    
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             VStack(alignment: .leading, spacing: 12) {
@@ -409,7 +406,7 @@ private struct AisleBottomPanel: View {
                     Text(headerTitle)
                         .font(.headline)
                     Spacer()
-
+                    
                     if isEditing {
                         Button("Done") {
                             let kws = draftKeywordsText
@@ -428,11 +425,11 @@ private struct AisleBottomPanel: View {
                         .buttonStyle(.bordered)
                     }
                 }
-
+                
                 if !isEditing {
                     Text("Aisle \(aisle.nameOrNumber)")
                         .font(.title3.bold())
-
+                    
                     if !aisle.keywords.isEmpty {
                         Text("Keywords: \(aisle.keywords.joined(separator: ", "))")
                             .font(.footnote)
@@ -442,7 +439,7 @@ private struct AisleBottomPanel: View {
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
-
+                    
                     // 🗑️ Trash icon
                     if !isEditing {
                         HStack {
@@ -478,11 +475,11 @@ private struct AisleBottomPanel: View {
                 } else {
                     TextField("Aisle name/number", text: $draftName)
                         .textFieldStyle(.roundedBorder)
-
+                    
                     TextField("Keywords (comma separated)", text: $draftKeywordsText, axis: .vertical)
                         .textFieldStyle(.roundedBorder)
                         .lineLimit(3...6)
-
+                    
                     HStack {
                         Button(role: .destructive) {
                             isEditing = false
@@ -491,7 +488,7 @@ private struct AisleBottomPanel: View {
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
-
+                        
                         Button {
                             let kws = draftKeywordsText
                                 .split(separator: ",")
