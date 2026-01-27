@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseAuth
 import SwiftData
 
 struct ManualStoreSheet: View {
@@ -9,7 +10,9 @@ struct ManualStoreSheet: View {
     let onUpdate: (_ store: Store, _ name: String, _ address: String?, _ city: String?) -> Void//    let onEdit: (Store) -> Void      // ✅ NEW
     
     @Environment(\.dismiss) private var dismiss
-    
+
+    @State private var isLoggedIn: Bool = Auth.auth().currentUser != nil
+
     @State private var editingStore: Store? = nil
     
     @State private var storePendingDelete: Store?
@@ -77,6 +80,7 @@ struct ManualStoreSheet: View {
                                             .filter { !$0.isEmpty }
                                             .joined(separator: " • "),
                                         colorIndex: index,
+                                        canEdit: isLoggedIn,
                                         onPick: {
                                             onPickExisting(store)
                                             dismiss()
@@ -182,6 +186,13 @@ struct ManualStoreSheet: View {
             .onTapGesture {
                 isKeyboardFocused = false
             }
+            .onAppear {
+                // Keep login state updated while this sheet is visible
+                isLoggedIn = Auth.auth().currentUser != nil
+                _ = Auth.auth().addStateDidChangeListener { _, user in
+                    isLoggedIn = (user != nil)
+                }
+            }
             .navigationTitle("Choose store")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -225,6 +236,7 @@ private struct ManualStoreCard: View {
     let title: String
     let subtitle: String
     let colorIndex: Int
+    let canEdit: Bool
     let onPick: () -> Void
     let onRequestDelete: () -> Void   // ✅ חדש
     let onEdit: () -> Void            // ✅ NEW
@@ -279,35 +291,65 @@ private struct ManualStoreCard: View {
             .buttonStyle(.plain)
             
             ZStack {
-                // 🗑 top-right
-                Button(role: .destructive) {
-                    onRequestDelete()
-                } label: {
-                    Image(systemName: "trash")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .padding(12) // 👈 מגדיל שטח לחיצה
-                        .background(.ultraThinMaterial) // 👈 רקע שקוף
-                        .clipShape(Circle())
+//                // 🗑 top-right
+//                Button(role: .destructive) {
+//                    onRequestDelete()
+//                } label: {
+//                    Image(systemName: "trash")
+//                        .font(.system(size: 16, weight: .semibold))
+//                        .foregroundStyle(.white)
+//                        .padding(12) // 👈 מגדיל שטח לחיצה
+//                        .background(.ultraThinMaterial) // 👈 רקע שקוף
+//                        .clipShape(Circle())
+                if canEdit {
+                    // 🗑 top-right
+                    Button(role: .destructive) {
+                        onRequestDelete()
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(12) // 👈 מגדיל שטח לחיצה
+                            .background(.ultraThinMaterial) // 👈 רקע שקוף
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                    .padding(8)
+
+                    // ✏️ bottom-right
+                    Button {
+                        onEdit()
+                    } label: {
+                        Image(systemName: "pencil")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(12) // 👈 מגדיל שטח לחיצה
+                            .background(.ultraThinMaterial) // 👈 רקע שקוף
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                    .padding(8)   // ← נסה 10–16 לפי העין
                 }
-                .buttonStyle(.plain)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                .padding(8)
-                // ✏️ bottom-right
-                Button {
-                    onEdit()
-                } label: {
-                    Image(systemName: "pencil")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .padding(12) // 👈 מגדיל שטח לחיצה
-                        .background(.ultraThinMaterial) // 👈 רקע שקוף
-                        .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
-                //                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-                .padding(8)   // ← נסה 10–16 לפי העין
+//                .buttonStyle(.plain)
+//                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+//                .padding(8)
+//                // ✏️ bottom-right
+//                Button {
+//                    onEdit()
+//                } label: {
+//                    Image(systemName: "pencil")
+//                        .font(.system(size: 16, weight: .semibold))
+//                        .foregroundStyle(.white)
+//                        .padding(12) // 👈 מגדיל שטח לחיצה
+//                        .background(.ultraThinMaterial) // 👈 רקע שקוף
+//                        .clipShape(Circle())
+//                }
+//                .buttonStyle(.plain)
+//                //                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+//                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+//                .padding(8)   // ← נסה 10–16 לפי העין
             }
             .frame(width: 280, height: 150)            
         }

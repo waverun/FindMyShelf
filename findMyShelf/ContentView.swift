@@ -375,32 +375,6 @@ struct ContentView: View {
                 }
             )
         }
-//        .sheet(isPresented: $showEditStoreSheet) {
-//            if let store = editingStore {
-//                EditStoreSheet(
-//                    store: store,
-//                    onSave: { updatedName, updatedAddress, updatedCity in
-//                        store.name = updatedName
-//                        store.addressLine = updatedAddress
-//                        store.city = updatedCity
-//
-//                        do {
-//                            try context.save()
-//                            showBanner("Store updated", isError: false)
-//
-//                            // אם נמחקה כתובת בזמן עריכה — סגור תצוגת כתובת
-//                            let addr = storeAddressLine(store) ?? ""
-//                            if addr.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-//                                showSelectedStoreAddress = false
-//                            }
-//
-//                        } catch {
-//                            showBanner("Failed to update store", isError: true)
-//                        }
-//                    }
-//                )
-//            }
-//        }
         .sheet(isPresented: $showEditStoreSheet) {
             if let store = editingStore {
                 EditStoreSheet(
@@ -902,6 +876,7 @@ struct ContentView: View {
                 if bannerText == text {
                     bannerText = nil
                 }
+
             }
         }
     }

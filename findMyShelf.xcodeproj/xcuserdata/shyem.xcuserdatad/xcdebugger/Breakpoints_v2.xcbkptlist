@@ -126,8 +126,8 @@
             filePath = "findMyShelf/ContentView.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "549"
-            endingLineNumber = "549"
+            startingLineNumber = "523"
+            endingLineNumber = "523"
             landmarkName = "selectedStoreSection"
             landmarkType = "24">
          </BreakpointContent>
