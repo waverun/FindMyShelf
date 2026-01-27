@@ -242,6 +242,10 @@ struct ContentView: View {
                 Text("You can take a photo in the store or choose an existing image.")
             }
             .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    AuthButtons()
+                }
+
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
                     Button("Done") {
@@ -265,6 +269,11 @@ struct ContentView: View {
             }
 
         }
+//        .toolbar {
+//            ToolbarItem(placement: .topBarTrailing) {
+//                AuthButtons()
+//            }
+//        }
         .onChange(of: selectedStoreId) { _, newValue in
             if newValue == nil {
                 Task { @MainActor in stopAislesSync() }
