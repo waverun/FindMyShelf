@@ -153,18 +153,32 @@ struct ContentView: View {
         let action: () -> Void
         
         var body: some View {
-            Button(action: action) {
-                Image(systemName: systemImage)
-                    .font(.title3)
-                    .symbolVariant(isPrimary ? .fill : .none)
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
+            // Use a container so a long-press hint works even when the button is "disabled".
+            // Long-press shows a description and performs no action.
+            ZStack {
+                if isEnabled {
+                    Button(action: action) {
+                        icon
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    icon
+                }
             }
-            .buttonStyle(.plain)
-            .disabled(!isEnabled)
-            .foregroundStyle(isEnabled ? (isPrimary ? .primary : .primary) : .secondary)
+            .frame(width: 44, height: 44)
+            .contentShape(Rectangle())
+            .foregroundStyle(isEnabled ? .primary : .secondary)
             .opacity(isEnabled ? 1.0 : 0.45)
             .accessibilityLabel(accessibilityLabel)
+            .contextMenu {
+                Text(accessibilityLabel)
+            }
+        }
+        
+        private var icon: some View {
+            Image(systemName: systemImage)
+                .font(.title3)
+                .symbolVariant(isPrimary ? .fill : .none)
         }
     }
     
