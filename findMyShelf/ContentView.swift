@@ -195,6 +195,11 @@ struct ContentView: View {
     @State private var bannerText: String?
     @State private var bannerIsError: Bool = false
     
+    // MARK: - Keyboard
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+    
     var body: some View {
         NavigationStack {
             ZStack(alignment: .top) {
@@ -220,9 +225,12 @@ struct ContentView: View {
                         bottomButtonsBar
                     }
                 }
-                .onTapGesture {
-                    isQuickQueryFocused = false
-                }
+                .simultaneousGesture(
+                    TapGesture().onEnded {
+                        isQuickQueryFocused = false
+                        dismissKeyboard()
+                    }
+                )
                 //                .onChange(of: isHelpExpanded) { _, newValue in
                 //                    // When switching modes, clear the other search field and close keyboard.
                 //                    if newValue {
@@ -241,6 +249,7 @@ struct ContentView: View {
                         helpFilterText = ""
                         savedStoreSearch = ""
                         isQuickQueryFocused = false
+                        dismissKeyboard()
                         return
                     }
                     
@@ -251,6 +260,7 @@ struct ContentView: View {
                         helpFilterText = ""
                     }
                     isQuickQueryFocused = false
+                    dismissKeyboard()
                 }
                 .scrollDismissesKeyboard(.interactively)
                 .ignoresSafeArea(.keyboard, edges: .bottom)
@@ -348,6 +358,7 @@ struct ContentView: View {
                     Spacer()
                     Button("Done") {
                         isQuickQueryFocused = false
+                        dismissKeyboard()
                     }
                 }
             }
@@ -683,6 +694,7 @@ struct ContentView: View {
                             .focused($isQuickQueryFocused)
                             .onSubmit {
                                 isQuickQueryFocused = false      // סוגר מקלדת
+                                dismissKeyboard()
                                 startQuickSearch()
                             }
                         
