@@ -143,6 +143,7 @@ struct ContentView: View {
         .padding(.top, 10)
         .padding(.bottom, 10)
         .background(.ultraThinMaterial)
+        .ignoresSafeArea(.keyboard, edges: .bottom)
     }
     
     private struct IconBarButton: View {
@@ -252,6 +253,7 @@ struct ContentView: View {
                     isQuickQueryFocused = false
                 }
                 .scrollDismissesKeyboard(.interactively)
+                .ignoresSafeArea(.keyboard, edges: .bottom)
             }
             .safeAreaInset(edge: .top) {
                 if let bannerText {
