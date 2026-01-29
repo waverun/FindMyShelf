@@ -222,6 +222,17 @@ struct ContentView: View {
                 .onTapGesture {
                     isQuickQueryFocused = false
                 }
+                .onChange(of: isHelpExpanded) { _, newValue in
+                    // When switching modes, clear the other search field and close keyboard.
+                    if newValue {
+                        // Tips are shown -> reset store search
+                        savedStoreSearch = ""
+                    } else {
+                        // Tips are hidden -> reset tips search
+                        helpFilterText = ""
+                    }
+                    isQuickQueryFocused = false
+                }
                 .scrollDismissesKeyboard(.interactively)
             }
             .safeAreaInset(edge: .top) {
@@ -529,14 +540,29 @@ struct ContentView: View {
             //            helpTipsSection
             
             HelpTipsSection(
-                filterText: $helpFilterText,
+                filterText: Binding(
+                    get: { isHelpExpanded ? helpFilterText : savedStoreSearch },
+                    set: { newValue in
+                        if isHelpExpanded {
+                            helpFilterText = newValue
+                        } else {
+                            savedStoreSearch = newValue
+                        }
+                    }
+                ),
                 isExpanded: $isHelpExpanded
             )
             
-            if !finder.results.isEmpty {
+            if !(isHelpExpanded) && filteredNearbyStores.isEmpty && !finder.results.isEmpty {
+                EmptyStateCard(
+                    title: "No matching stores",
+                    subtitle: "Try a different store name.",
+                    icon: "magnifyingglass"
+                )
+            } else if !finder.results.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(spacing: 14) {
-                        ForEach(Array(finder.results.prefix(12).enumerated()), id: \.element.id) { index, store in
+                        ForEach(Array(filteredNearbyStores.prefix(12).enumerated()), id: \.element.id) { index, store in
                             let sub = [store.addressLine, store.distance.map(formatDistance)]
                                 .compactMap { $0 }
                                 .joined(separator: " • ")
@@ -567,6 +593,16 @@ struct ContentView: View {
                 // (already shown above, but this adds a clear visual anchor)
                 Divider().padding(.vertical, 4)
             }
+        }
+    }
+    private var filteredNearbyStores: [NearbyStore] {
+        let q = savedStoreSearch.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else { return finder.results }
+        return finder.results.filter { store in
+            let haystack = [store.name, store.addressLine, store.city]
+                .compactMap { $0 }
+                .joined(separator: " ")
+            return haystack.localizedCaseInsensitiveContains(q)
         }
     }
     
