@@ -469,6 +469,12 @@ struct ContentView: View {
                     showManualStoreSheet = false
                 },
                 onSaveNew: { name, address, city in
+                    if Auth.auth().currentUser == nil {
+                        showManualStoreSheet = false
+                        showLoginRequiredAlert = true
+                        return
+                    }
+
                     let newStore = Store(name: name, addressLine: address, city: city)
                     context.insert(newStore)
                     do {
