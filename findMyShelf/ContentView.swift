@@ -145,7 +145,67 @@ struct ContentView: View {
         .background(.ultraThinMaterial)
         .ignoresSafeArea(.keyboard, edges: .bottom)
     }
-    
+
+    private var selectedStoreButtonsBar: some View {
+        HStack(spacing: 18) {
+
+            // Back / Change store
+            IconBarButton(
+                systemImage: "arrow.uturn.backward",
+                accessibilityLabel: "Change store",
+                isEnabled: true
+            ) {
+                previousSelectedStoreId = selectedStoreId
+                selectedStoreId = nil
+                quickQuery = ""
+                showSelectedStoreAddress = false
+            }
+
+            // Open aisle map (aka "Lines")
+            IconBarButton(
+                systemImage: "list.bullet",
+                accessibilityLabel: "Open aisle map",
+                isEnabled: (selectedStore != nil),
+                isPrimary: true
+            ) {
+                goToAisles = true
+            }
+
+            // Product search screen
+            IconBarButton(
+                systemImage: "magnifyingglass",
+                accessibilityLabel: "Search products",
+                isEnabled: (selectedStore != nil)
+            ) {
+                pendingProductQuery = ""      // optional: start blank
+                goToSearch = true
+            }
+
+            // Add aisle sign (camera)
+            IconBarButton(
+                systemImage: "camera.viewfinder",
+                accessibilityLabel: "Add aisle sign (upload image)",
+                isEnabled: (selectedStore != nil) && !ocr.isProcessingOCR
+            ) {
+                guard selectedStore != nil else { return }
+
+                if Auth.auth().currentUser == nil {
+                    showLoginRequiredAlert = true
+                    return
+                }
+
+                showPhotoSourceDialog = true
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 10)
+        .padding(.bottom, 10)
+        .background(.ultraThinMaterial)
+        .ignoresSafeArea(.keyboard, edges: .bottom)
+    }
+
     private struct IconBarButton: View {
         let systemImage: String
         let accessibilityLabel: String
@@ -220,11 +280,19 @@ struct ContentView: View {
                     .padding(.top, 12)
                     .padding(.bottom, 24)
                 }
+
                 .safeAreaInset(edge: .bottom) {
                     if selectedStore == nil {
                         bottomButtonsBar
+                    } else {
+                        selectedStoreButtonsBar
                     }
                 }
+//                .safeAreaInset(edge: .bottom) {
+//                    if selectedStore == nil {
+//                        bottomButtonsBar
+//                    }
+//                }
                 .simultaneousGesture(
                     TapGesture().onEnded {
                         isQuickQueryFocused = false
