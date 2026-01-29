@@ -76,7 +76,6 @@ struct HelpTipsSection: View {
         VStack(alignment: .leading, spacing: 10) {
             header
             
-//            TextField("Search tips…", text: $filterText)
             TextField(searchPlaceholder, text: $filterText)
                 .textFieldStyle(.roundedBorder)
             

@@ -222,17 +222,17 @@ struct ContentView: View {
                 .onTapGesture {
                     isQuickQueryFocused = false
                 }
-//                .onChange(of: isHelpExpanded) { _, newValue in
-//                    // When switching modes, clear the other search field and close keyboard.
-//                    if newValue {
-//                        // Tips are shown -> reset store search
-//                        savedStoreSearch = ""
-//                    } else {
-//                        // Tips are hidden -> reset tips search
-//                        helpFilterText = ""
-//                    }
-//                    isQuickQueryFocused = false
-//                }
+                //                .onChange(of: isHelpExpanded) { _, newValue in
+                //                    // When switching modes, clear the other search field and close keyboard.
+                //                    if newValue {
+                //                        // Tips are shown -> reset store search
+                //                        savedStoreSearch = ""
+                //                    } else {
+                //                        // Tips are hidden -> reset tips search
+                //                        helpFilterText = ""
+                //                    }
+                //                    isQuickQueryFocused = false
+                //                }
                 .onChange(of: isHelpExpanded) { _, newValue in
                     // If there are no stores yet, force tips mode.
                     if newValue == false && finder.results.isEmpty {
@@ -242,7 +242,7 @@ struct ContentView: View {
                         isQuickQueryFocused = false
                         return
                     }
-
+                    
                     // When switching modes, clear the other search field and close keyboard.
                     if newValue {
                         savedStoreSearch = ""
@@ -557,26 +557,12 @@ struct ContentView: View {
             // ✅ Help / Tips (fills empty space on first screen)
             //            helpTipsSection
             
-//            HelpTipsSection(
-//                filterText: Binding(
-//                    get: { isHelpExpanded ? helpFilterText : savedStoreSearch },
-//                    set: { newValue in
-//                        if isHelpExpanded {
-//                            helpFilterText = newValue
-//                        } else {
-//                            savedStoreSearch = newValue
-//                        }
-//                    }
-//                ),
-//                isExpanded: $isHelpExpanded
-//            )
-
             // Placeholder must reflect the *active* search mode.
             // If there are no stores yet, we always keep it as tips search.
             let hasAnyStores = !finder.results.isEmpty
             let isStoreSearchMode = (!isHelpExpanded) && hasAnyStores
             let searchPlaceholder = isStoreSearchMode ? "Search stores" : "Search tips"
-
+            
             HelpTipsSection(
                 filterText: Binding(
                     get: { isHelpExpanded ? helpFilterText : savedStoreSearch },
@@ -598,28 +584,26 @@ struct ContentView: View {
                     icon: "magnifyingglass"
                 )
             } else if !finder.results.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(spacing: 14) {
-                        ForEach(Array(filteredNearbyStores.prefix(12).enumerated()), id: \.element.id) { index, store in
-                            let sub = [store.addressLine, store.distance.map(formatDistance)]
-                                .compactMap { $0 }
-                                .joined(separator: " • ")
-                            StorePosterCard(
-                                title: store.name,
-                                subtitle: sub.isEmpty ? nil : sub,
-                                colorIndex: index,
-                                isHighlighted: matchesPreviousStore(store),
-                                badgeText: matchesPreviousStore(store) ? "Previously selected" : nil,
-                                buttonTitle: "Choose",
-                                buttonAction: {
-                                    handleStoreChosen(store)
-                                }
-                            )
-                        }
+                VStack(spacing: 12) {
+                    ForEach(Array(filteredNearbyStores.prefix(12).enumerated()), id: \.element.id) { index, store in
+                        let sub = [store.addressLine, store.distance.map(formatDistance)]
+                            .compactMap { $0 }
+                            .joined(separator: " • ")
+                        StorePosterCard(
+                            title: store.name,
+                            subtitle: sub.isEmpty ? nil : sub,
+                            colorIndex: index,
+                            isHighlighted: matchesPreviousStore(store),
+                            badgeText: matchesPreviousStore(store) ? "Previously selected" : nil,
+                            buttonTitle: "Choose",
+                            buttonAction: {
+                                handleStoreChosen(store)
+                            }
+                        )
+                        .frame(maxWidth: .infinity)
                     }
-                    .padding(.vertical, 6)
-                    .padding(.horizontal, 2)
                 }
+                .padding(.top, 6)
             } else {
                 EmptyStateCard(
                     title: "No stores shown yet",
