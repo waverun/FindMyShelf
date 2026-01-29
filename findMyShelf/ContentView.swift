@@ -222,13 +222,31 @@ struct ContentView: View {
                 .onTapGesture {
                     isQuickQueryFocused = false
                 }
+//                .onChange(of: isHelpExpanded) { _, newValue in
+//                    // When switching modes, clear the other search field and close keyboard.
+//                    if newValue {
+//                        // Tips are shown -> reset store search
+//                        savedStoreSearch = ""
+//                    } else {
+//                        // Tips are hidden -> reset tips search
+//                        helpFilterText = ""
+//                    }
+//                    isQuickQueryFocused = false
+//                }
                 .onChange(of: isHelpExpanded) { _, newValue in
+                    // If there are no stores yet, force tips mode.
+                    if newValue == false && finder.results.isEmpty {
+                        isHelpExpanded = true
+                        helpFilterText = ""
+                        savedStoreSearch = ""
+                        isQuickQueryFocused = false
+                        return
+                    }
+
                     // When switching modes, clear the other search field and close keyboard.
                     if newValue {
-                        // Tips are shown -> reset store search
                         savedStoreSearch = ""
                     } else {
-                        // Tips are hidden -> reset tips search
                         helpFilterText = ""
                     }
                     isQuickQueryFocused = false
@@ -539,6 +557,26 @@ struct ContentView: View {
             // ✅ Help / Tips (fills empty space on first screen)
             //            helpTipsSection
             
+//            HelpTipsSection(
+//                filterText: Binding(
+//                    get: { isHelpExpanded ? helpFilterText : savedStoreSearch },
+//                    set: { newValue in
+//                        if isHelpExpanded {
+//                            helpFilterText = newValue
+//                        } else {
+//                            savedStoreSearch = newValue
+//                        }
+//                    }
+//                ),
+//                isExpanded: $isHelpExpanded
+//            )
+
+            // Placeholder must reflect the *active* search mode.
+            // If there are no stores yet, we always keep it as tips search.
+            let hasAnyStores = !finder.results.isEmpty
+            let isStoreSearchMode = (!isHelpExpanded) && hasAnyStores
+            let searchPlaceholder = isStoreSearchMode ? "Search stores" : "Search tips"
+
             HelpTipsSection(
                 filterText: Binding(
                     get: { isHelpExpanded ? helpFilterText : savedStoreSearch },
@@ -550,9 +588,9 @@ struct ContentView: View {
                         }
                     }
                 ),
-                isExpanded: $isHelpExpanded
+                isExpanded: $isHelpExpanded,
+                searchPlaceholder: searchPlaceholder
             )
-            
             if !(isHelpExpanded) && filteredNearbyStores.isEmpty && !finder.results.isEmpty {
                 EmptyStateCard(
                     title: "No matching stores",

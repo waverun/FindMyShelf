@@ -15,6 +15,8 @@ struct HelpTip: Identifiable {
 struct HelpTipsSection: View {
     @Binding var filterText: String
     @Binding var isExpanded: Bool
+
+    let searchPlaceholder: String
     
     private let tips: [HelpTip] = [
         HelpTip(
@@ -74,7 +76,8 @@ struct HelpTipsSection: View {
         VStack(alignment: .leading, spacing: 10) {
             header
             
-            TextField("Search tips…", text: $filterText)
+//            TextField("Search tips…", text: $filterText)
+            TextField(searchPlaceholder, text: $filterText)
                 .textFieldStyle(.roundedBorder)
             
             if isExpanded {
