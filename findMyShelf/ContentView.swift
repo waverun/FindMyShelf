@@ -10,6 +10,10 @@ struct ContentView: View {
     
     // MARK: - Reporting (store-level)
 
+#if DEBUG
+    @State private var goToReportsAdmin: Bool = false
+#endif
+
     @State private var showReportSheet: Bool = false
     @State private var selectedStoreUpdatedByUserId: String? = nil
 
@@ -148,6 +152,15 @@ struct ContentView: View {
                     showReportSheet = true
                 }
 
+#if DEBUG
+                IconBarButton(
+                    systemImage: "ladybug",
+                    accessibilityLabel: "Reports admin (Debug)",
+                    isEnabled: true
+                ) {
+                    goToReportsAdmin = true
+                }
+#endif
                 Spacer(minLength: 0)
             }
         }
@@ -511,7 +524,11 @@ struct ContentView: View {
                     ProductSearchView(store: store, initialQuery: pendingProductQuery)
                 }
             }
-            
+#if DEBUG
+            .navigationDestination(isPresented: $goToReportsAdmin) {
+                ReportsAdminView(firebase: firebase)
+            }
+#endif
         }
         .onChange(of: selectedStoreId) { _, newValue in
             if newValue == nil {

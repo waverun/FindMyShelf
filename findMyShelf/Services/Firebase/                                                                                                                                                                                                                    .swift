@@ -12,6 +12,52 @@ final class FirebaseService: ObservableObject {
 
     // MARK: - STORE
 
+    // MARK: - Reports Admin (Debug)
+
+    func startReportsListener(
+        onChange: @escaping ([ReportedUserReport]) -> Void
+    ) -> ListenerRegistration {
+        // Order newest first; we split new/handled client-side by handledAt
+        return db.collection("reportedUsers")
+            .order(by: "createdAt", descending: true)
+            .addSnapshotListener { snap, err in
+                if let err {
+                    print("❌ Reports listener error:", err)
+                    onChange([])
+                    return
+                }
+                guard let snap else {
+                    onChange([])
+                    return
+                }
+
+                let items: [ReportedUserReport] = snap.documents.map { doc in
+                    ReportedUserReport.from(doc: doc)
+                }
+                onChange(items)
+            }
+    }
+
+    func deleteReport(reportId: String) async throws {
+        try await db.collection("reportedUsers")
+            .document(reportId)
+            .delete()
+    }
+
+    func markReportHandled(reportId: String) async throws {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            throw NSError(domain: "Auth", code: 401, userInfo: [NSLocalizedDescriptionKey: "Not logged in"])
+        }
+
+        let data: [String: Any] = [
+            "handledAt": FieldValue.serverTimestamp(),
+            "handledByUserId": uid
+        ]
+
+        try await db.collection("reportedUsers")
+            .document(reportId)
+            .setData(data, merge: true)
+    }
     // MARK: - Reporting + Attribution helpers
 
     func fetchStoreAttribution(storeRemoteId: String) async throws -> (createdBy: String?, updatedBy: String?) {
@@ -45,6 +91,7 @@ final class FirebaseService: ObservableObject {
 
         _ = try await db.collection("reportedUsers").addDocument(data: data)
     }
+
     func updateStore(
         storeRemoteId: String,
         name: String,
@@ -396,5 +443,40 @@ final class FirebaseService: ObservableObject {
 
         // 🔥 delete store itself
         try await storeRef.delete()
+    }
+}
+
+struct ReportedUserReport: Identifiable {
+    let id: String
+
+    let reportedUserId: String
+    let reporterUserId: String
+    let reason: String
+    let details: String
+    let storeRemoteId: String?
+    let context: String?
+
+    let createdAt: Date?
+    let handledAt: Date?
+    let handledByUserId: String?
+
+    var isHandled: Bool { handledAt != nil }
+
+    static func from(doc: QueryDocumentSnapshot) -> ReportedUserReport {
+        let createdTs = doc.get("createdAt") as? Timestamp
+        let handledTs = doc.get("handledAt") as? Timestamp
+
+        return ReportedUserReport(
+            id: doc.documentID,
+            reportedUserId: (doc.get("reportedUserId") as? String) ?? "",
+            reporterUserId: (doc.get("reporterUserId") as? String) ?? "",
+            reason: (doc.get("reason") as? String) ?? "no_reason_selected",
+            details: (doc.get("details") as? String) ?? "",
+            storeRemoteId: doc.get("storeRemoteId") as? String,
+            context: doc.get("context") as? String,
+            createdAt: createdTs?.dateValue(),
+            handledAt: handledTs?.dateValue(),
+            handledByUserId: doc.get("handledByUserId") as? String
+        )
     }
 }
