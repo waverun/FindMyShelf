@@ -9,14 +9,14 @@ struct ContentView: View {
     @EnvironmentObject private var firebase: FirebaseService   // ✅ add
     
     // MARK: - Reporting (store-level)
-
+    
 #if DEBUG
     @State private var goToReportsAdmin: Bool = false
 #endif
-
+    
     @State private var showReportSheet: Bool = false
     @State private var selectedStoreUpdatedByUserId: String? = nil
-
+    
     @State private var showLoginRequiredAlert = false
     @State private var loginAppleCoordinator = AppleSignInCoordinator()
     
@@ -72,6 +72,12 @@ struct ContentView: View {
     
     @Environment(\.modelContext) private var context
     @Query(sort: \Store.createdAt) private var stores: [Store]
+    
+    //    @AppStorage("showGuides") private var showGuides: Bool = true
+    @AppStorage("showGuides") private var showGuides: Bool = true
+    @AppStorage("didSeeChooseStoreGuide") private var didSeeChooseStoreGuide: Bool = false
+    
+    //    @State private var showFirstGuideNow: Bool = false
     
     @AppStorage("selectedStoreId") private var selectedStoreId: String?
     @AppStorage("previousSelectedStoreId") private var previousSelectedStoreId: String?
@@ -143,7 +149,7 @@ struct ContentView: View {
                     guard let loc = locationManager.currentLocation else { return }
                     finder.searchNearby(from: loc)
                 }
-
+                
                 IconBarButton(
                     systemImage: "exclamationmark.bubble",
                     accessibilityLabel: "Report a user",
@@ -151,7 +157,7 @@ struct ContentView: View {
                 ) {
                     showReportSheet = true
                 }
-
+                
 #if DEBUG
                 IconBarButton(
                     systemImage: "ladybug",
@@ -170,10 +176,10 @@ struct ContentView: View {
         .background(.ultraThinMaterial)
         .ignoresSafeArea(.keyboard, edges: .bottom)
     }
-
+    
     private var selectedStoreButtonsBar: some View {
         HStack(spacing: 18) {
-
+            
             // Back / Change store
             IconBarButton(
                 systemImage: "arrow.uturn.backward",
@@ -185,7 +191,7 @@ struct ContentView: View {
                 quickQuery = ""
                 showSelectedStoreAddress = false
             }
-
+            
             // Open aisle map (aka "Lines")
             IconBarButton(
                 systemImage: "list.bullet",
@@ -195,7 +201,7 @@ struct ContentView: View {
             ) {
                 goToAisles = true
             }
-
+            
             // Product search screen
             IconBarButton(
                 systemImage: "magnifyingglass",
@@ -205,7 +211,7 @@ struct ContentView: View {
                 pendingProductQuery = ""      // optional: start blank
                 goToSearch = true
             }
-
+            
             // Add aisle sign (camera)
             IconBarButton(
                 systemImage: "camera.viewfinder",
@@ -213,14 +219,14 @@ struct ContentView: View {
                 isEnabled: (selectedStore != nil) && !ocr.isProcessingOCR
             ) {
                 guard selectedStore != nil else { return }
-
+                
                 if Auth.auth().currentUser == nil {
                     showLoginRequiredAlert = true
                     return
                 }
                 showPhotoSourceDialog = true
             }
-
+            
             IconBarButton(
                 systemImage: "exclamationmark.bubble",
                 accessibilityLabel: "Report a user",
@@ -228,7 +234,7 @@ struct ContentView: View {
             ) {
                 showReportSheet = true
             }
-
+            
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 16)
@@ -237,7 +243,7 @@ struct ContentView: View {
         .background(.ultraThinMaterial)
         .ignoresSafeArea(.keyboard, edges: .bottom)
     }
-
+    
     private struct IconBarButton: View {
         let systemImage: String
         let accessibilityLabel: String
@@ -312,7 +318,6 @@ struct ContentView: View {
                     .padding(.top, 12)
                     .padding(.bottom, 24)
                 }
-
                 .safeAreaInset(edge: .bottom) {
                     if selectedStore == nil {
                         bottomButtonsBar
@@ -320,37 +325,22 @@ struct ContentView: View {
                         selectedStoreButtonsBar
                     }
                 }
-//                .safeAreaInset(edge: .bottom) {
-//                    if selectedStore == nil {
-//                        bottomButtonsBar
-//                    }
-//                }
+                //                .safeAreaInset(edge: .bottom) {
+                //                    if selectedStore == nil {
+                //                        bottomButtonsBar
+                //                    }
+                //                }
                 .simultaneousGesture(
                     TapGesture().onEnded {
                         isQuickQueryFocused = false
                         dismissKeyboard()
                     }
                 )
-                //                .onChange(of: isHelpExpanded) { _, newValue in
-                //                    // When switching modes, clear the other search field and close keyboard.
-                //                    if newValue {
-                //                        // Tips are shown -> reset store search
-                //                        savedStoreSearch = ""
-                //                    } else {
-                //                        // Tips are hidden -> reset tips search
-                //                        helpFilterText = ""
-                //                    }
-                //                    isQuickQueryFocused = false
-                //                }
                 .onChange(of: isHelpExpanded) { _, newValue in
-                    // If there are no stores yet, force tips mode.
+                    // If there are no stores yet, we still allow hiding tips.
+                    // Just clear the store search field to avoid a "search stores" mode with no data.
                     if newValue == false && finder.results.isEmpty {
-                        isHelpExpanded = true
-                        helpFilterText = ""
                         savedStoreSearch = ""
-                        isQuickQueryFocused = false
-                        dismissKeyboard()
-                        return
                     }
                     
                     // When switching modes, clear the other search field and close keyboard.
@@ -364,6 +354,20 @@ struct ContentView: View {
                 }
                 .scrollDismissesKeyboard(.interactively)
                 .ignoresSafeArea(.keyboard, edges: .bottom)
+                //                if showFirstGuideNow && selectedStore == nil && showGuides {
+                //                    FirstGuideOverlay(
+                //                        onGotIt: {
+                //                            withAnimation { showFirstGuideNow = false }
+                //                        },
+                //                        onDontShowAgain: {
+                //                            showGuides = false
+                //                            withAnimation { showFirstGuideNow = false }
+                //                        }
+                //                    )
+                //                    .transition(.move(edge: .top).combined(with: .opacity))
+                //                    .padding(.top, 8)
+                //                    .zIndex(1000)
+                //                }
             }
             .safeAreaInset(edge: .top) {
                 if let bannerText {
@@ -382,10 +386,18 @@ struct ContentView: View {
                 if locationManager.authorizationStatus == .authorizedWhenInUse || locationManager.authorizationStatus == .authorizedAlways {
                     locationManager.startUpdating()
                 }
+                // NOTE: Don't reset showGuides / didSeeChooseStoreGuide here.
+                // They are persisted in AppStorage and are controlled by user actions (e.g. “Don’t show again”).
+                // ✅ Show guide only when no store selected
+                //                if selectedStore == nil && showGuides {
+                //                    // If you want "only first ever":
+                //                    // if !didSeeFirstGuide { didSeeFirstGuide = true; showFirstGuideNow = true }
+                //                    showFirstGuideNow = true
+                //                }
                 
                 if let store = selectedStore {
                     Task { await startAislesSyncIfPossible(for: store) }
-
+                    
                     Task { @MainActor in
                         await ensureStoreRemoteId(store)
                         if let rid = store.remoteId {
@@ -404,17 +416,17 @@ struct ContentView: View {
                     title: selectedStore != nil ? "Report last editor" : "Report",
                     onCancel: { showReportSheet = false },
                     onSubmit: { reason, details in
-
+                        
                         guard let reporterId = Auth.auth().currentUser?.uid else {
                             showReportSheet = false
                             showLoginRequiredAlert = true
                             return
                         }
-
+                        
                         // Target = last editor of selected store (best available signal right now)
                         let targetUserId = selectedStoreUpdatedByUserId ?? "unknown_target"
                         let storeRid = selectedStore?.remoteId
-
+                        
                         Task { @MainActor in
                             do {
                                 try await firebase.submitUserReport(
@@ -531,6 +543,10 @@ struct ContentView: View {
 #endif
         }
         .onChange(of: selectedStoreId) { _, newValue in
+            //            if newValue != nil {
+            //                showFirstGuideNow = false
+            //            }
+            
             if newValue == nil {
                 Task { @MainActor in stopAislesSync() }
                 return
@@ -551,12 +567,12 @@ struct ContentView: View {
                 }
                 await startAislesSyncIfPossible(for: store) }
         }
-//        .onChange(of: selectedStoreId) { _, _ in
-//            guard let store = selectedStore else { return }
-//            Task { await ensureStoreRemoteId(store)
-//                await startAislesSyncIfPossible(for: store)
-//            }
-//        }
+        //        .onChange(of: selectedStoreId) { _, _ in
+        //            guard let store = selectedStore else { return }
+        //            Task { await ensureStoreRemoteId(store)
+        //                await startAislesSyncIfPossible(for: store)
+        //            }
+        //        }
         .sheet(isPresented: $showManualStoreSheet) {
             ManualStoreSheet(
                 existingStores: stores,
@@ -570,7 +586,7 @@ struct ContentView: View {
                         showLoginRequiredAlert = true
                         return
                     }
-
+                    
                     let newStore = Store(name: name, addressLine: address, city: city)
                     context.insert(newStore)
                     do {
@@ -713,7 +729,18 @@ struct ContentView: View {
                     }
                 }
             }
-            
+            if showGuides && !didSeeChooseStoreGuide {
+                ChooseStoreGuideCard(
+                    onGotIt: {
+                        didSeeChooseStoreGuide = true
+                    },
+                    onDontShowAgain: {
+                        showGuides = false
+                        didSeeChooseStoreGuide = true
+                    }
+                )
+                .padding(.top, 4)
+            }
             Group {
                 if let status = locationManager.authorizationStatus {
                     if status == .denied || status == .restricted {
@@ -959,6 +986,53 @@ struct ContentView: View {
     
     // MARK: - Logic
     
+    //    private struct FirstGuideOverlay: View {
+    //        let onGotIt: () -> Void
+    //        let onDontShowAgain: () -> Void
+    //
+    //        var body: some View {
+    //            VStack(spacing: 10) {
+    //                HStack(alignment: .top, spacing: 10) {
+    //                    Image(systemName: "sparkles")
+    //                        .font(.title3)
+    //
+    //                    VStack(alignment: .leading, spacing: 6) {
+    //                        Text("Welcome 👋")
+    //                            .font(.headline)
+    //
+    //                        Text("First choose a store. You can find nearby stores using the 🔍 button below, or add one manually using “Add manually”.")
+    //                            .font(.footnote)
+    //                            .foregroundStyle(.secondary)
+    //                    }
+    //
+    //                    Spacer()
+    //                }
+    //
+    //                HStack(spacing: 10) {
+    //                    Button("Don’t show again") {
+    //                        onDontShowAgain()
+    //                    }
+    //                    .buttonStyle(.bordered)
+    //
+    //                    Button("Got it") {
+    //                        onGotIt()
+    //                    }
+    //                    .buttonStyle(.borderedProminent)
+    //
+    //                    Spacer()
+    //                }
+    //            }
+    //            .padding(14)
+    //            .background(.ultraThinMaterial)
+    //            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+    //            .overlay(
+    //                RoundedRectangle(cornerRadius: 18, style: .continuous)
+    //                    .strokeBorder(.white.opacity(0.08), lineWidth: 1)
+    //            )
+    //            .padding(.horizontal, 16)
+    //        }
+    //    }
+    
     // MARK: - Help / Tips
     
     private struct HelpTip: Identifiable {
@@ -1024,50 +1098,6 @@ struct ContentView: View {
             tip.body.localizedCaseInsensitiveContains(q)
         }
     }
-    
-    //    private var helpTipsSection: some View {
-    //        VStack(alignment: .leading, spacing: 10) {
-    //            HStack(alignment: .firstTextBaseline) {
-    //                Text("Getting started")
-    //                    .font(.headline)
-    //
-    //                Button(isHelpExpanded ? "Hide" : "Show") {
-    //                    withAnimation(.easeInOut(duration: 0.18)) {
-    //                        isHelpExpanded.toggle()
-    //                    }
-    //                }
-    //                .font(.subheadline)
-    //                .buttonStyle(.bordered)
-    //
-    //                Spacer()
-    //            }
-    //
-    //            TextField("Search tips…", text: $helpFilterText)
-    //                .textFieldStyle(.roundedBorder)
-    //                .submitLabel(.done)
-    //
-    //            if isHelpExpanded {
-    //                if filteredHelpTips.isEmpty {
-    //                    EmptyStateCard(
-    //                        title: "No matching tips",
-    //                        subtitle: "Try a different keyword.",
-    //                        icon: "magnifyingglass"
-    //                    )
-    //                } else {
-    //                    ScrollView(.horizontal, showsIndicators: false) {
-    //                        LazyHStack(spacing: 14) {
-    //                            ForEach(filteredHelpTips) { tip in
-    //                                HelpTipCard(tip: tip)
-    //                            }
-    //                        }
-    //                        .padding(.vertical, 6)
-    //                        .padding(.horizontal, 2)
-    //                    }
-    //                }
-    //            }
-    //        }
-    //        .padding(.top, 6)
-    //    }
     
     private struct HelpTipCard: View {
         let tip: HelpTip
@@ -1352,25 +1382,25 @@ private struct ReportUserSheet: View {
         case other = "Other"
         var id: String { rawValue }
     }
-
+    
     let title: String
     let onCancel: () -> Void
     let onSubmit: (_ reason: String?, _ details: String) -> Void
-
+    
     @State private var selectedReason: Reason? = nil
     @State private var details: String = ""
     @State private var showValidationError: Bool = false
-
+    
     private var trimmedDetails: String {
         details.trimmingCharacters(in: .whitespacesAndNewlines)
     }
-
+    
     // Rule: reason optional, BUT if no reason -> details required
     private var canSubmit: Bool {
         if selectedReason != nil { return true }
         return !trimmedDetails.isEmpty
     }
-
+    
     var body: some View {
         NavigationStack {
             Form {
@@ -1385,16 +1415,16 @@ private struct ReportUserSheet: View {
                         }
                     }
                 }
-
+                
                 Section(header: Text("More details")) {
                     TextEditor(text: $details)
                         .frame(minHeight: 120)
-
+                    
                     Text("If you don’t choose a reason, you must write something here.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
-
+                
                 if showValidationError {
                     Section {
                         Text("Please choose a reason or write details.")
@@ -1419,5 +1449,47 @@ private struct ReportUserSheet: View {
                 }
             }
         }
+    }
+}
+
+private struct ChooseStoreGuideCard: View {
+    let onGotIt: () -> Void
+    let onDontShowAgain: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "sparkles")
+                    .font(.title3)
+                
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Welcome 👋")
+                        .font(.headline)
+                    
+                    Text("First choose a store. Tap the 🔍 button below to find nearby stores, or use “Add manually”.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                
+                Spacer()
+            }
+            
+            HStack(spacing: 10) {
+                Button("Don’t show again") { onDontShowAgain() }
+                    .buttonStyle(.bordered)
+                
+                Button("Got it") { onGotIt() }
+                    .buttonStyle(.borderedProminent)
+                
+                Spacer()
+            }
+        }
+        .padding(14)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(.white.opacity(0.08), lineWidth: 1)
+        )
     }
 }

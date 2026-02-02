@@ -116,20 +116,6 @@
             landmarkType = "7">
             <Locations>
                <Location
-                  uuid = "6328A53D-DEAC-4C21-8EFD-2CF1BC534CEB - b518a486985360a2"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "findMyShelf.ReportsAdminView.userFacingErrorMessage(Swift.Error) -&gt; Swift.String"
-                  moduleName = "findMyShelf.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/shyem/Projects/FindMyShelf/findMyShelf/Classes/ReportsAdminController.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "273"
-                  endingLineNumber = "273">
-               </Location>
-               <Location
                   uuid = "6328A53D-DEAC-4C21-8EFD-2CF1BC534CEB - e4a9ae55e30ff4f0"
                   shouldBeEnabled = "Yes"
                   ignoreCount = "0"
