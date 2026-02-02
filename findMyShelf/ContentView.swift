@@ -8,7 +8,11 @@ import UIKit
 struct ContentView: View {
     @EnvironmentObject private var firebase: FirebaseService   // ✅ add
     
-    
+    // MARK: - Reporting (store-level)
+
+    @State private var showReportSheet: Bool = false
+    @State private var selectedStoreUpdatedByUserId: String? = nil
+
     @State private var showLoginRequiredAlert = false
     @State private var loginAppleCoordinator = AppleSignInCoordinator()
     
@@ -135,7 +139,15 @@ struct ContentView: View {
                     guard let loc = locationManager.currentLocation else { return }
                     finder.searchNearby(from: loc)
                 }
-                
+
+                IconBarButton(
+                    systemImage: "exclamationmark.bubble",
+                    accessibilityLabel: "Report a user",
+                    isEnabled: true
+                ) {
+                    showReportSheet = true
+                }
+
                 Spacer(minLength: 0)
             }
         }
@@ -193,8 +205,15 @@ struct ContentView: View {
                     showLoginRequiredAlert = true
                     return
                 }
-
                 showPhotoSourceDialog = true
+            }
+
+            IconBarButton(
+                systemImage: "exclamationmark.bubble",
+                accessibilityLabel: "Report a user",
+                isEnabled: true
+            ) {
+                showReportSheet = true
             }
 
             Spacer(minLength: 0)
@@ -353,7 +372,55 @@ struct ContentView: View {
                 
                 if let store = selectedStore {
                     Task { await startAislesSyncIfPossible(for: store) }
+
+                    Task { @MainActor in
+                        await ensureStoreRemoteId(store)
+                        if let rid = store.remoteId {
+                            do {
+                                let attr = try await firebase.fetchStoreAttribution(storeRemoteId: rid)
+                                selectedStoreUpdatedByUserId = attr.updatedBy
+                            } catch {
+                                selectedStoreUpdatedByUserId = nil
+                            }
+                        }
+                    }
                 }
+            }
+            .sheet(isPresented: $showReportSheet) {
+                ReportUserSheet(
+                    title: selectedStore != nil ? "Report last editor" : "Report",
+                    onCancel: { showReportSheet = false },
+                    onSubmit: { reason, details in
+
+                        guard let reporterId = Auth.auth().currentUser?.uid else {
+                            showReportSheet = false
+                            showLoginRequiredAlert = true
+                            return
+                        }
+
+                        // Target = last editor of selected store (best available signal right now)
+                        let targetUserId = selectedStoreUpdatedByUserId ?? "unknown_target"
+                        let storeRid = selectedStore?.remoteId
+
+                        Task { @MainActor in
+                            do {
+                                try await firebase.submitUserReport(
+                                    reportedUserId: targetUserId,
+                                    reporterUserId: reporterId,
+                                    reason: reason ?? "no_reason_selected",
+                                    details: details,
+                                    storeRemoteId: storeRid,
+                                    context: selectedStore != nil ? "store_last_editor" : "general"
+                                )
+                                showReportSheet = false
+                                showBanner("Report submitted. Thank you.", isError: false)
+                            } catch {
+                                showReportSheet = false
+                                showBanner("Failed to submit report.", isError: true)
+                            }
+                        }
+                    }
+                )
             }
             .sheet(isPresented: $isShowingCamera) {
                 CameraImagePicker(isPresented: $isShowingCamera) { image in
@@ -453,14 +520,26 @@ struct ContentView: View {
             }
             guard let store = selectedStore else { return }
             Task { await ensureStoreRemoteId(store)
+                Task { @MainActor in
+                    guard let rid = store.remoteId else {
+                        selectedStoreUpdatedByUserId = nil
+                        return
+                    }
+                    do {
+                        let attr = try await firebase.fetchStoreAttribution(storeRemoteId: rid)
+                        selectedStoreUpdatedByUserId = attr.updatedBy
+                    } catch {
+                        selectedStoreUpdatedByUserId = nil
+                    }
+                }
                 await startAislesSyncIfPossible(for: store) }
         }
-        .onChange(of: selectedStoreId) { _, _ in
-            guard let store = selectedStore else { return }
-            Task { await ensureStoreRemoteId(store)
-                await startAislesSyncIfPossible(for: store)
-            }
-        }
+//        .onChange(of: selectedStoreId) { _, _ in
+//            guard let store = selectedStore else { return }
+//            Task { await ensureStoreRemoteId(store)
+//                await startAislesSyncIfPossible(for: store)
+//            }
+//        }
         .sheet(isPresented: $showManualStoreSheet) {
             ManualStoreSheet(
                 existingStores: stores,
@@ -1244,5 +1323,84 @@ struct ContentView: View {
             return String(format: "%.0f meters ", meters)
         }
         return String(format: "%.1f k\"m", meters / 1000.0)
+    }
+}
+
+private struct ReportUserSheet: View {
+    enum Reason: String, CaseIterable, Identifiable {
+        case vandalism = "Vandalism / bad edits"
+        case spam = "Spam"
+        case harassment = "Harassment"
+        case impersonation = "Impersonation"
+        case other = "Other"
+        var id: String { rawValue }
+    }
+
+    let title: String
+    let onCancel: () -> Void
+    let onSubmit: (_ reason: String?, _ details: String) -> Void
+
+    @State private var selectedReason: Reason? = nil
+    @State private var details: String = ""
+    @State private var showValidationError: Bool = false
+
+    private var trimmedDetails: String {
+        details.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    // Rule: reason optional, BUT if no reason -> details required
+    private var canSubmit: Bool {
+        if selectedReason != nil { return true }
+        return !trimmedDetails.isEmpty
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section(header: Text("Reason (optional)")) {
+                    Picker("Reason", selection: Binding(
+                        get: { selectedReason },
+                        set: { selectedReason = $0 }
+                    )) {
+                        Text("No reason selected").tag(Reason?.none)
+                        ForEach(Reason.allCases) { r in
+                            Text(r.rawValue).tag(Reason?.some(r))
+                        }
+                    }
+                }
+
+                Section(header: Text("More details")) {
+                    TextEditor(text: $details)
+                        .frame(minHeight: 120)
+
+                    Text("If you don’t choose a reason, you must write something here.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                if showValidationError {
+                    Section {
+                        Text("Please choose a reason or write details.")
+                            .foregroundStyle(.red)
+                    }
+                }
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { onCancel() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Submit") {
+                        if !canSubmit {
+                            showValidationError = true
+                            return
+                        }
+                        onSubmit(selectedReason?.rawValue, trimmedDetails)
+                    }
+                }
+            }
+        }
     }
 }

@@ -12,30 +12,39 @@ final class FirebaseService: ObservableObject {
 
     // MARK: - STORE
 
-//    func updateStore(
-//        storeRemoteId: String,
-//        name: String,
-//        address: String?,
-//        city: String?
-//    ) async throws {
-//        var data: [String: Any] = [
-//            "name": name,
-//            "updatedAt": FieldValue.serverTimestamp()
-//        ]
-//
-//        // store address in ONE field or two—pick what you use in Firestore:
-//        let combined = [address, city]
-//            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-//            .filter { !$0.isEmpty }
-//            .joined(separator: ", ")
-//
-//        data["address"] = combined.isEmpty ? NSNull() : combined
-//
-//        try await db.collection("stores")
-//            .document(storeRemoteId)
-//            .setData(data, merge: true)
-//    }
+    // MARK: - Reporting + Attribution helpers
 
+    func fetchStoreAttribution(storeRemoteId: String) async throws -> (createdBy: String?, updatedBy: String?) {
+        let doc = try await db.collection("stores").document(storeRemoteId).getDocument()
+        let createdBy = doc.get("createdByUserId") as? String
+        let updatedBy = doc.get("updatedByUserId") as? String
+        return (createdBy, updatedBy)
+    }
+
+    func submitUserReport(
+        reportedUserId: String,
+        reporterUserId: String,
+        reason: String,
+        details: String,
+        storeRemoteId: String?,
+        context: String
+    ) async throws {
+
+        var data: [String: Any] = [
+            "reportedUserId": reportedUserId,
+            "reporterUserId": reporterUserId,
+            "reason": reason,                         // "no_reason_selected" if none
+            "details": details,                       // may be empty if reason chosen
+            "context": context,                       // e.g. "store_last_editor"
+            "createdAt": FieldValue.serverTimestamp()
+        ]
+
+        if let storeRemoteId {
+            data["storeRemoteId"] = storeRemoteId
+        }
+
+        _ = try await db.collection("reportedUsers").addDocument(data: data)
+    }
     func updateStore(
         storeRemoteId: String,
         name: String,
