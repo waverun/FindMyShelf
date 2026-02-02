@@ -37,7 +37,8 @@ struct ContentView: View {
     @State private var showManualStoreSheet = false
     @State private var savedStoreSearch = ""
     @State private var helpFilterText: String = ""
-    @State private var isHelpExpanded: Bool = true
+//    @State private var isHelpExpanded: Bool = true
+    @AppStorage("isHelpExpanded") private var isHelpExpanded: Bool = true
     
     @State private var pendingProductQuery: String = ""
     
