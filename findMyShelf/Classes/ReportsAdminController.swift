@@ -24,9 +24,100 @@ final class ReportsAdminController: ObservableObject {
     var handledReports: [ReportedUserReport] { all.filter { $0.isHandled } }
 }
 
+//#if DEBUG
+private struct ReportedUserEditsView: View {
+    @ObservedObject var firebase: FirebaseService
+    let userId: String
+
+    @State private var stores: [FirebaseService.EditedStoreRow] = []
+    @State private var aisles: [FirebaseService.EditedAisleRow] = []
+
+    @State private var isLoading = false
+    @State private var errorText: String? = nil
+
+    var body: some View {
+        List {
+            if let errorText {
+                Section {
+                    Text(errorText).foregroundStyle(.red)
+                }
+            }
+
+            Section(header: Text("Stores edited by this user")) {
+                if stores.isEmpty {
+                    Text(isLoading ? "Loading..." : "No stores found.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(stores) { s in
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(s.name).font(.headline)
+                            Text(s.address ?? "—")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                            Text("storeRemoteId: \(s.storeRemoteId)")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 6)
+                    }
+                }
+            }
+
+            Section(header: Text("Aisles edited by this user")) {
+                if aisles.isEmpty {
+                    Text(isLoading ? "Loading..." : "No aisles found.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(aisles) { a in
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(a.nameOrNumber).font(.headline)
+                            Text("Keywords: \(a.keywords.joined(separator: ", "))")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                            Text("storeRemoteId: \(a.storeRemoteId ?? "unknown")")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 6)
+                    }
+                }
+            }
+        }
+        .navigationTitle("User edits")
+        .navigationBarTitleDisplayMode(.inline)
+        .overlay { if isLoading { ProgressView() } }
+        .task { await load() }
+    }
+
+    @MainActor
+    private func load() async {
+        guard !isLoading else { return }
+        isLoading = true
+        errorText = nil
+        defer { isLoading = false }
+
+        do {
+            async let s = firebase.fetchStoresEditedByUser(userId: userId)
+            async let a = firebase.fetchAislesEditedByUser(userId: userId)
+            let (storesRes, aislesRes) = try await (s, a)
+            stores = storesRes
+            aisles = aislesRes
+        } catch {
+            // Most common issue: missing composite index for these queries
+            let ns = error as NSError
+            errorText = ns.localizedDescription.isEmpty ? "Failed to load edits." : ns.localizedDescription
+            print("DB error1:", errorText ?? "")
+        }
+    }
+}
+//#endif
+
 struct ReportsAdminView: View {
     @ObservedObject private var firebase: FirebaseService
     @StateObject private var controller = ReportsAdminController()
+
+    @State private var showUserEdits: Bool = false
+    @State private var editsUserId: String = ""
 
     @State private var pendingAction: PendingAction? = nil
     @State private var showConfirm: Bool = false
@@ -64,7 +155,12 @@ struct ReportsAdminView: View {
                 } else {
                     ForEach(controller.newReports) { r in
                         ReportRow(
+                            firebase: firebase,
                             report: r,
+                            onViewEdits: {
+                                editsUserId = r.reportedUserId
+                                showUserEdits = true
+                            },
                             onRelease: { askConfirm(.release, r) },
                             onBlock: { askConfirm(.block, r) }
                         )
@@ -79,12 +175,20 @@ struct ReportsAdminView: View {
                 } else {
                     ForEach(controller.handledReports) { r in
                         ReportRow(
+                            firebase: firebase,
                             report: r,
+                            onViewEdits: {
+                                editsUserId = r.reportedUserId
+                                showUserEdits = true
+                            },
                             onRelease: { askConfirm(.release, r) },
                             onBlock: nil // already handled; you can still allow block again if you want
                         )
                     }
                 }
+            }
+            .navigationDestination(isPresented: $showUserEdits) {
+                ReportedUserEditsView(firebase: firebase, userId: editsUserId)
             }
         }
         .navigationTitle("Reports (Debug)")
@@ -166,6 +270,7 @@ struct ReportsAdminView: View {
             } catch {
 //                errorText = "Action failed."
                 errorText = userFacingErrorMessage(error)
+                print("DB error: ", errorText ?? "")
             }
         }
     }
@@ -200,7 +305,9 @@ struct ReportsAdminView: View {
 }
 
 private struct ReportRow: View {
+    @ObservedObject var firebase: FirebaseService
     let report: ReportedUserReport
+    let onViewEdits: () -> Void
     let onRelease: (() -> Void)?
     let onBlock: (() -> Void)?
 
@@ -253,13 +360,35 @@ private struct ReportRow: View {
             .font(.footnote)
 
             HStack(spacing: 10) {
+
+//                NavigationLink {
+//                    ReportedUserEditsView(firebase: firebase, userId: report.reportedUserId)
+//                } label: {
+//                    Text("View edits")
+//                }
+//                .buttonStyle(.bordered)
+
+                Button("View edits") {
+                    onViewEdits()
+                }
+                .buttonStyle(.bordered)
+
                 if let onRelease {
                     Button("Release") { onRelease() }
                         .buttonStyle(.bordered)
                 }
+//                if let onBlock {
+//                    Button("Block") { onBlock() }
+//                        .buttonStyle(.borderedProminent)
+//                }
                 if let onBlock {
                     Button("Block") { onBlock() }
                         .buttonStyle(.borderedProminent)
+                } else if report.isHandled {
+                    Button("Blocked") { }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(true)
+                        .opacity(0.6)
                 }
                 Spacer()
             }

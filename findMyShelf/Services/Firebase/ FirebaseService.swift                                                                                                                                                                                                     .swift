@@ -10,6 +10,62 @@ final class FirebaseService: ObservableObject {
     private let db = Firestore.firestore()
     private var aislesListener: ListenerRegistration?
 
+    // MARK: - Reports Admin - Fetch content edited by a user
+
+    func fetchStoresEditedByUser(userId: String, limit: Int = 50) async throws -> [EditedStoreRow] {
+        let snap = try await db.collection("stores")
+            .whereField("updatedByUserId", isEqualTo: userId)
+            .limit(to: limit)
+            .getDocuments()
+
+        return snap.documents.map { doc in
+            let name = (doc.get("name") as? String) ?? ""
+            let addressCombined = doc.get("address") as? String  // you currently store combined address
+            return EditedStoreRow(
+                storeRemoteId: doc.documentID,
+                name: name,
+                address: addressCombined
+            )
+        }
+    }
+
+    /// Requires that each aisle doc contains storeRemoteId (or storeId) field.
+    /// If you DON'T have it yet, see note below.
+    func fetchAislesEditedByUser(userId: String, limit: Int = 100) async throws -> [EditedAisleRow] {
+        let snap = try await db.collectionGroup("aisles")
+            .whereField("updatedByUserId", isEqualTo: userId)
+            .limit(to: limit)
+            .getDocuments()
+
+        return snap.documents.map { doc in
+            let name = (doc.get("nameOrNumber") as? String) ?? ""
+            let keywords = (doc.get("keywords") as? [String]) ?? []
+            let storeRemoteId = doc.get("storeRemoteId") as? String  // IMPORTANT (see note)
+
+            return EditedAisleRow(
+                aisleRemoteId: doc.documentID,
+                storeRemoteId: storeRemoteId,
+                nameOrNumber: name,
+                keywords: keywords
+            )
+        }
+    }
+
+    // Small DTOs for UI
+    struct EditedStoreRow: Identifiable {
+        var id: String { storeRemoteId }
+        let storeRemoteId: String
+        let name: String
+        let address: String?
+    }
+
+    struct EditedAisleRow: Identifiable {
+        var id: String { "\(storeRemoteId ?? "unknown")|\(aisleRemoteId)" }
+        let aisleRemoteId: String
+        let storeRemoteId: String? // may be nil if not stored
+        let nameOrNumber: String
+        let keywords: [String]
+    }
     // MARK: - STORE
 
     // MARK: - Reports Admin (Debug)
@@ -321,7 +377,8 @@ final class FirebaseService: ObservableObject {
             "createdAt": FieldValue.serverTimestamp(),
             "updatedAt": FieldValue.serverTimestamp(),
             "createdByUserId": uid,
-            "updatedByUserId": uid
+            "updatedByUserId": uid,
+            "storeRemoteId": storeRemoteId
         ]
 
         let ref = try await db.collection("stores")
@@ -347,7 +404,8 @@ final class FirebaseService: ObservableObject {
             "nameOrNumber": aisle.nameOrNumber,
             "keywords": aisle.keywords,
             "updatedAt": FieldValue.serverTimestamp(),
-            "updatedByUserId": uid
+            "updatedByUserId": uid,
+            "storeRemoteId": storeRemoteId
         ]
 
         try await db.collection("stores")
