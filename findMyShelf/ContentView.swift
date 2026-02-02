@@ -37,9 +37,7 @@ struct ContentView: View {
     @State private var showManualStoreSheet = false
     @State private var savedStoreSearch = ""
     @State private var helpFilterText: String = ""
-//    @State private var isHelpExpanded: Bool = true
-    @AppStorage("isHelpExpanded") private var isHelpExpanded: Bool = true
-    
+
     @State private var pendingProductQuery: String = ""
     
     private var apiKey: String {
@@ -67,7 +65,10 @@ struct ContentView: View {
     @FocusState private var isQuickQueryFocused: Bool
     
     @State private var showPhotosPicker: Bool = false
-    
+
+    @State private var didSeeSelectedStoreGuide: Bool = false
+    @State private var didSeeChooseStoreGuide: Bool = false
+
     @StateObject private var locationManager = LocationManager()
     @StateObject private var finder = StoreFinder()
     
@@ -75,9 +76,11 @@ struct ContentView: View {
     @Query(sort: \Store.createdAt) private var stores: [Store]
     
     //    @AppStorage("showGuides") private var showGuides: Bool = true
-    @AppStorage("showGuides") private var showGuides: Bool = true
-    @AppStorage("didSeeChooseStoreGuide") private var didSeeChooseStoreGuide: Bool = false
-    
+    @AppStorage("showChooseStoreGuideCard") private var showChooseStoreGuideCard: Bool = true
+    @AppStorage("showSelectedStoreGuideCard") private var showSelectedStoreGuideCard: Bool = true
+
+    @AppStorage("isHelpExpanded") private var isHelpExpanded: Bool = true
+//    @AppStorage("didSeeSelectedStoreGuide") private var didSeeSelectedStoreGuide: Bool = false
     //    @State private var showFirstGuideNow: Bool = false
     
     @AppStorage("selectedStoreId") private var selectedStoreId: String?
@@ -355,20 +358,6 @@ struct ContentView: View {
                 }
                 .scrollDismissesKeyboard(.interactively)
                 .ignoresSafeArea(.keyboard, edges: .bottom)
-                //                if showFirstGuideNow && selectedStore == nil && showGuides {
-                //                    FirstGuideOverlay(
-                //                        onGotIt: {
-                //                            withAnimation { showFirstGuideNow = false }
-                //                        },
-                //                        onDontShowAgain: {
-                //                            showGuides = false
-                //                            withAnimation { showFirstGuideNow = false }
-                //                        }
-                //                    )
-                //                    .transition(.move(edge: .top).combined(with: .opacity))
-                //                    .padding(.top, 8)
-                //                    .zIndex(1000)
-                //                }
             }
             .safeAreaInset(edge: .top) {
                 if let bannerText {
@@ -387,15 +376,7 @@ struct ContentView: View {
                 if locationManager.authorizationStatus == .authorizedWhenInUse || locationManager.authorizationStatus == .authorizedAlways {
                     locationManager.startUpdating()
                 }
-                // NOTE: Don't reset showGuides / didSeeChooseStoreGuide here.
-                // They are persisted in AppStorage and are controlled by user actions (e.g. “Don’t show again”).
-                // ✅ Show guide only when no store selected
-                //                if selectedStore == nil && showGuides {
-                //                    // If you want "only first ever":
-                //                    // if !didSeeFirstGuide { didSeeFirstGuide = true; showFirstGuideNow = true }
-                //                    showFirstGuideNow = true
-                //                }
-                
+
                 if let store = selectedStore {
                     Task { await startAislesSyncIfPossible(for: store) }
                     
@@ -568,12 +549,6 @@ struct ContentView: View {
                 }
                 await startAislesSyncIfPossible(for: store) }
         }
-        //        .onChange(of: selectedStoreId) { _, _ in
-        //            guard let store = selectedStore else { return }
-        //            Task { await ensureStoreRemoteId(store)
-        //                await startAislesSyncIfPossible(for: store)
-        //            }
-        //        }
         .sheet(isPresented: $showManualStoreSheet) {
             ManualStoreSheet(
                 existingStores: stores,
@@ -730,13 +705,13 @@ struct ContentView: View {
                     }
                 }
             }
-            if showGuides && !didSeeChooseStoreGuide {
+            if showChooseStoreGuideCard && !didSeeChooseStoreGuide {
                 ChooseStoreGuideCard(
                     onGotIt: {
                         didSeeChooseStoreGuide = true
                     },
                     onDontShowAgain: {
-                        showGuides = false
+                        showChooseStoreGuideCard = false
                         didSeeChooseStoreGuide = true
                     }
                 )
@@ -840,12 +815,12 @@ struct ContentView: View {
     }
     
     // MARK: - Selected store
-    
+
     private var selectedStoreSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Your store")
                 .font(.headline)
-            
+
             if let store = selectedStore {
                 SelectedStoreCard(
                     title: store.name,
@@ -869,9 +844,69 @@ struct ContentView: View {
                         showSelectedStoreAddress = false
                     }
                 )
+
+                if showSelectedStoreGuideCard && !didSeeSelectedStoreGuide {
+                    SelectedStoreGuideCard(
+                        aisleCount: aisleCount(for: store),
+                        onGotIt: {
+                            didSeeSelectedStoreGuide = true
+                        },
+                        onDontShowAgain: {
+                            showSelectedStoreGuideCard = false
+                            didSeeSelectedStoreGuide = true
+                        }
+                    )
+                    .padding(.top, 6)
+                }
             }
         }
     }
+
+//    private var selectedStoreSection: some View {
+//        VStack(alignment: .leading, spacing: 10) {
+//            Text("Your store")
+//                .font(.headline)
+//            
+//            if let store = selectedStore {
+//                SelectedStoreCard(
+//                    title: store.name,
+//                    address: storeAddressLine(store),
+//                    isAddressShown: showSelectedStoreAddress,
+//                    onToggleAddress: {
+//                        withAnimation(.easeInOut(duration: 0.15)) {
+//                            showSelectedStoreAddress.toggle()
+//                        }
+//                    },
+//                    onEdit: {
+//                        editingStore = store
+//                        showEditStoreSheet = true
+//                    },
+//                    accentSeed: store.name,
+//                    trailingButtonTitle: "Change store",
+//                    trailingAction: {
+//                        previousSelectedStoreId = selectedStoreId
+//                        selectedStoreId = nil
+//                        quickQuery = ""
+//                        showSelectedStoreAddress = false
+//                    }
+//                )
+//            }
+//
+//            if showGuides && !didSeeSelectedStoreGuide {
+//                SelectedStoreGuideCard(
+//                    aisleCount: storeAisleCount(store),
+//                    onGotIt: {
+//                        didSeeSelectedStoreGuide = true
+//                    },
+//                    onDontShowAgain: {
+//                        showGuides = false
+//                        didSeeSelectedStoreGuide = true
+//                    }
+//                )
+//                .padding(.top, 6)
+//            }
+//        }
+//    }
     
     // MARK: - Actions
     
@@ -984,56 +1019,7 @@ struct ContentView: View {
             }
         }
     }
-    
-    // MARK: - Logic
-    
-    //    private struct FirstGuideOverlay: View {
-    //        let onGotIt: () -> Void
-    //        let onDontShowAgain: () -> Void
-    //
-    //        var body: some View {
-    //            VStack(spacing: 10) {
-    //                HStack(alignment: .top, spacing: 10) {
-    //                    Image(systemName: "sparkles")
-    //                        .font(.title3)
-    //
-    //                    VStack(alignment: .leading, spacing: 6) {
-    //                        Text("Welcome 👋")
-    //                            .font(.headline)
-    //
-    //                        Text("First choose a store. You can find nearby stores using the 🔍 button below, or add one manually using “Add manually”.")
-    //                            .font(.footnote)
-    //                            .foregroundStyle(.secondary)
-    //                    }
-    //
-    //                    Spacer()
-    //                }
-    //
-    //                HStack(spacing: 10) {
-    //                    Button("Don’t show again") {
-    //                        onDontShowAgain()
-    //                    }
-    //                    .buttonStyle(.bordered)
-    //
-    //                    Button("Got it") {
-    //                        onGotIt()
-    //                    }
-    //                    .buttonStyle(.borderedProminent)
-    //
-    //                    Spacer()
-    //                }
-    //            }
-    //            .padding(14)
-    //            .background(.ultraThinMaterial)
-    //            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-    //            .overlay(
-    //                RoundedRectangle(cornerRadius: 18, style: .continuous)
-    //                    .strokeBorder(.white.opacity(0.08), lineWidth: 1)
-    //            )
-    //            .padding(.horizontal, 16)
-    //        }
-    //    }
-    
+
     // MARK: - Help / Tips
     
     private struct HelpTip: Identifiable {
@@ -1143,7 +1129,15 @@ struct ContentView: View {
             )
         }
     }
-    
+
+    private func aisleCount(for store: Store) -> Int {
+        let storeUUID = store.id
+        let descriptor = FetchDescriptor<Aisle>(
+            predicate: #Predicate { $0.storeId == storeUUID }
+        )
+        return (try? context.fetchCount(descriptor)) ?? 0
+    }
+
     @MainActor
     private func deleteStoreEverywhere(_ store: Store) async {
         // 1. Firebase (אם יש remoteId)
@@ -1450,6 +1444,66 @@ private struct ReportUserSheet: View {
                 }
             }
         }
+    }
+}
+
+private struct SelectedStoreGuideCard: View {
+    let aisleCount: Int
+    let onGotIt: () -> Void
+    let onDontShowAgain: () -> Void
+
+    private var recommendation: String {
+        switch aisleCount {
+            case 0...3:
+                return "Start by pressing **Upload image** to add aisle signs."
+            case 4...10:
+                return "Press **Open aisle map** (or **Lines**) to verify all aisles were saved."
+            default:
+                return "Press **Search** and search for a product (e.g. milk, rice)."
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "sparkles")
+                    .font(.title3)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("What you can do here")
+                        .font(.headline)
+
+                    Text(
+                        "You can search products in the aisles, upload or take a picture of an aisle sign, or add aisles manually using **Open aisle map**."
+                    )
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                    Text(recommendation)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+            }
+
+            HStack(spacing: 10) {
+                Button("Don’t show again") { onDontShowAgain() }
+                    .buttonStyle(.bordered)
+
+                Button("Got it") { onGotIt() }
+                    .buttonStyle(.borderedProminent)
+
+                Spacer()
+            }
+        }
+        .padding(14)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(.white.opacity(0.08), lineWidth: 1)
+        )
     }
 }
 

@@ -25,27 +25,3 @@ final class Aisle {
         self.updatedAt = .now   // ✅ add
     }
 }
-
-//import Foundation
-//import SwiftData
-//
-//@Model
-//final class Aisle {
-//    var id: UUID
-//    var storeId: UUID      // מזהה החנות
-//    var remoteId: String?
-//    var nameOrNumber: String
-//    var keywords: [String]
-//    var createdAt: Date
-//
-//    init(nameOrNumber: String,
-//         storeId: UUID,
-//         keywords: [String] = []) {
-//        self.id = UUID()
-//        self.storeId = storeId
-//        self.remoteId = nil
-//        self.nameOrNumber = nameOrNumber
-//        self.keywords = keywords
-//        self.createdAt = .now
-//    }
-//}
