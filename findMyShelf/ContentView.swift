@@ -69,20 +69,21 @@ struct ContentView: View {
     @State private var didSeeSelectedStoreGuide: Bool = false
     @State private var didSeeChooseStoreGuide: Bool = false
 
+    @State private var showDemoUploadSheet: Bool = false
+
     @StateObject private var locationManager = LocationManager()
     @StateObject private var finder = StoreFinder()
     
     @Environment(\.modelContext) private var context
     @Query(sort: \Store.createdAt) private var stores: [Store]
-    
-    //    @AppStorage("showGuides") private var showGuides: Bool = true
+
+    @AppStorage("showDemoUploadChooser") private var showDemoUploadChooser: Bool = true
+
     @AppStorage("showChooseStoreGuideCard") private var showChooseStoreGuideCard: Bool = true
     @AppStorage("showSelectedStoreGuideCard") private var showSelectedStoreGuideCard: Bool = true
 
     @AppStorage("isHelpExpanded") private var isHelpExpanded: Bool = true
-//    @AppStorage("didSeeSelectedStoreGuide") private var didSeeSelectedStoreGuide: Bool = false
-    //    @State private var showFirstGuideNow: Bool = false
-    
+
     @AppStorage("selectedStoreId") private var selectedStoreId: String?
     @AppStorage("previousSelectedStoreId") private var previousSelectedStoreId: String?
     
@@ -625,6 +626,28 @@ struct ContentView: View {
                 }
             )
         }
+        .sheet(isPresented: $showDemoUploadSheet) {
+            DemoUploadSheet(
+                onPickDemoImageNamed: { name in
+                    guard let img = UIImage(named: name) else {
+                        showBanner("Missing demo image asset: \(name)", isError: true)
+                        return
+                    }
+                    pendingImage = img
+                    showDemoUploadSheet = false
+                    showConfirmImageSheet = true
+                },
+                onDontShowAgain: {
+                    showDemoUploadChooser = false
+                    showDemoUploadSheet = false
+                    showPhotoSourceDialog = true   // recommended: continue now
+                },
+                onGotIt: {
+                    showDemoUploadSheet = false
+                    showPhotoSourceDialog = true
+                }
+            )
+        }
         .sheet(isPresented: $showEditStoreSheet) {
             if let store = editingStore {
                 EditStoreSheet(
@@ -970,7 +993,13 @@ struct ContentView: View {
                             return
                         }
                         
-                        showPhotoSourceDialog = true
+//                        showPhotoSourceDialog = true
+
+                        if showDemoUploadChooser {
+                            showDemoUploadSheet = true
+                        } else {
+                            showPhotoSourceDialog = true
+                        }
                     } label: {
                         Text("Upload image")
                             .frame(maxWidth: .infinity)
@@ -1085,7 +1114,106 @@ struct ContentView: View {
             tip.body.localizedCaseInsensitiveContains(q)
         }
     }
-    
+
+    private struct DemoUploadSheet: View {
+        let onPickDemoImageNamed: (String) -> Void
+        let onDontShowAgain: () -> Void
+        let onGotIt: () -> Void
+
+        private let demoNames = ["demo_aisle_1", "demo_aisle_2", "demo_aisle_3"]
+
+        var body: some View {
+            NavigationStack {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Try a demo picture")
+                        .font(.headline)
+
+                    Text("Pick a sample aisle sign photo, or press Got it to use your own photo.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+
+                    HStack(spacing: 12) {
+                        ForEach(demoNames, id: \.self) { name in
+                            Button {
+                                onPickDemoImageNamed(name)
+                            } label: {
+                                DemoThumb(name: name)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+
+                    Spacer(minLength: 8)
+
+                    VStack(spacing: 12) {
+                        // Row 1: Got it centered (below thumbnails)
+                        HStack {
+                            Spacer()
+                            Button("Got it") { onGotIt() }
+                                .buttonStyle(.borderedProminent)
+                            Spacer()
+                        }
+
+                        Spacer()
+                        
+                        // Row 2: Don’t show again centered (last line)
+                        HStack {
+                            Spacer()
+                            Button("Don’t show again") { onDontShowAgain() }
+                                .buttonStyle(.bordered)
+                            Spacer()
+                        }
+                    }
+                    .padding(.top, 6)
+//                    HStack(spacing: 10) {
+//                        Button("Don’t show again") { onDontShowAgain() }
+//                            .buttonStyle(.bordered)
+//
+//                        Button("Got it") { onGotIt() }
+//                            .buttonStyle(.borderedProminent)
+//
+//                        Spacer()
+//                    }
+                }
+                .padding(16)
+                .navigationTitle("Upload image")
+                .navigationBarTitleDisplayMode(.inline)
+            }
+        }
+
+        private struct DemoThumb: View {
+            let name: String
+
+            var body: some View {
+                ZStack {
+                    if let ui = UIImage(named: name) {
+                        Image(uiImage: ui)
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        // fallback if asset missing (instead of “some symbol”)
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(.thinMaterial)
+                            .overlay(
+                                VStack(spacing: 6) {
+                                    Image(systemName: "photo")
+                                        .font(.title3)
+                                    Text("Missing")
+                                        .font(.caption2)
+                                }
+                                    .foregroundStyle(.secondary)
+                            )
+                    }
+                }
+                .frame(width: 110, height: 140)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(.white.opacity(0.12), lineWidth: 1)
+                )
+            }
+        }
+    }
     private struct HelpTipCard: View {
         let tip: HelpTip
         
