@@ -10,7 +10,11 @@ struct AisleListView: View {
     
     let store: Store
     let initialSelectedAisleID: UUID?   // ✅ add this
-    
+
+    @AppStorage("showAisleMapGuideCard") private var showAisleMapGuideCard: Bool = true
+
+    @State private var didSeeAisleMapGuide: Bool = false
+
     @State private var isLoggedIn: Bool = Auth.auth().currentUser != nil
     
     @State private var isNewAisleSelection: Bool = false
@@ -70,6 +74,20 @@ struct AisleListView: View {
     var body: some View {
         ScrollView {
             VStack {
+                if showAisleMapGuideCard && !didSeeAisleMapGuide {
+                    AisleMapGuideCard(
+                        onGotIt: {
+                            didSeeAisleMapGuide = true
+                        },
+                        onDontShowAgain: {
+                            showAisleMapGuideCard = false
+                            didSeeAisleMapGuide = true
+                        }
+                    )
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+                }
+
                 // שורת חיפוש
                 HStack {
                     TextField("Search for an aisle or keywords…", text: $filterText)
@@ -525,5 +543,53 @@ private struct AisleBottomPanel: View {
                     .fill(.thinMaterial)
             )
         }
+    }
+}
+
+private struct AisleMapGuideCard: View {
+    let onGotIt: () -> Void
+    let onDontShowAgain: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "sparkles")
+                    .font(.title3)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("How to use the aisle map")
+                        .font(.headline)
+
+                    Text(
+                        "• Search by aisle number/name (e.g. “3”, “Dairy”) or by **keywords** (types of products on the aisle).\n" +
+                        "• To add an aisle: enter the aisle number/name and press **Add aisle**.\n" +
+                        "• Afterwards you can add keywords in **any language** (English or not)."
+                    )
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineSpacing(2)
+                }
+
+                Spacer()
+            }
+
+            // same style/behavior as before
+            HStack(spacing: 10) {
+                Button("Don’t show again") { onDontShowAgain() }
+                    .buttonStyle(.bordered)
+
+                Spacer()
+
+                Button("Got it") { onGotIt() }
+                    .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding(14)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(.white.opacity(0.08), lineWidth: 1)
+        )
     }
 }
