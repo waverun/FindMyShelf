@@ -11,8 +11,8 @@ struct ManualStoreSheet: View {
     
     @Environment(\.dismiss) private var dismiss
     
-    @State private var isLoggedIn: Bool = Auth.auth().currentUser != nil
-    
+    @State private var isLoggedIn: Bool = Auth.auth().currentUser != nil && !(Auth.auth().currentUser?.isAnonymous ?? true)
+
     @State private var editingStore: Store? = nil
     
     @State private var storePendingDelete: Store?
@@ -192,7 +192,7 @@ struct ManualStoreSheet: View {
             }
             .onAppear {
                 // Keep login state updated while this sheet is visible
-                isLoggedIn = Auth.auth().currentUser != nil
+                isLoggedIn = Auth.auth().currentUser != nil && !(Auth.auth().currentUser?.isAnonymous ?? true)
                 _ = Auth.auth().addStateDidChangeListener { _, user in
                     isLoggedIn = (user != nil)
                 }

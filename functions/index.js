@@ -81,10 +81,9 @@ exports.openaiProxy = onCall(
     },
     async (request) => {
       try {
-        // Auth disabled (per your request)
-        // if (!request.auth) {
-        //     throw new HttpsError("unauthenticated", "Must be signed in.");
-        // }
+        if (!request.auth) {
+          throw new HttpsError("unauthenticated", "Must be signed in.");
+        }
 
         const data = request.data || {};
         const prompt = String(data.prompt || "").trim();

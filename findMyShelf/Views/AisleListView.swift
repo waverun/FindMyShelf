@@ -15,8 +15,8 @@ struct AisleListView: View {
 
     @State private var didSeeAisleMapGuide: Bool = false
 
-    @State private var isLoggedIn: Bool = Auth.auth().currentUser != nil
-    
+    @State private var isLoggedIn: Bool = Auth.auth().currentUser != nil && !(Auth.auth().currentUser?.isAnonymous ?? true)
+
     @State private var isNewAisleSelection: Bool = false
     
     // כל השורות בבסיס הנתונים
@@ -133,7 +133,7 @@ struct AisleListView: View {
                     }
                     .onAppear {
                         // ✅ אם נכנסנו עם שורה לבחור – גלול אליה
-                        isLoggedIn = Auth.auth().currentUser != nil
+                        isLoggedIn = Auth.auth().currentUser != nil && !(Auth.auth().currentUser?.isAnonymous ?? true)
                         _ = Auth.auth().addStateDidChangeListener { _, user in
                             isLoggedIn = (user != nil)
                             if user == nil {
@@ -243,7 +243,8 @@ struct AisleListView: View {
                         guard !trimmed.isEmpty else { return }
                         
                         // If not logged in, prompt login (do not block typing in the field)
-                        if Auth.auth().currentUser == nil {
+                        if Auth.auth().currentUser == nil ||
+                            (Auth.auth().currentUser?.isAnonymous ?? true) {
                             showLoginRequiredAlert = true
                             return
                         }

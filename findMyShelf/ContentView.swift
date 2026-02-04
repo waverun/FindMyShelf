@@ -233,7 +233,8 @@ struct ContentView: View {
             ) {
                 guard selectedStore != nil else { return }
                 
-                if Auth.auth().currentUser == nil {
+                if Auth.auth().currentUser == nil ||
+                    (Auth.auth().currentUser?.isAnonymous ?? true) {
                     showLoginRequiredAlert = true
                     return
                 }
@@ -566,7 +567,8 @@ struct ContentView: View {
                     showManualStoreSheet = false
                 },
                 onSaveNew: { name, address, city in
-                    if Auth.auth().currentUser == nil {
+                    if Auth.auth().currentUser == nil ||
+                        (Auth.auth().currentUser?.isAnonymous ?? true) {
                         showManualStoreSheet = false
                         showLoginRequiredAlert = true
                         return
@@ -996,7 +998,8 @@ struct ContentView: View {
                     Button {
                         guard selectedStore != nil else { return }
                         
-                        if Auth.auth().currentUser == nil {
+                        if Auth.auth().currentUser == nil ||
+                            (Auth.auth().currentUser?.isAnonymous ?? true) {
                             showLoginRequiredAlert = true
                             return
                         }
@@ -1417,60 +1420,45 @@ struct ContentView: View {
             "temperature": 0.2
         ]
 
-        functions.httpsCallable("openaiProxy").call(payload) { result, error in
-            Task { @MainActor in
-                isCallingFunction = false
+        Task { @MainActor in
+            do {
+                _ = try await ensureFirebaseUser()
 
-                if let nsError = error as NSError? {
-                    var lines: [String] = []
-                    lines.append("❌ openaiProxy error")
-                    lines.append("localizedDescription: \(nsError.localizedDescription)")
-                    lines.append("domain: \(nsError.domain)")
-                    lines.append("code: \(nsError.code)")
-                    lines.append("userInfo: \(nsError.userInfo)")
+                functions.httpsCallable("openaiProxy").call(payload) { result, error in
+                    Task { @MainActor in
+                        isCallingFunction = false
 
-                    // If Firebase attached server "details", show it nicely
-                    if let details = nsError.userInfo["details"] {
-                        lines.append("details: \(details)")
+                        if let nsError = error as NSError? {
+                            var lines: [String] = []
+                            lines.append("❌ openaiProxy error")
+                            lines.append("localizedDescription: \(nsError.localizedDescription)")
+                            lines.append("domain: \(nsError.domain)")
+                            lines.append("code: \(nsError.code)")
+                            lines.append("userInfo: \(nsError.userInfo)")
+
+                            if let details = nsError.userInfo["details"] {
+                                lines.append("details: \(details)")
+                            }
+
+                            debugFunctionOutput = lines.joined(separator: "\n")
+                            showBanner("openaiProxy failed", isError: true)
+                            return
+                        }
+
+                        guard let data = result?.data else {
+                            debugFunctionOutput = "⚠️ openaiProxy returned nil data"
+                            showBanner("openaiProxy returned nil", isError: true)
+                            return
+                        }
+
+                        debugFunctionOutput = prettyString(from: data)
+                        showBanner("openaiProxy success", isError: false)
                     }
-
-                    debugFunctionOutput = lines.joined(separator: "\n")
-                    showBanner("openaiProxy failed", isError: true)
-                    return
                 }
-
-                guard let data = result?.data else {
-                    debugFunctionOutput = "⚠️ openaiProxy returned nil data"
-                    showBanner("openaiProxy returned nil", isError: true)
-                    return
-                }
-
-                // ✅ Try to extract the `text` field cleanly (your intended output)
-                if let dict = data as? [String: Any] {
-                    let text = (dict["text"] as? String) ?? ""
-                    let ok = (dict["ok"] as? Bool) ?? false
-                    let model = (dict["model"] as? String) ?? ""
-
-                    var lines: [String] = []
-                    lines.append("✅ openaiProxy success")
-                    lines.append("ok: \(ok)")
-                    lines.append("model: \(model)")
-                    lines.append("text: \(text.isEmpty ? "⚠️ <empty>" : text)")
-
-                    // Always include full payload for debugging
-                    lines.append("")
-                    lines.append("— Full response —")
-                    lines.append(prettyString(from: dict))
-
-                    debugFunctionOutput = lines.joined(separator: "\n")
-                    print("debugFunctionOutput:", debugFunctionOutput)
-                    showBanner(text.isEmpty ? "openaiProxy success (empty text)" : "openaiProxy success",
-                               isError: text.isEmpty)
-                } else {
-                    // Fallback: just pretty print whatever came back
-                    debugFunctionOutput = prettyString(from: data)
-                    showBanner("openaiProxy success", isError: false)
-                }
+            } catch {
+                isCallingFunction = false
+                debugFunctionOutput = "❌ Auth failed: \(error.localizedDescription)"
+                showBanner("Auth failed", isError: true)
             }
         }
     }
@@ -1482,58 +1470,63 @@ struct ContentView: View {
 //
 //        let payload: [String: Any] = [
 //            "prompt": "Say hello in one short sentence.",
-//            "model": "gpt-4.1-mini",   // optional
-//            "temperature": 0.2         // optional
+//            "model": "gpt-4.1-mini",
+//            "temperature": 0.2
 //        ]
 //
-////        functions.httpsCallable("openaiProxy").call(payload) { result, error in
-//        functions.httpsCallable("openaiProxy").call([
-//            "prompt": "Say hello in one short sentence."
-//        ]) { result, error in
+//        functions.httpsCallable("openaiProxy").call(payload) { result, error in
 //            Task { @MainActor in
 //                isCallingFunction = false
 //
-//                if let error = error as NSError? {
-//                    let msg = "❌ openaiProxy error: \(error.localizedDescription)\n\(error.userInfo)"
-//                    debugFunctionOutput = msg
+//                if let nsError = error as NSError? {
+//                    var lines: [String] = []
+//                    lines.append("❌ openaiProxy error")
+//                    lines.append("localizedDescription: \(nsError.localizedDescription)")
+//                    lines.append("domain: \(nsError.domain)")
+//                    lines.append("code: \(nsError.code)")
+//                    lines.append("userInfo: \(nsError.userInfo)")
+//
+//                    // If Firebase attached server "details", show it nicely
+//                    if let details = nsError.userInfo["details"] {
+//                        lines.append("details: \(details)")
+//                    }
+//
+//                    debugFunctionOutput = lines.joined(separator: "\n")
 //                    showBanner("openaiProxy failed", isError: true)
 //                    return
 //                }
 //
-//                if let data = result?.data {
-//                    debugFunctionOutput = prettyString(from: data)
-//                    showBanner("openaiProxy success", isError: false)
-//                } else {
+//                guard let data = result?.data else {
 //                    debugFunctionOutput = "⚠️ openaiProxy returned nil data"
 //                    showBanner("openaiProxy returned nil", isError: true)
-//                }
-//            }
-//        }
-//    }
-
-//    @MainActor
-//    private func callOpenAIProxyDebug() {
-//        isCallingFunction = true
-//        debugFunctionOutput = ""
-//
-//        functions.httpsCallable("openaiProxy").call([:]) { result, error in
-//            Task { @MainActor in
-//                isCallingFunction = false
-//
-//                if let error = error as NSError? {
-//                    let msg = "❌ openaiProxy error: \(error.localizedDescription)\n\(error.userInfo)"
-//                    debugFunctionOutput = msg
-//                    showBanner("openaiProxy failed", isError: true)
 //                    return
 //                }
 //
-//                // Pretty-print result.data
-//                if let data = result?.data {
+//                // ✅ Try to extract the `text` field cleanly (your intended output)
+//                if let dict = data as? [String: Any] {
+//                    let text = (dict["text"] as? String) ?? ""
+//                    let ok = (dict["ok"] as? Bool) ?? false
+//                    let model = (dict["model"] as? String) ?? ""
+//
+//                    var lines: [String] = []
+//                    lines.append("✅ openaiProxy success")
+//                    lines.append("ok: \(ok)")
+//                    lines.append("model: \(model)")
+//                    lines.append("text: \(text.isEmpty ? "⚠️ <empty>" : text)")
+//
+//                    // Always include full payload for debugging
+//                    lines.append("")
+//                    lines.append("— Full response —")
+//                    lines.append(prettyString(from: dict))
+//
+//                    debugFunctionOutput = lines.joined(separator: "\n")
+//                    print("debugFunctionOutput:", debugFunctionOutput)
+//                    showBanner(text.isEmpty ? "openaiProxy success (empty text)" : "openaiProxy success",
+//                               isError: text.isEmpty)
+//                } else {
+//                    // Fallback: just pretty print whatever came back
 //                    debugFunctionOutput = prettyString(from: data)
 //                    showBanner("openaiProxy success", isError: false)
-//                } else {
-//                    debugFunctionOutput = "⚠️ openaiProxy returned nil data"
-//                    showBanner("openaiProxy returned nil", isError: true)
 //                }
 //            }
 //        }

@@ -57,7 +57,8 @@ struct EditStoreSheet: View {
                             Button {
                                 isKeyboardFocused = false
 
-                                if Auth.auth().currentUser == nil {
+                                if Auth.auth().currentUser == nil ||
+                                (Auth.auth().currentUser?.isAnonymous ?? true) {
                                     showLoginRequiredAlert = true
                                     return
                                 }
