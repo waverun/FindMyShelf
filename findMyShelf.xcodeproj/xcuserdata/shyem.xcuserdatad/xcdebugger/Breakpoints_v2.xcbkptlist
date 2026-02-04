@@ -160,50 +160,6 @@
             endingLineNumber = "71"
             landmarkName = "sendJSONChatRequest(systemPrompt:userPrompt:importance:responseType:)"
             landmarkType = "7">
-            <Locations>
-               <Location
-                  uuid = "FA405F29-46CF-413A-AC95-3BB560FEB5BF - d2a8194b127b3f04"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "(1) suspend resume partial function for findMyShelf.OpenAIClient.sendJSONChatRequest&lt;&#x3c4;_0_0 where &#x3c4;_0_0: Swift.Decodable&gt;(systemPrompt: Swift.String, userPrompt: Swift.String, importance: findMyShelf.GPTTaskImportance, responseType: &#x3c4;_0_0.Type) async throws -&gt; &#x3c4;_0_0"
-                  moduleName = "findMyShelf.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/shyem/Projects/FindMyShelf/findMyShelf/Classes/OpenAIClient.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "71"
-                  endingLineNumber = "71">
-               </Location>
-               <Location
-                  uuid = "FA405F29-46CF-413A-AC95-3BB560FEB5BF - 3f8e13c8dc6fcd3d"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "(2) await resume partial function for findMyShelf.OpenAIClient.sendJSONChatRequest&lt;&#x3c4;_0_0 where &#x3c4;_0_0: Swift.Decodable&gt;(systemPrompt: Swift.String, userPrompt: Swift.String, importance: findMyShelf.GPTTaskImportance, responseType: &#x3c4;_0_0.Type) async throws -&gt; &#x3c4;_0_0"
-                  moduleName = "findMyShelf.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/shyem/Projects/FindMyShelf/findMyShelf/Classes/OpenAIClient.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "71"
-                  endingLineNumber = "71">
-               </Location>
-               <Location
-                  uuid = "FA405F29-46CF-413A-AC95-3BB560FEB5BF - 94e9da63baddff06"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "(3) suspend resume partial function for findMyShelf.OpenAIClient.sendJSONChatRequest&lt;&#x3c4;_0_0 where &#x3c4;_0_0: Swift.Decodable&gt;(systemPrompt: Swift.String, userPrompt: Swift.String, importance: findMyShelf.GPTTaskImportance, responseType: &#x3c4;_0_0.Type) async throws -&gt; &#x3c4;_0_0"
-                  moduleName = "findMyShelf.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/shyem/Projects/FindMyShelf/findMyShelf/Classes/OpenAIClient.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "71"
-                  endingLineNumber = "71">
-               </Location>
-            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

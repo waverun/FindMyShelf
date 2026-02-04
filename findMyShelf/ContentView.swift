@@ -739,7 +739,10 @@ struct ContentView: View {
                 }
             }
             if showChooseStoreGuideCard && !didSeeChooseStoreGuide {
+                let shouldShowEnableLocationHint = (locationManager.authorizationStatus == .notDetermined)
+
                 ChooseStoreGuideCard(
+                    showEnableLocationHint: shouldShowEnableLocationHint,
                     onGotIt: {
                         didSeeChooseStoreGuide = true
                     },
@@ -750,6 +753,18 @@ struct ContentView: View {
                 )
                 .padding(.top, 4)
             }
+//            if showChooseStoreGuideCard && !didSeeChooseStoreGuide {
+//                ChooseStoreGuideCard(
+//                    onGotIt: {
+//                        didSeeChooseStoreGuide = true
+//                    },
+//                    onDontShowAgain: {
+//                        showChooseStoreGuideCard = false
+//                        didSeeChooseStoreGuide = true
+//                    }
+//                )
+//                .padding(.top, 4)
+//            }
             Group {
                 if let status = locationManager.authorizationStatus {
                     if status == .denied || status == .restricted {
@@ -1816,34 +1831,43 @@ private struct SelectedStoreGuideCard: View {
 }
 
 private struct ChooseStoreGuideCard: View {
+    let showEnableLocationHint: Bool
     let onGotIt: () -> Void
     let onDontShowAgain: () -> Void
-    
+
+    private var bodyText: String {
+        if showEnableLocationHint {
+            return "To find stores near you, first tap the 📍 button below (**Allow location**). Then tap 🔍 to search nearby stores. Or use “Add manually”."
+        } else {
+            return "First choose a store. Tap the 🔍 button below to find nearby stores, or use “Add manually”."
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 10) {
                 Image(systemName: "sparkles")
                     .font(.title3)
-                
+
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Welcome 👋")
                         .font(.headline)
-                    
-                    Text("First choose a store. Tap the 🔍 button below to find nearby stores, or use “Add manually”.")
+
+                    Text(bodyText)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
-                
+
                 Spacer()
             }
-            
+
             HStack(spacing: 10) {
                 Button("Don’t show again") { onDontShowAgain() }
                     .buttonStyle(.bordered)
-                
+
                 Button("Got it") { onGotIt() }
                     .buttonStyle(.borderedProminent)
-                
+
                 Spacer()
             }
         }
@@ -1856,4 +1880,46 @@ private struct ChooseStoreGuideCard: View {
         )
     }
 }
+
+//private struct ChooseStoreGuideCard: View {
+//    let onGotIt: () -> Void
+//    let onDontShowAgain: () -> Void
+//    
+//    var body: some View {
+//        VStack(alignment: .leading, spacing: 10) {
+//            HStack(alignment: .top, spacing: 10) {
+//                Image(systemName: "sparkles")
+//                    .font(.title3)
+//                
+//                VStack(alignment: .leading, spacing: 6) {
+//                    Text("Welcome 👋")
+//                        .font(.headline)
+//                    
+//                    Text("First choose a store. Tap the 🔍 button below to find nearby stores, or use “Add manually”.")
+//                        .font(.footnote)
+//                        .foregroundStyle(.secondary)
+//                }
+//                
+//                Spacer()
+//            }
+//            
+//            HStack(spacing: 10) {
+//                Button("Don’t show again") { onDontShowAgain() }
+//                    .buttonStyle(.bordered)
+//                
+//                Button("Got it") { onGotIt() }
+//                    .buttonStyle(.borderedProminent)
+//                
+//                Spacer()
+//            }
+//        }
+//        .padding(14)
+//        .background(.ultraThinMaterial)
+//        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+//        .overlay(
+//            RoundedRectangle(cornerRadius: 16, style: .continuous)
+//                .strokeBorder(.white.opacity(0.08), lineWidth: 1)
+//        )
+//    }
+//}
 
