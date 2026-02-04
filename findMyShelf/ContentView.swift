@@ -1353,7 +1353,8 @@ struct ContentView: View {
     @MainActor
     private func stopAislesSync() {
         firebase.stopAislesListener()
-        print("🛑 Stopped aisles listener")
+        firebase.stopProductsListener()
+        print("🛑 Stopped aisles & products listeners")
     }
     
     @MainActor
@@ -1371,8 +1372,10 @@ struct ContentView: View {
             localStoreId: store.id,
             context: context
         )
-        
-        print("✅ Started aisles listener for storeRemoteId:", storeRemoteId)
+
+        firebase.startProductsListener(storeRemoteId: storeRemoteId, localStoreId: store.id, context: context)
+
+        print("✅ Started aisles & products listeners for storeRemoteId:", storeRemoteId)
     }
     
     @MainActor

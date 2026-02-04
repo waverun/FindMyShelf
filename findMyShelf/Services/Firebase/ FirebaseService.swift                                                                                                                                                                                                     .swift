@@ -3,12 +3,14 @@ import FirebaseAuth
 import FirebaseFirestore
 import MapKit
 import SwiftData
+import CryptoKit
 
 @MainActor
 final class FirebaseService: ObservableObject {
 
     private let db = Firestore.firestore()
     private var aislesListener: ListenerRegistration?
+    private var productsListener: ListenerRegistration?
 
     // MARK: - Reports Admin - Fetch content edited by a user
 
@@ -240,6 +242,154 @@ final class FirebaseService: ObservableObject {
         return ref.documentID
     }
 
+    func startProductsListener(
+        storeRemoteId: String,
+        localStoreId: UUID,
+        context: ModelContext
+    ) {
+        stopProductsListener()
+
+        productsListener = db.collection("stores")
+            .document(storeRemoteId)
+            .collection("products")
+            .addSnapshotListener { snap, err in
+                if let err {
+                    print("Firestore products listener error:", err)
+                    return
+                }
+                guard let snap else { return }
+
+                Task { @MainActor in
+                    self.applyProductsSnapshot(
+                        snap,
+                        localStoreId: localStoreId,
+                        context: context
+                    )
+                }
+            }
+    }
+
+    private func applyProductsSnapshot(
+        _ snap: QuerySnapshot,
+        localStoreId: UUID,
+        context: ModelContext
+    ) {
+        // local products for this store
+        let desc = FetchDescriptor<ProductItem>()
+        let allLocal = (try? context.fetch(desc)) ?? []
+        let localForStore = allLocal.filter { $0.storeId == localStoreId }
+
+        // build aisleRemoteId -> localAisleUUID map (so we can set aisleId)
+        let ad = FetchDescriptor<Aisle>()
+        let allAisles = (try? context.fetch(ad)) ?? []
+        let aislesForStore = allAisles.filter { $0.storeId == localStoreId }
+        var aisleLocalIdByRemoteId: [String: UUID] = [:]
+        for a in aislesForStore {
+            if let rid = a.remoteId {
+                aisleLocalIdByRemoteId[rid] = a.id
+            }
+        }
+
+        var localByRemoteId: [String: ProductItem] = [:]
+        for p in localForStore {
+            if let rid = p.remoteId { localByRemoteId[rid] = p }
+        }
+
+        var seen = Set<String>()
+
+        for doc in snap.documents {
+            let rid = doc.documentID
+            seen.insert(rid)
+
+            let name = (doc.get("name") as? String) ?? ""
+            let barcode = doc.get("barcode") as? String
+            let aisleRid = doc.get("aisleRemoteId") as? String
+
+            let localAisleId = aisleRid.flatMap { aisleLocalIdByRemoteId[$0] }
+
+            if let local = localByRemoteId[rid] {
+                local.name = name
+                local.barcode = barcode
+                local.aisleRemoteId = aisleRid
+                local.aisleId = localAisleId
+                local.updatedAt = .now
+            } else {
+                // try merge with offline local product (remoteId == nil) by name
+                if let match = localForStore.first(where: { $0.remoteId == nil && norm($0.name) == norm(name) }) {
+                    match.remoteId = rid
+                    match.name = name
+                    match.barcode = barcode
+                    match.aisleRemoteId = aisleRid
+                    match.aisleId = localAisleId
+                    match.updatedAt = .now
+                } else {
+                    let p = ProductItem(name: name, storeId: localStoreId, aisleId: localAisleId, barcode: barcode)
+                    p.remoteId = rid
+                    p.aisleRemoteId = aisleRid
+                    p.updatedAt = .now
+                    context.insert(p)
+                }
+            }
+        }
+
+        // delete local products that came from cloud but were removed
+        for p in localForStore {
+            if let rid = p.remoteId, !seen.contains(rid) {
+                context.delete(p)
+            }
+        }
+
+        try? context.save()
+    }
+
+    func upsertProduct(
+        storeRemoteId: String,
+        product: ProductItem,
+        aisleRemoteId: String?
+    ) async throws {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            throw NSError(domain: "Auth", code: 401, userInfo: [NSLocalizedDescriptionKey: "Not logged in"])
+        }
+
+        // deterministic doc id prevents duplicates:
+        let docId = Self.productDocId(normalizedName: Self.normalize(product.name))
+
+        var data: [String: Any] = [
+            "name": product.name,
+            "normalizedName": Self.normalize(product.name),
+            "barcode": product.barcode as Any,
+            "aisleRemoteId": aisleRemoteId as Any,
+            "storeRemoteId": storeRemoteId,
+            "updatedAt": FieldValue.serverTimestamp(),
+            "updatedByUserId": uid
+        ]
+
+        // If this is first time, also set created fields (merge keeps them if already exist)
+        data["createdAt"] = FieldValue.serverTimestamp()
+        data["createdByUserId"] = uid
+
+        try await db.collection("stores")
+            .document(storeRemoteId)
+            .collection("products")
+            .document(docId)
+            .setData(data, merge: true)
+
+        // update local mapping
+        product.remoteId = docId
+        product.aisleRemoteId = aisleRemoteId
+        product.updatedAt = .now
+    }
+
+//    import CryptoKit
+    static func productDocId(normalizedName: String) -> String {
+        let data = Data(normalizedName.utf8)
+        let digest = SHA256.hash(data: data)
+        return digest.map { String(format: "%02x", $0) }.joined()
+    }
+    func stopProductsListener() {
+        productsListener?.remove()
+        productsListener = nil
+    }
     // MARK: - AISLES LISTENER
 
     func startAislesListener(

@@ -1,8 +1,10 @@
 import SwiftUI
+import FirebaseAuth
 import SwiftData
 
 struct ProductSearchView: View {
     @Environment(\.modelContext) private var context
+    @EnvironmentObject private var firebase: FirebaseService
 
     let store: Store
 
@@ -350,18 +352,13 @@ struct ProductSearchView: View {
         return bestScore > 0 ? bestAisle : nil
     }
 
-    /// יצירת ProductItem חדש ושיוך לשורה
-    private func assignProduct(to aisle: Aisle) {
-        let name = productQuery
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+//    יצירת ProductItem חדש ושיוך לשורה
 
+    private func assignProduct(to aisle: Aisle) {
+        let name = productQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return }
 
-        let item = ProductItem(
-            name: name,
-            storeId: store.id,
-            aisleId: aisle.id
-        )
+        let item = ProductItem(name: name, storeId: store.id, aisleId: aisle.id)
         context.insert(item)
 
         do {
@@ -370,8 +367,56 @@ struct ProductSearchView: View {
             suggestedAisle = nil
             statusMessage = "The product \"\(name)\" was saved and assigned to aisle \(aisle.nameOrNumber)."
         } catch {
-            print("Failed to save product:", error)
             statusMessage = "Failed to save the product."
+            return
+        }
+
+        // ✅ Firebase sync (only if store+aisle are synced)
+        guard
+            let storeRemoteId = store.remoteId,
+            let aisleRemoteId = aisle.remoteId,
+            let user = Auth.auth().currentUser,
+            !(user.isAnonymous)
+        else {
+            return
+        }
+
+        Task { @MainActor in
+            do {
+                try await firebase.upsertProduct(
+                    storeRemoteId: storeRemoteId,
+                    product: item,
+                    aisleRemoteId: aisleRemoteId
+                )
+                try? context.save()
+            } catch {
+                // optional: show non-blocking message
+                print("❌ Failed to sync product:", error)
+            }
         }
     }
+    
+//    private func assignProduct(to aisle: Aisle) {
+//        let name = productQuery
+//            .trimmingCharacters(in: .whitespacesAndNewlines)
+//
+//        guard !name.isEmpty else { return }
+//
+//        let item = ProductItem(
+//            name: name,
+//            storeId: store.id,
+//            aisleId: aisle.id
+//        )
+//        context.insert(item)
+//
+//        do {
+//            try context.save()
+//            foundExistingProduct = item
+//            suggestedAisle = nil
+//            statusMessage = "The product \"\(name)\" was saved and assigned to aisle \(aisle.nameOrNumber)."
+//        } catch {
+//            print("Failed to save product:", error)
+//            statusMessage = "Failed to save the product."
+//        }
+//    }
 }
