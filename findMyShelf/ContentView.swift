@@ -339,11 +339,6 @@ struct ContentView: View {
                         selectedStoreButtonsBar
                     }
                 }
-                //                .safeAreaInset(edge: .bottom) {
-                //                    if selectedStore == nil {
-                //                        bottomButtonsBar
-                //                    }
-                //                }
                 .simultaneousGesture(
                     TapGesture().onEnded {
                         isQuickQueryFocused = false
@@ -730,13 +725,13 @@ struct ContentView: View {
                 
                 Spacer()
                 
-                Group {
-                    if finder.isSearching {
-                        ProgressView().scaleEffect(0.9)
-                    } else {
-                        ProgressView().scaleEffect(0.9).hidden()
-                    }
-                }
+//                Group {
+//                    if finder.isSearching {
+//                        ProgressView().scaleEffect(0.9)
+//                    } else {
+//                        ProgressView().scaleEffect(0.9).hidden()
+//                    }
+//                }
             }
             if showChooseStoreGuideCard && !didSeeChooseStoreGuide {
                 let shouldShowEnableLocationHint = (locationManager.authorizationStatus == .notDetermined)
@@ -753,18 +748,6 @@ struct ContentView: View {
                 )
                 .padding(.top, 4)
             }
-//            if showChooseStoreGuideCard && !didSeeChooseStoreGuide {
-//                ChooseStoreGuideCard(
-//                    onGotIt: {
-//                        didSeeChooseStoreGuide = true
-//                    },
-//                    onDontShowAgain: {
-//                        showChooseStoreGuideCard = false
-//                        didSeeChooseStoreGuide = true
-//                    }
-//                )
-//                .padding(.top, 4)
-//            }
             Group {
                 if let status = locationManager.authorizationStatus {
                     if status == .denied || status == .restricted {
@@ -848,6 +831,17 @@ struct ContentView: View {
                 // Keep the tips visible even when there are no results
                 // (already shown above, but this adds a clear visual anchor)
                 Divider().padding(.vertical, 4)
+
+                if finder.isSearching {
+                    HStack {
+                        Spacer()
+                        ProgressView()
+                            .scaleEffect(1.2)
+                        Spacer()
+                    }
+                    .padding(.top, 6)
+                    .padding(.bottom, 10)
+                }
             }
         }
     }
@@ -910,52 +904,6 @@ struct ContentView: View {
         }
     }
 
-//    private var selectedStoreSection: some View {
-//        VStack(alignment: .leading, spacing: 10) {
-//            Text("Your store")
-//                .font(.headline)
-//            
-//            if let store = selectedStore {
-//                SelectedStoreCard(
-//                    title: store.name,
-//                    address: storeAddressLine(store),
-//                    isAddressShown: showSelectedStoreAddress,
-//                    onToggleAddress: {
-//                        withAnimation(.easeInOut(duration: 0.15)) {
-//                            showSelectedStoreAddress.toggle()
-//                        }
-//                    },
-//                    onEdit: {
-//                        editingStore = store
-//                        showEditStoreSheet = true
-//                    },
-//                    accentSeed: store.name,
-//                    trailingButtonTitle: "Change store",
-//                    trailingAction: {
-//                        previousSelectedStoreId = selectedStoreId
-//                        selectedStoreId = nil
-//                        quickQuery = ""
-//                        showSelectedStoreAddress = false
-//                    }
-//                )
-//            }
-//
-//            if showGuides && !didSeeSelectedStoreGuide {
-//                SelectedStoreGuideCard(
-//                    aisleCount: storeAisleCount(store),
-//                    onGotIt: {
-//                        didSeeSelectedStoreGuide = true
-//                    },
-//                    onDontShowAgain: {
-//                        showGuides = false
-//                        didSeeSelectedStoreGuide = true
-//                    }
-//                )
-//                .padding(.top, 6)
-//            }
-//        }
-//    }
-    
     // MARK: - Actions
     
     private var actionsSection: some View {
@@ -1018,8 +966,6 @@ struct ContentView: View {
                             showLoginRequiredAlert = true
                             return
                         }
-                        
-//                        showPhotoSourceDialog = true
 
                         if showDemoUploadChooser {
                             showDemoUploadSheet = true
@@ -1226,15 +1172,6 @@ struct ContentView: View {
                         }
                     }
                     .padding(.top, 6)
-//                    HStack(spacing: 10) {
-//                        Button("Don’t show again") { onDontShowAgain() }
-//                            .buttonStyle(.bordered)
-//
-//                        Button("Got it") { onGotIt() }
-//                            .buttonStyle(.borderedProminent)
-//
-//                        Spacer()
-//                    }
                 }
                 .padding(16)
                 .navigationTitle("Upload image")
@@ -1480,75 +1417,6 @@ struct ContentView: View {
             }
         }
     }
-
-//    @MainActor
-//    private func callOpenAIProxyDebug() {
-//        isCallingFunction = true
-//        debugFunctionOutput = ""
-//
-//        let payload: [String: Any] = [
-//            "prompt": "Say hello in one short sentence.",
-//            "model": "gpt-4.1-mini",
-//            "temperature": 0.2
-//        ]
-//
-//        functions.httpsCallable("openaiProxy").call(payload) { result, error in
-//            Task { @MainActor in
-//                isCallingFunction = false
-//
-//                if let nsError = error as NSError? {
-//                    var lines: [String] = []
-//                    lines.append("❌ openaiProxy error")
-//                    lines.append("localizedDescription: \(nsError.localizedDescription)")
-//                    lines.append("domain: \(nsError.domain)")
-//                    lines.append("code: \(nsError.code)")
-//                    lines.append("userInfo: \(nsError.userInfo)")
-//
-//                    // If Firebase attached server "details", show it nicely
-//                    if let details = nsError.userInfo["details"] {
-//                        lines.append("details: \(details)")
-//                    }
-//
-//                    debugFunctionOutput = lines.joined(separator: "\n")
-//                    showBanner("openaiProxy failed", isError: true)
-//                    return
-//                }
-//
-//                guard let data = result?.data else {
-//                    debugFunctionOutput = "⚠️ openaiProxy returned nil data"
-//                    showBanner("openaiProxy returned nil", isError: true)
-//                    return
-//                }
-//
-//                // ✅ Try to extract the `text` field cleanly (your intended output)
-//                if let dict = data as? [String: Any] {
-//                    let text = (dict["text"] as? String) ?? ""
-//                    let ok = (dict["ok"] as? Bool) ?? false
-//                    let model = (dict["model"] as? String) ?? ""
-//
-//                    var lines: [String] = []
-//                    lines.append("✅ openaiProxy success")
-//                    lines.append("ok: \(ok)")
-//                    lines.append("model: \(model)")
-//                    lines.append("text: \(text.isEmpty ? "⚠️ <empty>" : text)")
-//
-//                    // Always include full payload for debugging
-//                    lines.append("")
-//                    lines.append("— Full response —")
-//                    lines.append(prettyString(from: dict))
-//
-//                    debugFunctionOutput = lines.joined(separator: "\n")
-//                    print("debugFunctionOutput:", debugFunctionOutput)
-//                    showBanner(text.isEmpty ? "openaiProxy success (empty text)" : "openaiProxy success",
-//                               isError: text.isEmpty)
-//                } else {
-//                    // Fallback: just pretty print whatever came back
-//                    debugFunctionOutput = prettyString(from: data)
-//                    showBanner("openaiProxy success", isError: false)
-//                }
-//            }
-//        }
-//    }
 
     private func prettyString(from any: Any) -> String {
         // Try JSON pretty print first
@@ -1883,46 +1751,4 @@ private struct ChooseStoreGuideCard: View {
         )
     }
 }
-
-//private struct ChooseStoreGuideCard: View {
-//    let onGotIt: () -> Void
-//    let onDontShowAgain: () -> Void
-//    
-//    var body: some View {
-//        VStack(alignment: .leading, spacing: 10) {
-//            HStack(alignment: .top, spacing: 10) {
-//                Image(systemName: "sparkles")
-//                    .font(.title3)
-//                
-//                VStack(alignment: .leading, spacing: 6) {
-//                    Text("Welcome 👋")
-//                        .font(.headline)
-//                    
-//                    Text("First choose a store. Tap the 🔍 button below to find nearby stores, or use “Add manually”.")
-//                        .font(.footnote)
-//                        .foregroundStyle(.secondary)
-//                }
-//                
-//                Spacer()
-//            }
-//            
-//            HStack(spacing: 10) {
-//                Button("Don’t show again") { onDontShowAgain() }
-//                    .buttonStyle(.bordered)
-//                
-//                Button("Got it") { onGotIt() }
-//                    .buttonStyle(.borderedProminent)
-//                
-//                Spacer()
-//            }
-//        }
-//        .padding(14)
-//        .background(.ultraThinMaterial)
-//        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-//        .overlay(
-//            RoundedRectangle(cornerRadius: 16, style: .continuous)
-//                .strokeBorder(.white.opacity(0.08), lineWidth: 1)
-//        )
-//    }
-//}
 
