@@ -1,5 +1,6 @@
 import SwiftUI
 import FirebaseAuth
+import FirebaseFunctions
 import SwiftData
 import CoreLocation
 import PhotosUI
@@ -70,6 +71,13 @@ struct ContentView: View {
     @State private var didSeeChooseStoreGuide: Bool = false
 
     @State private var showDemoUploadSheet: Bool = false
+
+    @State private var debugFunctionOutput: String = ""
+    @State private var isCallingFunction: Bool = false
+
+    private var functions: Functions {
+        Functions.functions(region: "us-central1")
+    }
 
     @StateObject private var locationManager = LocationManager()
     @StateObject private var finder = StoreFinder()
@@ -1025,7 +1033,42 @@ struct ContentView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Tools")
                         .font(.headline)
-                    
+
+#if DEBUG
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Debug")
+                            .font(.headline)
+
+                        Button {
+                            callOpenAIProxyDebug()
+                        } label: {
+                            HStack {
+                                Label("Call openaiProxy", systemImage: "bolt.horizontal.circle")
+                                Spacer()
+                                if isCallingFunction {
+                                    ProgressView()
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(isCallingFunction)
+
+                        if !debugFunctionOutput.isEmpty {
+                            ScrollView {
+                                Text(debugFunctionOutput)
+                                    .font(.system(.footnote, design: .monospaced))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .textSelection(.enabled)
+                                    .padding(12)
+                                    .background(.thinMaterial)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            }
+                            .frame(maxHeight: 220)
+                        }
+                    }
+                    .padding(.top, 6)
+#endif
                     HStack(spacing: 10) {
                         NavigationLink {
                             AisleListView(store: store, initialSelectedAisleID: nil)
@@ -1362,7 +1405,151 @@ struct ContentView: View {
         
         return nameMatch && latOk && lonOk
     }
-    
+
+    @MainActor
+    private func callOpenAIProxyDebug() {
+        isCallingFunction = true
+        debugFunctionOutput = ""
+
+        let payload: [String: Any] = [
+            "prompt": "Say hello in one short sentence.",
+            "model": "gpt-4.1-mini",
+            "temperature": 0.2
+        ]
+
+        functions.httpsCallable("openaiProxy").call(payload) { result, error in
+            Task { @MainActor in
+                isCallingFunction = false
+
+                if let nsError = error as NSError? {
+                    var lines: [String] = []
+                    lines.append("❌ openaiProxy error")
+                    lines.append("localizedDescription: \(nsError.localizedDescription)")
+                    lines.append("domain: \(nsError.domain)")
+                    lines.append("code: \(nsError.code)")
+                    lines.append("userInfo: \(nsError.userInfo)")
+
+                    // If Firebase attached server "details", show it nicely
+                    if let details = nsError.userInfo["details"] {
+                        lines.append("details: \(details)")
+                    }
+
+                    debugFunctionOutput = lines.joined(separator: "\n")
+                    showBanner("openaiProxy failed", isError: true)
+                    return
+                }
+
+                guard let data = result?.data else {
+                    debugFunctionOutput = "⚠️ openaiProxy returned nil data"
+                    showBanner("openaiProxy returned nil", isError: true)
+                    return
+                }
+
+                // ✅ Try to extract the `text` field cleanly (your intended output)
+                if let dict = data as? [String: Any] {
+                    let text = (dict["text"] as? String) ?? ""
+                    let ok = (dict["ok"] as? Bool) ?? false
+                    let model = (dict["model"] as? String) ?? ""
+
+                    var lines: [String] = []
+                    lines.append("✅ openaiProxy success")
+                    lines.append("ok: \(ok)")
+                    lines.append("model: \(model)")
+                    lines.append("text: \(text.isEmpty ? "⚠️ <empty>" : text)")
+
+                    // Always include full payload for debugging
+                    lines.append("")
+                    lines.append("— Full response —")
+                    lines.append(prettyString(from: dict))
+
+                    debugFunctionOutput = lines.joined(separator: "\n")
+                    print("debugFunctionOutput:", debugFunctionOutput)
+                    showBanner(text.isEmpty ? "openaiProxy success (empty text)" : "openaiProxy success",
+                               isError: text.isEmpty)
+                } else {
+                    // Fallback: just pretty print whatever came back
+                    debugFunctionOutput = prettyString(from: data)
+                    showBanner("openaiProxy success", isError: false)
+                }
+            }
+        }
+    }
+
+//    @MainActor
+//    private func callOpenAIProxyDebug() {
+//        isCallingFunction = true
+//        debugFunctionOutput = ""
+//
+//        let payload: [String: Any] = [
+//            "prompt": "Say hello in one short sentence.",
+//            "model": "gpt-4.1-mini",   // optional
+//            "temperature": 0.2         // optional
+//        ]
+//
+////        functions.httpsCallable("openaiProxy").call(payload) { result, error in
+//        functions.httpsCallable("openaiProxy").call([
+//            "prompt": "Say hello in one short sentence."
+//        ]) { result, error in
+//            Task { @MainActor in
+//                isCallingFunction = false
+//
+//                if let error = error as NSError? {
+//                    let msg = "❌ openaiProxy error: \(error.localizedDescription)\n\(error.userInfo)"
+//                    debugFunctionOutput = msg
+//                    showBanner("openaiProxy failed", isError: true)
+//                    return
+//                }
+//
+//                if let data = result?.data {
+//                    debugFunctionOutput = prettyString(from: data)
+//                    showBanner("openaiProxy success", isError: false)
+//                } else {
+//                    debugFunctionOutput = "⚠️ openaiProxy returned nil data"
+//                    showBanner("openaiProxy returned nil", isError: true)
+//                }
+//            }
+//        }
+//    }
+
+//    @MainActor
+//    private func callOpenAIProxyDebug() {
+//        isCallingFunction = true
+//        debugFunctionOutput = ""
+//
+//        functions.httpsCallable("openaiProxy").call([:]) { result, error in
+//            Task { @MainActor in
+//                isCallingFunction = false
+//
+//                if let error = error as NSError? {
+//                    let msg = "❌ openaiProxy error: \(error.localizedDescription)\n\(error.userInfo)"
+//                    debugFunctionOutput = msg
+//                    showBanner("openaiProxy failed", isError: true)
+//                    return
+//                }
+//
+//                // Pretty-print result.data
+//                if let data = result?.data {
+//                    debugFunctionOutput = prettyString(from: data)
+//                    showBanner("openaiProxy success", isError: false)
+//                } else {
+//                    debugFunctionOutput = "⚠️ openaiProxy returned nil data"
+//                    showBanner("openaiProxy returned nil", isError: true)
+//                }
+//            }
+//        }
+//    }
+
+    private func prettyString(from any: Any) -> String {
+        // Try JSON pretty print first
+        if JSONSerialization.isValidJSONObject(any),
+           let data = try? JSONSerialization.data(withJSONObject: any, options: [.prettyPrinted]),
+           let s = String(data: data, encoding: .utf8) {
+            return s
+        }
+
+        // If it's already a dictionary/array but not valid JSON, fall back
+        return String(describing: any)
+    }
     private func startQuickSearch() {
         let trimmed = quickQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -1676,3 +1863,4 @@ private struct ChooseStoreGuideCard: View {
         )
     }
 }
+
