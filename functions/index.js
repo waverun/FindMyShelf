@@ -1,30 +1,3 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * const {onCall} = require("firebase-functions/v2/https");
- * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
-
-/**
- * Import function triggers from their respective submodules:
- *
- * const {onCall} = require("firebase-functions/v2/https");
- * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
-
-/**
- * Import function triggers from their respective submodules:
- *
- * const {onCall} = require("firebase-functions/v2/https");
- * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
-
 const {setGlobalOptions} = require("firebase-functions");
 setGlobalOptions({maxInstances: 10});
 
@@ -99,7 +72,7 @@ exports.openaiProxy = onCall(
         const model = modelFromReq || "gpt-4.1-mini";
 
         const temperature =
-                typeof data.temperature === "number" ? data.temperature : 0.2;
+        typeof data.temperature === "number" ? data.temperature : 0.2;
 
         const apiKey = OPENAI_API_KEY.value();
         if (!apiKey) {
@@ -134,14 +107,17 @@ exports.openaiProxy = onCall(
           temperature: temperature,
         };
 
-        const resp = await fetch("https://api.openai.com/v1/responses", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + apiKey,
-          },
-          body: JSON.stringify(body),
-        });
+        const resp = await fetch(
+            "https://api.openai.com/v1/responses",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + apiKey,
+              },
+              body: JSON.stringify(body),
+            },
+        );
 
         const json = await resp.json();
 
@@ -160,9 +136,6 @@ exports.openaiProxy = onCall(
               },
           );
         }
-
-        // const text =
-        //         typeof json.output_text === "string" ? json.output_text : "";
 
         const text = extractResponseText(json);
 
@@ -184,7 +157,7 @@ exports.openaiProxy = onCall(
             "Server error",
             {
               message:
-                        err && err.message ? err.message : String(err),
+            err && err.message ? err.message : String(err),
             },
         );
       }
