@@ -1004,6 +1004,21 @@ struct ContentView: View {
                             .font(.headline)
 
                         Button {
+                            callOpenAIOcrProxyDebug()
+                        } label: {
+                            HStack {
+                                Label("Call openaiOcrProxy (OCR demo_aisle_1)", systemImage: "text.viewfinder")
+                                Spacer()
+                                if isCallingFunction {
+                                    ProgressView()
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(isCallingFunction)
+                        
+                        Button {
                             callOpenAIProxyDebug()
                         } label: {
                             HStack {
@@ -1364,6 +1379,109 @@ struct ContentView: View {
         return nameMatch && latOk && lonOk
     }
 
+#if DEBUG
+    @MainActor
+    private func callOpenAIOcrProxyDebug() {
+        isCallingFunction = true
+        debugFunctionOutput = ""
+
+        // 1) Load demo image from assets
+        guard let img = UIImage(named: "demo_aisle_1") else {
+            isCallingFunction = false
+            debugFunctionOutput = "❌ Missing demo image asset: demo_aisle_1"
+            showBanner("Missing demo image", isError: true)
+            return
+        }
+
+        // 2) Encode to JPEG → base64
+        guard let jpeg = img.jpegData(compressionQuality: 0.85) else {
+            isCallingFunction = false
+            debugFunctionOutput = "❌ Failed to encode demo_aisle_1 as JPEG"
+            showBanner("JPEG encode failed", isError: true)
+            return
+        }
+
+        let base64 = jpeg.base64EncodedString()
+
+        // 3) Build payload for openaiOcrProxy
+        let payload: [String: Any] = [
+            "model": "gpt-5.2",
+            "image": [
+                "mime": "image/jpeg",
+                "base64": base64,
+                "detail": "high"
+            ]
+        ]
+
+        Task { @MainActor in
+            do {
+                _ = try await ensureFirebaseUser()
+
+                functions.httpsCallable("openaiOcrProxy").call(payload) { result, error in
+                    Task { @MainActor in
+                        isCallingFunction = false
+
+                        if let nsError = error as NSError? {
+                            var lines: [String] = []
+                            lines.append("❌ openaiOcrProxy error")
+                            lines.append("localizedDescription: \(nsError.localizedDescription)")
+                            lines.append("domain: \(nsError.domain)")
+                            lines.append("code: \(nsError.code)")
+                            lines.append("userInfo: \(nsError.userInfo)")
+
+                            if let details = nsError.userInfo["details"] {
+                                lines.append("details: \(details)")
+                            }
+
+                            debugFunctionOutput = lines.joined(separator: "\n")
+                            showBanner("openaiOcrProxy failed", isError: true)
+                            return
+                        }
+
+                        guard let data = result?.data else {
+                            debugFunctionOutput = "⚠️ openaiOcrProxy returned nil data"
+                            showBanner("openaiOcrProxy returned nil", isError: true)
+                            return
+                        }
+
+                        // Prefer showing OCR text if present
+                        if let dict = data as? [String: Any] {
+                            let ok = dict["ok"] as? Bool
+                            let text = dict["text"] as? String
+                            let linesArr = dict["lines"] as? [String]
+                            let lang = dict["language"] as? String
+
+                            var out: [String] = []
+                            out.append("✅ openaiOcrProxy success")
+                            out.append("ok: \(ok == true ? "true" : "false")")
+                            if let lang { out.append("language: \(lang)") }
+
+                            if let text, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                out.append("\n--- OCR TEXT ---\n\(text)")
+                            } else if let linesArr, !linesArr.isEmpty {
+                                out.append("\n--- OCR LINES ---")
+                                out.append(linesArr.joined(separator: "\n"))
+                            } else {
+                                out.append("\n⚠️ No OCR text returned.")
+                            }
+
+                            debugFunctionOutput = out.joined(separator: "\n")
+                        } else {
+                            // Fallback pretty print
+                            debugFunctionOutput = prettyString(from: data)
+                        }
+
+                        showBanner("openaiOcrProxy success", isError: false)
+                    }
+                }
+            } catch {
+                isCallingFunction = false
+                debugFunctionOutput = "❌ Auth failed: \(error.localizedDescription)"
+                showBanner("Auth failed", isError: true)
+            }
+        }
+    }
+
     @MainActor
     private func callOpenAIProxyDebug() {
         isCallingFunction = true
@@ -1429,6 +1547,8 @@ struct ContentView: View {
         // If it's already a dictionary/array but not valid JSON, fall back
         return String(describing: any)
     }
+#endif
+
     private func startQuickSearch() {
         let trimmed = quickQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
