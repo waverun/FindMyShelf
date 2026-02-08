@@ -385,16 +385,19 @@ private struct AisleCard: View {
                         .lineLimit(1)
                     
                     if !keywords.isEmpty {
-                        Text(keywords.prefix(6).joined(separator: ", "))
+                        Text(keywords.joined(separator: ", "))
+//                        Text(keywords.prefix(6).joined(separator: ", "))
                             .font(.footnote)
                             .foregroundStyle(.white.opacity(0.85))
-                            .lineLimit(2)
+//                            .lineLimit(2)
                     } else {
                         Text("No keywords")
                             .font(.footnote)
                             .foregroundStyle(.white.opacity(0.8))
                     }
-                    
+
+                    Spacer()
+
                     Text(isSelected ? "Selected" : "Tap to select")
                         .font(.caption2.bold())
                         .padding(.horizontal, 8)

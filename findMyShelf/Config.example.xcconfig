@@ -1,11 +1,11 @@
+////
+////  Config.xcconfig
+////  findMyShelf
+////
+////  Created by shay moreno on 20/11/2025.
+////
 //
-//  Config.xcconfig
-//  findMyShelf
-//
-//  Created by shay moreno on 20/11/2025.
-//
-
-// Configuration settings file format documentation can be found at:
-// https://developer.apple.com/documentation/xcode/adding-a-build-configuration-file-to-your-project
-OPENAI_API_KEY = ""
-REVERSED_CLIENT_ID = com.googleusercontent.apps.440262279389-uia1hrp9lghhd2fm058iv4llv2nsasri
+//// Configuration settings file format documentation can be found at:
+//// https://developer.apple.com/documentation/xcode/adding-a-build-configuration-file-to-your-project
+//OPENAI_API_KEY = ""
+//REVERSED_CLIENT_ID = com.googleusercontent.apps.440262279389-uia1hrp9lghhd2fm058iv4llv2nsasri
