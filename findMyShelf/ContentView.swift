@@ -41,14 +41,12 @@ struct ContentView: View {
 
     @State private var pendingProductQuery: String = ""
     
-    private var apiKey: String {
-        Bundle.main.object(forInfoDictionaryKey: "OPENAI_API_KEY") as? String ?? ""
-    }
+//    private var apiKey: String {
+//        Bundle.main.object(forInfoDictionaryKey: "OPENAI_API_KEY") as? String ?? ""
+//    }
     
-    private var visionService: OpenAIAisleVisionService {
-        OpenAIAisleVisionService(apiKey: apiKey)
-    }
-    
+//                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       }
+
     private var previousStore: Store? {
         guard let idString = previousSelectedStoreId,
               let uuid = UUID(uuidString: idString) else { return nil }
@@ -1631,12 +1629,12 @@ struct ContentView: View {
         isQuickQueryFocused = false
         
         let fb = firebase   // ✅ capture EnvironmentObject value (not the wrapper)
-        
+
         ocr.processImage(
             image,
             store: store,
             context: context,
-            visionService: visionService,
+            functions: functions,
             onBanner: { text, isError in
                 showBanner(text, isError: isError)
             },
@@ -1646,16 +1644,37 @@ struct ContentView: View {
             },
             onSyncToFirebase: { aisle in
                 Task { @MainActor in
-                    await fb.syncCreatedAisleToFirebase(
-                        aisle,
-                        store: store,
-                        context: context
-                    ) { msg in
+                    await fb.syncCreatedAisleToFirebase(aisle, store: store, context: context) { msg in
                         showBanner(msg, isError: true)
                     }
                 }
             }
         )
+        
+//        ocr.processImage(
+//            image,
+//            store: store,
+//            context: context,
+//            visionService: visionService,
+//            onBanner: { text, isError in
+//                showBanner(text, isError: isError)
+//            },
+//            onAisleCreated: { newId in
+//                pendingAisleToSelectID = newId
+//                goToAisles = true
+//            },
+//            onSyncToFirebase: { aisle in
+//                Task { @MainActor in
+//                    await fb.syncCreatedAisleToFirebase(
+//                        aisle,
+//                        store: store,
+//                        context: context
+//                    ) { msg in
+//                        showBanner(msg, isError: true)
+//                    }
+//                }
+//            }
+//        )
     }
     
     

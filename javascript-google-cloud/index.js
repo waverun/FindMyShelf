@@ -376,3 +376,139 @@ exports.openaiOcrProxy = onCall(
                                     }
                                 },
                                 );
+
+exports.openaiAisleVisionProxy = onCall(
+                                        {
+                                        region: "us-central1",
+                                        secrets: [OPENAI_API_KEY],
+                                        },
+                                        async (request) => {
+                                            try {
+                                                if (!request.auth) {
+                                                    throw new HttpsError("unauthenticated", "Must be signed in.");
+                                                }
+
+                                                const data = request.data || {};
+                                                const image = data.image;
+
+                                                if (!image || typeof image !== "object") {
+                                                    throw new HttpsError("invalid-argument", "Missing 'image'.");
+                                                }
+
+                                                const mime = typeof image.mime === "string" ? image.mime.trim() : "";
+                                                const b64 = typeof image.base64 === "string" ? image.base64.trim() : "";
+                                                const detail = image.detail === "low" || image.detail === "high" ?
+                                                image.detail :
+                                                "high";
+
+                                                if (!mime || !b64) {
+                                                    throw new HttpsError(
+                                                                         "invalid-argument",
+                                                                         "image.mime and image.base64 are required.",
+                                                                         );
+                                                }
+
+                                                const modelFromReq = typeof data.model === "string" ? data.model.trim() : "";
+                                                const model = modelFromReq || "gpt-5.2";
+
+                                                const apiKey = OPENAI_API_KEY.value();
+                                                if (!apiKey) {
+                                                    throw new HttpsError(
+                                                                         "failed-precondition",
+                                                                         "Missing OPENAI_API_KEY secret.",
+                                                                         );
+                                                }
+
+                                                const systemText =
+                                                "You extract aisle info from grocery aisle-sign images.";
+
+                                                const userText =
+                                                "Return ONLY valid JSON with keys: " +
+                                                "title_original (string|null), title_en (string|null), " +
+                                                "aisle_code (string|null), keywords_original (array of strings), " +
+                                                "keywords_en (array of strings). " +
+                                                "Rules: " +
+                                                "1) keywords should be short and useful. " +
+                                                "2) Do not invent brands not seen. " +
+                                                "3) If Hebrew exists, put it in title_original/keywords_original. " +
+                                                "4) If English exists, put it in title_en/keywords_en. " +
+                                                "5) If there is a clear aisle code/number (like 'A12'), put it in aisle_code.";
+
+                                                const imageUrl = ["data:", mime, ";base64,", b64].join("");
+
+                                                const body = {
+                                                    model,
+                                                    input: [
+                                                        {
+                                                        role: "system",
+                                                        content: [{type: "input_text", text: systemText}],
+                                                        },
+                                                        {
+                                                        role: "user",
+                                                        content: [
+                                                            {type: "input_text", text: userText},
+                                                            {type: "input_image", image_url: imageUrl, detail},
+                                                        ],
+                                                        },
+                                                    ],
+                                                    temperature: 0.0,
+                                                };
+
+                                                const resp = await fetch("https://api.openai.com/v1/responses", {
+                                                    method: "POST",
+                                                    headers: {
+                                                        "Content-Type": "application/json",
+                                                        "Authorization": "Bearer " + apiKey,
+                                                    },
+                                                    body: JSON.stringify(body),
+                                                });
+
+                                                const json = await resp.json();
+
+                                                if (!resp.ok) {
+                                                    logger.error("OpenAI AisleVision error", {status: resp.status, json});
+                                                    throw new HttpsError("internal", "OpenAI request failed", {
+                                                        status: resp.status,
+                                                        error: json,
+                                                    });
+                                                }
+
+                                                const raw = extractResponseText(json).trim();
+                                                if (!raw) {
+                                                    throw new HttpsError("internal", "Aisle vision returned empty output");
+                                                }
+
+                                                let parsed;
+                                                try {
+                                                    parsed = JSON.parse(raw);
+                                                } catch (e) {
+                                                    throw new HttpsError("internal", "Aisle vision returned non-JSON", {
+                                                        raw,
+                                                    });
+                                                }
+
+                                                // Sanitize
+                                                const result = {
+                                                    title_original: typeof parsed.title_original === "string" ?
+                                                    parsed.title_original :
+                                                    null,
+                                                    title_en: typeof parsed.title_en === "string" ? parsed.title_en : null,
+                                                    aisle_code: typeof parsed.aisle_code === "string" ? parsed.aisle_code : null,
+                                                    keywords_original: Array.isArray(parsed.keywords_original) ?
+                                                    parsed.keywords_original.filter((x) => typeof x === "string") :
+                                                    [],
+                                                    keywords_en: Array.isArray(parsed.keywords_en) ?
+                                                    parsed.keywords_en.filter((x) => typeof x === "string") :
+                                                    [],
+                                                };
+
+                                                return {ok: true, result};
+                                            } catch (err) {
+                                                if (err instanceof HttpsError) throw err;
+                                                logger.error("openaiAisleVisionProxy crashed", err);
+                                                throw new HttpsError("internal", "Server error", {
+                                                    message: err && err.message ? err.message : String(err),
+                                                });
+                                            }
+                                        },
+                                        );
