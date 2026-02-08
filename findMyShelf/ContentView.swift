@@ -6,6 +6,12 @@ import CoreLocation
 import PhotosUI
 import UIKit
 
+enum AppColors {
+    static let logoOrangeLight = Color(red: 254/255, green: 134/255, blue: 12/255) // #FE860C
+    static let logoOrangeDark  = Color(red: 241/255, green:  79/255, blue: 12/255) // #F14F0C
+    static let headingColor    = logoOrangeLight
+}
+
 struct ContentView: View {
     @EnvironmentObject private var firebase: FirebaseService   // ✅ add
     
@@ -376,6 +382,7 @@ struct ContentView: View {
             .navigationTitle("FindMyShelf")
             .navigationBarTitleDisplayMode(.large)
             .onAppear {
+                setupNavigationTitleColor(color: AppColors.logoOrangeDark)
                 if locationManager.authorizationStatus == .authorizedWhenInUse || locationManager.authorizationStatus == .authorizedAlways {
                     locationManager.startUpdating()
                 }
@@ -714,7 +721,7 @@ struct ContentView: View {
             HStack(alignment: .firstTextBaseline) {
                 Text("Nearby stores")
                     .font(.headline)
-                
+                    .foregroundStyle(AppColors.headingColor)
                 Button("Add manually") {
                     showManualStoreSheet = true
                 }
@@ -860,6 +867,7 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Your store")
                 .font(.headline)
+                .foregroundStyle(AppColors.headingColor)
 
             if let store = selectedStore {
                 SelectedStoreCard(
@@ -908,7 +916,8 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Actions")
                 .font(.headline)
-            
+                .foregroundStyle(AppColors.headingColor)
+
             ActionCard {
                 VStack(alignment: .leading, spacing: 10) {
                     Label("Search for a product", systemImage: "magnifyingglass")
@@ -955,35 +964,37 @@ struct ContentView: View {
                     Text("Take or select a photo of an aisle sign and the app will detect and add the aisle.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-                    
-                    Button {
-                        guard selectedStore != nil else { return }
-                        
-                        if Auth.auth().currentUser == nil ||
-                            (Auth.auth().currentUser?.isAnonymous ?? true) {
-                            showLoginRequiredAlert = true
-                            return
-                        }
 
-                        if showDemoUploadChooser {
-                            showDemoUploadSheet = true
-                        } else {
-                            showPhotoSourceDialog = true
+                    HStack {
+                        Button {
+                            guard selectedStore != nil else { return }
+                            
+                            if Auth.auth().currentUser == nil ||
+                                (Auth.auth().currentUser?.isAnonymous ?? true) {
+                                showLoginRequiredAlert = true
+                                return
+                            }
+                            
+                            if showDemoUploadChooser {
+                                showDemoUploadSheet = true
+                            } else {
+                                showPhotoSourceDialog = true
+                            }
+                        } label: {
+                            Text("Upload image")
+                                .frame(maxWidth: .infinity)
                         }
-                    } label: {
-                        Text("Upload image")
-                            .frame(maxWidth: .infinity)
+                        .buttonStyle(.bordered)
+                        .disabled(ocr.isProcessingOCR)
+                        
+                        Button {
+                            goToAisles = true
+                        } label: {
+                            Text("Open aisle map")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
                     }
-                    .buttonStyle(.bordered)
-                    .disabled(ocr.isProcessingOCR)
-                    
-                    Button {
-                        goToAisles = true
-                    } label: {
-                        Text("Open aisle map")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
                 }
             }
         }
@@ -995,6 +1006,7 @@ struct ContentView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Tools")
                         .font(.headline)
+                        .foregroundStyle(AppColors.headingColor)
 
 #if DEBUG
                     VStack(alignment: .leading, spacing: 10) {
@@ -1147,6 +1159,7 @@ struct ContentView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     Text("Try a demo picture")
                         .font(.headline)
+                        .foregroundStyle(AppColors.headingColor)
 
                     Text("Pick a sample aisle sign photo, or press Got it to use your own photo.")
                         .font(.footnote)

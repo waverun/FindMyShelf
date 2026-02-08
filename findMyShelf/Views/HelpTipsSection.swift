@@ -92,7 +92,8 @@ struct HelpTipsSection: View {
         HStack(alignment: .firstTextBaseline) {
             Text("Getting started")
                 .font(.headline)
-            
+                .foregroundStyle(AppColors.headingColor)
+
             Button(isExpanded ? "Hide" : "Show") {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isExpanded.toggle()

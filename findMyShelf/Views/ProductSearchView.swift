@@ -39,7 +39,8 @@ struct ProductSearchView: View {
     var body: some View {
         ZStack {
             Form {
-                Section("Product Search") {
+                Section() {
+//                Section("Product Search") {
                     //                TextField("Type a product name…", text: $productQuery)
                     //                    .textInputAutocapitalization(.never)
                     //                    .onSubmit {
