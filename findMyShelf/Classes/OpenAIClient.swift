@@ -24,8 +24,8 @@ final class OpenAIClient {
     private func model(for importance: GPTTaskImportance) -> String {
         switch importance {
             case .low: return "gpt-4.1-mini"
-            case .medium: return "gpt-4.1-mini"
-            case .high: return "gpt-4.1-mini" // or upgrade if you want
+            case .medium: return "gpt-4.1"
+            case .high: return "gpt-5.2" // or upgrade if you want
         }
     }
 

@@ -30,7 +30,8 @@ final class AisleOCRController: ObservableObject {
         functions: Functions,
         onBanner: @escaping (_ text: String, _ isError: Bool) -> Void,
         onAisleCreated: @escaping (_ newAisleId: UUID) -> Void,
-        onSyncToFirebase: @escaping (_ aisle: Aisle) -> Void
+        onSyncToFirebase: @escaping (_ aisle: Aisle) -> Void,
+        firebase: FirebaseService  // ← הוספת פרמטר
     ) {
         isProcessingOCR = true
 
@@ -128,6 +129,11 @@ final class AisleOCRController: ObservableObject {
                 }
 
             } catch {
+                await firebase.logApiError(
+                    endpoint: "AisleOCR.processImage",
+                    message: error.localizedDescription,
+                    additionalData: ["storeId": store.id.uuidString]
+                )
                 isProcessingOCR = false
                 onBanner("Failed to analyze image: \(error.localizedDescription)", true)
             }

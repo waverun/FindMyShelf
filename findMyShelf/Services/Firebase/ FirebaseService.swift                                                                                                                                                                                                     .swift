@@ -12,6 +12,32 @@ final class FirebaseService: ObservableObject {
     private var aislesListener: ListenerRegistration?
     private var productsListener: ListenerRegistration?
 
+    /// רושם שגיאה מקריאת API לאוסף ייעודי ב־Firestore
+    func logApiError(endpoint: String,
+                     message: String,
+                     additionalData: [String: Any]? = nil) async {
+        var data: [String: Any] = [
+            "endpoint": endpoint,
+            "message": message,
+            "createdAt": FieldValue.serverTimestamp()
+        ]
+        // אם יש משתמש מחובר – נשמור את ה־uid (לא חובה)
+        if let uid = Auth.auth().currentUser?.uid {
+            data["userId"] = uid
+        }
+        // מידע נוסף שנשלח ע"י הקריאה
+        if let additionalData = additionalData {
+            data["context"] = additionalData
+        }
+
+        do {
+            try await db.collection("apiErrors").addDocument(data: data)
+        } catch {
+            // במידה ורישום השגיאה נכשל – נדפיס למסוף
+            print("⚠️ Failed to log API error:", error)
+        }
+    }
+    
     // MARK: - Reports Admin - Fetch content edited by a user
 
     func fetchStoresEditedByUser(userId: String, limit: Int = 50) async throws -> [EditedStoreRow] {

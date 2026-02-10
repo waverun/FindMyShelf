@@ -17,7 +17,8 @@ struct AisleSummaryForGPT: Codable {
 func suggestAislesForProductUsingGPT(
     productName: String,
     aisles: [Aisle],
-    importance: GPTTaskImportance = .medium
+    importance: GPTTaskImportance = .medium,
+    firebase: FirebaseService  // ← הוספת פרמטר
 ) async throws -> GPTAisleSuggestionResponse {
 
     guard !aisles.isEmpty else {
@@ -83,8 +84,19 @@ func suggestAislesForProductUsingGPT(
         )
         return response
     } catch let error as OpenAIError {
+        // רישום בפיירבייס
+        await firebase.logApiError(
+            endpoint: "OpenAI.sendJSONChatRequest",
+            message: error.localizedDescription,
+            additionalData: ["product": productName]
+        )
         throw ProductGPTSuggestionError.openAIError(error.message)
     } catch {
+        await firebase.logApiError(
+            endpoint: "OpenAI.sendJSONChatRequest",
+            message: error.localizedDescription,
+            additionalData: ["product": productName]
+        )
         throw ProductGPTSuggestionError.openAIError(error.localizedDescription)
     }
 }

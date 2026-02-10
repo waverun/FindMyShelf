@@ -1661,7 +1661,8 @@ struct ContentView: View {
                         showBanner(msg, isError: true)
                     }
                 }
-            }
+            },
+            firebase: firebase  // ← הוספת פרמטר
         )
         
 //        ocr.processImage(

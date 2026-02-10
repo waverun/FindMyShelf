@@ -288,7 +288,8 @@ struct ProductSearchView: View {
             let resp = try await suggestAislesForProductUsingGPT(
                 productName: query,
                 aisles: aislesForStore,
-                importance: .medium
+                importance: .medium,
+                firebase: firebase
             )
 
             await MainActor.run {
