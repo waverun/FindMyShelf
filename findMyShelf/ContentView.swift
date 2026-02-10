@@ -1153,6 +1153,7 @@ struct ContentView: View {
         let onGotIt: () -> Void
 
         private let demoNames = ["demo_aisle_1", "demo_aisle_2", "demo_aisle_3"]
+        @Environment(\.dismiss) private var dismiss    // ← מתווסף
 
         var body: some View {
             NavigationStack {
@@ -1202,6 +1203,13 @@ struct ContentView: View {
                 .padding(16)
                 .navigationTitle("Upload image")
                 .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Close") {
+                            dismiss()  // סוגר את ה־sheet
+                        }
+                    }
+                }
             }
         }
 
@@ -1238,6 +1246,7 @@ struct ContentView: View {
             }
         }
     }
+
     private struct HelpTipCard: View {
         let tip: HelpTip
         
