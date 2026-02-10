@@ -286,12 +286,6 @@ struct AisleListView: View {
                 .buttonStyle(.plain)
                 .padding(.horizontal, 16)
                 .padding(.bottom, 8)
-//                Spacer()
-//
-//                Button("Upload via ContentView") {
-//                    uploadFlow.requestUpload = true
-//                    dismiss() // go back
-//                }
             }
             .contentShape(Rectangle())     // חשוב!
             .onTapGesture {
@@ -424,20 +418,33 @@ private struct AisleCard: View {
                         .font(.headline)
                         .foregroundStyle(.white)
                         .lineLimit(1)
-                    
                     if !keywords.isEmpty {
-                        let text = keywords.map(bidiWrap).joined(separator: ", ")
-                        Text(text)
-//                        Text(keywords.joined(separator: ", "))
-//                        Text(keywords.prefix(6).joined(separator: ", "))
-                            .font(.footnote)
-                            .foregroundStyle(.white.opacity(0.85))
-//                            .lineLimit(2)
+                        ScrollView(.vertical, showsIndicators: true) {
+                            let text = keywords.map(bidiWrap).joined(separator: ", ")
+                            Text(text)
+                                .font(.footnote)
+                                .foregroundStyle(.white.opacity(0.85))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .padding(.trailing, 6) // קצת מקום לאינדיקטור
+                        }
+                        .frame(maxHeight: 44) // ⬅️ קובע "חלון" גלילה. אפשר 52/60 לפי הטעם
+                        .scrollClipDisabled()  // iOS 17+: לא חותך shadow של האינדיקטור (אופציונלי)
                     } else {
                         Text("No keywords")
                             .font(.footnote)
                             .foregroundStyle(.white.opacity(0.8))
                     }
+//                    if !keywords.isEmpty {
+//                        let text = keywords.map(bidiWrap).joined(separator: ", ")
+//                        Text(text)
+//                            .font(.footnote)
+//                            .foregroundStyle(.white.opacity(0.85))
+//                    } else {
+//                        Text("No keywords")
+//                            .font(.footnote)
+//                            .foregroundStyle(.white.opacity(0.8))
+//                    }
 
                     Spacer()
 
