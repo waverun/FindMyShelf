@@ -70,7 +70,7 @@ struct AisleListView: View {
             return nameHit || keywordHit
         }
     }
-    
+
     var body: some View {
         ScrollView {
             VStack {
@@ -359,7 +359,13 @@ private struct AisleCard: View {
     let colorIndex: Int
     let isSelected: Bool
     let onSelect: () -> Void
-    
+
+    private func bidiWrap(_ s: String) -> String {
+        let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        // LRM before + after helps neutral punctuation stay put
+        return "\u{200E}" + t + "\u{200E}"
+    }
+
     var body: some View {
         let base = color(for: colorIndex)
         
@@ -385,7 +391,9 @@ private struct AisleCard: View {
                         .lineLimit(1)
                     
                     if !keywords.isEmpty {
-                        Text(keywords.joined(separator: ", "))
+                        let text = keywords.map(bidiWrap).joined(separator: ", ")
+                        Text(text)
+//                        Text(keywords.joined(separator: ", "))
 //                        Text(keywords.prefix(6).joined(separator: ", "))
                             .font(.footnote)
                             .foregroundStyle(.white.opacity(0.85))
