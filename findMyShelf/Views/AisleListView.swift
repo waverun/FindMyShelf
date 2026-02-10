@@ -3,9 +3,15 @@ import FirebaseAuth
 import SwiftData
 //import PhotosUI
 
+final class UploadFlowCoordinator: ObservableObject {
+    @Published var requestUpload: Bool = false
+}
+
 struct AisleListView: View {
     @Environment(\.modelContext) private var context
-    
+    @EnvironmentObject private var uploadFlow: UploadFlowCoordinator
+    @Environment(\.dismiss) private var dismiss
+
     @EnvironmentObject private var firebase: FirebaseService
     
     let store: Store
@@ -257,6 +263,35 @@ struct AisleListView: View {
                     .disabled(newAisleName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
                 .padding()
+
+                Spacer()
+
+                Button {
+                    uploadFlow.requestUpload = true
+                    dismiss()
+                } label: {
+                    Label("Upload image", systemImage: "camera.viewfinder")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .fill(.ultraThinMaterial)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .strokeBorder(.white.opacity(0.15), lineWidth: 1)
+                        )
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 8)
+//                Spacer()
+//
+//                Button("Upload via ContentView") {
+//                    uploadFlow.requestUpload = true
+//                    dismiss() // go back
+//                }
             }
             .contentShape(Rectangle())     // חשוב!
             .onTapGesture {

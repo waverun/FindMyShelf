@@ -14,7 +14,8 @@ enum AppColors {
 
 struct ContentView: View {
     @EnvironmentObject private var firebase: FirebaseService   // ✅ add
-    
+    @EnvironmentObject private var uploadFlow: UploadFlowCoordinator
+
     // MARK: - Reporting (store-level)
     
 #if DEBUG
@@ -352,6 +353,21 @@ struct ContentView: View {
                             dismissKeyboard()
                         }
                     )
+                    .onChange(of: uploadFlow.requestUpload) { _, v in
+                        guard v else { return }
+                        uploadFlow.requestUpload = false
+
+                        // do exactly what your Upload button does:
+                        if Auth.auth().currentUser == nil || (Auth.auth().currentUser?.isAnonymous ?? true) {
+                            showLoginRequiredAlert = true
+                            return
+                        }
+                        if showDemoUploadChooser {
+                            showDemoUploadSheet = true
+                        } else {
+                            showPhotoSourceDialog = true
+                        }
+                    }
                     .onChange(of: isHelpExpanded) { _, newValue in
                         // If there are no stores yet, we still allow hiding tips.
                         // Just clear the store search field to avoid a "search stores" mode with no data.
