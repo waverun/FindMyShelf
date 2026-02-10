@@ -34,6 +34,13 @@ struct ConfirmImageSheet: View {
                 Text("Use this photo?")
                     .font(.headline)
 
+                Text("Privacy: the photo is used only to extract text. " +
+                     "The image itself is not stored.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 24)
+                
                 Text("The app will analyze the aisle sign and add an aisle.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
