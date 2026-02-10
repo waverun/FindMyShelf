@@ -428,11 +428,37 @@ exports.openaiAisleVisionProxy = onCall(
         "aisle_code (string|null), keywords_original (array of strings), " +
         "keywords_en (array of strings). " +
         "Rules: " +
-        "1) keywords should be short and useful. " +
-        "2) Do not invent brands not seen. " +
-        "3) If Hebrew exists, put it in title_original/keywords_original. " +
-        "4) If English exists, put it in title_en/keywords_en. " +
-        "5) If there is a clear aisle code/number (like 'A12'), put it in aisle_code.";
+        "1) Identify the original language of the sign text. " +
+        "2) The original language may be any language. " +
+        "3) Extract keywords from sign text only. " +
+        "4) Each line usually contains one keyword, but may contain several. " +
+        "5) keywords_original must be in the sign's original language. " +
+        "6) If original language is NOT English, translate keywords to English. " +
+        "7) Put translations in keywords_en. " +
+        "8) If original language IS English, keywords_en = keywords_original. " +
+        "9) Keywords MUST be meaningful words (products/categories) only. Not numbers or codes." +
+        "10) NEVER include pure numbers as keywords. " +
+        "11) Remove any keyword that contains no letters (digits/symbols only). " +
+        "12) If a line has only digits/codes, do NOT add it to keywords arrays. " +
+        "13) IMPORTANT: Title may include digits/codes if it is the heading. " +
+        "14) Use title_original for the main heading as shown on the sign. " +
+        "15) If title_original is not English, translate it into title_en. " +
+        "16) If title_original is English, title_en equals title_original. " +
+        "17) If a clear aisle code exists (e.g. A12, 12, Row 7), set aisle_code. " +
+        "18) Otherwise, set aisle_code to null. " +
+        "19) Do not invent brands or words not clearly visible on the sign.";
+
+        // const userText =
+        // "Return ONLY valid JSON with keys: " +
+        // "title_original (string|null), title_en (string|null), " +
+        // "aisle_code (string|null), keywords_original (array of strings), " +
+        // "keywords_en (array of strings). " +
+        // "Rules: " +
+        // "1) keywords should be short and useful. " +
+        // "2) Do not invent brands not seen. " +
+        // "3) If Hebrew exists, put it in title_original/keywords_original. " +
+        // "4) If English exists, put it in title_en/keywords_en. " +
+        // "5) If there is a clear aisle code/number (like 'A12'), put it in aisle_code.";
 
         const imageUrl = ["data:", mime, ";base64,", b64].join("");
 
