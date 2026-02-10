@@ -24,6 +24,8 @@ struct ContentView: View {
 
     @State private var shouldRestoreSelectedStoreGuideCard: Bool = false
 
+    @State private var didShowSelectedStoreFirstTimeThisRun: Bool = false
+
     @State private var showReportSheet: Bool = false
     @State private var selectedStoreUpdatedByUserId: String? = nil
     
