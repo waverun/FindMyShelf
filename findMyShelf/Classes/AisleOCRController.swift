@@ -63,24 +63,26 @@ final class AisleOCRController: ObservableObject {
                 !titleEn.isEmpty ? titleEn :
                 (!titleOriginal.isEmpty ? titleOriginal : "")
 
+                // בונים את כל המילים מראש
+                var allKeywords: [String] = []
+                allKeywords.append(contentsOf: result.keywords_original)
+                allKeywords.append(contentsOf: result.keywords_en)
+                if !titleOriginal.isEmpty { allKeywords.append(titleOriginal) }
+                if !titleEn.isEmpty { allKeywords.append(titleEn) }
+                let cleaned = sanitizeKeywords(allKeywords)
+
                 guard !displayTitle.isEmpty else {
+                    await firebase.logApiError(
+                        endpoint: "AisleOCR.processImage",
+                        message: "No aisle title could be detected…",
+                        additionalData: [
+                            "storeId": store.id.uuidString,
+                            "keywords": cleaned
+                        ]
+                    )
                     onBanner("No aisle title could be detected from the sign", true)
                     return
                 }
-
-                // keywords
-                var all: [String] = []
-                all.append(contentsOf: result.keywords_original)
-                all.append(contentsOf: result.keywords_en)
-                if !titleOriginal.isEmpty { all.append(titleOriginal) }
-                if !titleEn.isEmpty { all.append(titleEn) }
-
-                // ✅ filter keywords BEFORE creating the aisle
-                let cleaned = sanitizeKeywords(all)
-
-                let uniqueKeywords = Array(
-                    Set(cleaned.map { $0.lowercased() })
-                ).sorted()
 
 //                // keywords
 //                var all: [String] = []
@@ -89,13 +91,15 @@ final class AisleOCRController: ObservableObject {
 //                if !titleOriginal.isEmpty { all.append(titleOriginal) }
 //                if !titleEn.isEmpty { all.append(titleEn) }
 //
+//                // ✅ filter keywords BEFORE creating the aisle
+//                let cleaned = sanitizeKeywords(all)
+
 //                let uniqueKeywords = Array(
-//                    Set(
-//                        all.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-//                            .filter { !$0.isEmpty }
-//                            .map { $0.lowercased() }
-//                    )
+//                    Set(cleaned.map { $0.lowercased() })
 //                ).sorted()
+
+                // בשאר הקוד אתה יכול להשתמש ב־cleaned לבניית uniqueKeywords
+                let uniqueKeywords = Array(Set(cleaned.map { $0.lowercased() })).sorted()
 
                 // prevent duplicates (local)
                 let storeID = store.id
