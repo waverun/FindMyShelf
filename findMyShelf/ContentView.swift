@@ -20,7 +20,9 @@ struct ContentView: View {
 #if DEBUG
     @State private var goToReportsAdmin: Bool = false
 #endif
-    
+
+    @State private var shouldRestoreSelectedStoreGuideCard: Bool = false
+
     @State private var showReportSheet: Bool = false
     @State private var selectedStoreUpdatedByUserId: String? = nil
     
@@ -319,378 +321,322 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .top) {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 18) {
-                        if selectedStore == nil {
-                            storeDiscoverySection
-                        } else {
-                            selectedStoreSection
-                            actionsSection
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 18) {
+                            if selectedStore == nil {
+                                storeDiscoverySection
+                            } else {
+                                selectedStoreSection
+                                actionsSection
+                            }
+
+                            devLinksSection
+
+                            Spacer(minLength: 24)
                         }
-                        
-                        devLinksSection
-                        
-                        Spacer(minLength: 24)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 12)
+                        .padding(.bottom, 24)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 12)
-                    .padding(.bottom, 24)
-                }
-                .safeAreaInset(edge: .bottom) {
-                    if selectedStore == nil {
-                        bottomButtonsBar
-                    } else {
-                        selectedStoreButtonsBar
+                    .safeAreaInset(edge: .bottom) {
+                        if selectedStore == nil {
+                            bottomButtonsBar
+                        } else {
+                            selectedStoreButtonsBar
+                        }
                     }
-                }
-                .simultaneousGesture(
-                    TapGesture().onEnded {
+                    .simultaneousGesture(
+                        TapGesture().onEnded {
+                            isQuickQueryFocused = false
+                            dismissKeyboard()
+                        }
+                    )
+                    .onChange(of: isHelpExpanded) { _, newValue in
+                        // If there are no stores yet, we still allow hiding tips.
+                        // Just clear the store search field to avoid a "search stores" mode with no data.
+                        if newValue == false && finder.results.isEmpty {
+                            savedStoreSearch = ""
+                        }
+
+                        // When switching modes, clear the other search field and close keyboard.
+                        if newValue {
+                            savedStoreSearch = ""
+                        } else {
+                            helpFilterText = ""
+                        }
                         isQuickQueryFocused = false
                         dismissKeyboard()
                     }
-                )
-                .onChange(of: isHelpExpanded) { _, newValue in
-                    // If there are no stores yet, we still allow hiding tips.
-                    // Just clear the store search field to avoid a "search stores" mode with no data.
-                    if newValue == false && finder.results.isEmpty {
-                        savedStoreSearch = ""
-                    }
-                    
-                    // When switching modes, clear the other search field and close keyboard.
-                    if newValue {
-                        savedStoreSearch = ""
-                    } else {
-                        helpFilterText = ""
-                    }
-                    isQuickQueryFocused = false
-                    dismissKeyboard()
-                }
-                .scrollDismissesKeyboard(.interactively)
-                .ignoresSafeArea(.keyboard, edges: .bottom)
-            }
-            .safeAreaInset(edge: .top) {
-                if let bannerText {
-                    BannerView(text: bannerText, isError: bannerIsError) {
-                        withAnimation { self.bannerText = nil }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                    .zIndex(999)
-                }
-            }
-            .navigationTitle("FindMyShelf")
-            .navigationBarTitleDisplayMode(.large)
-            .onAppear {
-                setupNavigationTitleColor(color: AppColors.logoOrangeDark)
-                if locationManager.authorizationStatus == .authorizedWhenInUse || locationManager.authorizationStatus == .authorizedAlways {
-                    locationManager.startUpdating()
-                }
-
-                if let store = selectedStore {
-                    Task { await startAislesSyncIfPossible(for: store) }
-                    
-                    Task { @MainActor in
-                        await ensureStoreRemoteId(store)
-                        if let rid = store.remoteId {
-                            do {
-                                let attr = try await firebase.fetchStoreAttribution(storeRemoteId: rid)
-                                selectedStoreUpdatedByUserId = attr.updatedBy
-                            } catch {
-                                selectedStoreUpdatedByUserId = nil
+                    .scrollDismissesKeyboard(.interactively)
+                    .ignoresSafeArea(.keyboard, edges: .bottom)
+                    // לדוגמה: אחרי .ignoresSafeArea(.keyboard, edges: .bottom) ב‑ScrollView
+                    .onChange(of: isQuickQueryFocused) { _, isFocused in
+                        DispatchQueue.main.async {
+                            withAnimation {
+                                if isFocused {
+                                    proxy.scrollTo("quickQueryField", anchor: .top)
+                                } else {
+                                    proxy.scrollTo("quickQueryField", anchor: .center)
+                                }
                             }
                         }
                     }
                 }
+                .safeAreaInset(edge: .top) {
+                    if let bannerText {
+                        BannerView(text: bannerText, isError: bannerIsError) {
+                            withAnimation { self.bannerText = nil }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .zIndex(999)
+                    }
+                }
+                .navigationTitle("FindMyShelf")
+                .navigationBarTitleDisplayMode(.large)
+                .onAppear {
+                    setupNavigationTitleColor(color: AppColors.logoOrangeDark)
+                    if locationManager.authorizationStatus == .authorizedWhenInUse || locationManager.authorizationStatus == .authorizedAlways {
+                        locationManager.startUpdating()
+                    }
+
+                    if let store = selectedStore {
+                        Task { await startAislesSyncIfPossible(for: store) }
+
+                        Task { @MainActor in
+                            await ensureStoreRemoteId(store)
+                            if let rid = store.remoteId {
+                                do {
+                                    let attr = try await firebase.fetchStoreAttribution(storeRemoteId: rid)
+                                    selectedStoreUpdatedByUserId = attr.updatedBy
+                                } catch {
+                                    selectedStoreUpdatedByUserId = nil
+                                }
+                            }
+                        }
+                    }
+                }
+                .sheet(isPresented: $showReportSheet) {
+                    ReportUserSheet(
+                        title: selectedStore != nil ? "Report last editor" : "Report",
+                        onCancel: { showReportSheet = false },
+                        onSubmit: { reason, details in
+
+                            guard let reporterId = Auth.auth().currentUser?.uid else {
+                                showReportSheet = false
+                                showLoginRequiredAlert = true
+                                return
+                            }
+
+                            // Target = last editor of selected store (best available signal right now)
+                            let targetUserId = selectedStoreUpdatedByUserId ?? "unknown_target"
+                            let storeRid = selectedStore?.remoteId
+
+                            Task { @MainActor in
+                                do {
+                                    try await firebase.submitUserReport(
+                                        reportedUserId: targetUserId,
+                                        reporterUserId: reporterId,
+                                        reason: reason ?? "no_reason_selected",
+                                        details: details,
+                                        storeRemoteId: storeRid,
+                                        context: selectedStore != nil ? "store_last_editor" : "general"
+                                    )
+                                    showReportSheet = false
+                                    showBanner("Report submitted. Thank you.", isError: false)
+                                } catch {
+                                    showReportSheet = false
+                                    showBanner("Failed to submit report.", isError: true)
+                                }
+                            }
+                        }
+                    )
+                }
+                .sheet(isPresented: $isShowingCamera) {
+                    CameraImagePicker(isPresented: $isShowingCamera) { image in
+                        processImage(image)
+                    }
+                }
+                .sheet(isPresented: $showConfirmImageSheet) {
+                    ConfirmImageSheet(
+                        image: pendingImage,
+                        onCancel: {
+                            pendingImage = nil
+                            pickedPhotoItem = nil
+                            showConfirmImageSheet = false
+                        },
+                        onConfirm: { image in
+                            pendingImage = nil
+                            pickedPhotoItem = nil
+                            showConfirmImageSheet = false
+                            processImage(image)
+                        }
+                    )
+                }
+                .onChange(of: pickedPhotoItem) { _, newItem in
+                    if let item = newItem {
+                        handlePickedPhoto(item)
+                    }
+                }
+                .confirmationDialog(
+                    "Add aisle sign",
+                    isPresented: $showPhotoSourceDialog,
+                    titleVisibility: .visible
+                ) {
+                    Button("Take photo") {
+                        isQuickQueryFocused = false
+                        isShowingCamera = true
+                    }
+
+                    Button("Choose from library") {
+                        isQuickQueryFocused = false
+                        showPhotosPicker = true
+                    }
+
+                    Button("Cancel", role: .cancel) { }
+                } message: {
+                    Text("You can take a photo in the store or choose an existing image.")
+                }
+                .alert("Login required", isPresented: $showLoginRequiredAlert) {
+                    Button("Cancel", role: .cancel) {}
+
+                    Button("Continue with Google") {
+                        Task { @MainActor in
+                            try? await signInWithGoogle()
+                        }
+                    }
+
+                    Button("Continue with Apple") {
+                        Task { @MainActor in
+                            loginAppleCoordinator.start()
+                        }
+                    }
+                } message: {
+                    Text("Please sign in to upload images.")
+                }
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        AuthButtons()
+                    }
+
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button("Done") {
+                            isQuickQueryFocused = false
+                            dismissKeyboard()
+                        }
+                    }
+                }
+                .navigationDestination(isPresented: $goToAisles) {
+                    if let store = selectedStore {
+                        AisleListView(store: store, initialSelectedAisleID: pendingAisleToSelectID)
+                            .onDisappear {
+                                pendingAisleToSelectID = nil
+                            }
+                    }
+                }
+
+                .navigationDestination(isPresented: $goToSearch) {
+                    if let store = selectedStore {
+                        ProductSearchView(store: store, initialQuery: pendingProductQuery)
+                    }
+                }
+#if DEBUG
+                .navigationDestination(isPresented: $goToReportsAdmin) {
+                    ReportsAdminView(firebase: firebase)
+                }
+#endif
             }
-            .sheet(isPresented: $showReportSheet) {
-                ReportUserSheet(
-                    title: selectedStore != nil ? "Report last editor" : "Report",
-                    onCancel: { showReportSheet = false },
-                    onSubmit: { reason, details in
-                        
-                        guard let reporterId = Auth.auth().currentUser?.uid else {
-                            showReportSheet = false
+            .onChange(of: selectedStoreId) { _, newValue in
+                //            if newValue != nil {
+                //                showFirstGuideNow = false
+                //            }
+
+                if newValue == nil {
+                    Task { @MainActor in stopAislesSync() }
+                    return
+                }
+                guard let store = selectedStore else { return }
+                Task { await ensureStoreRemoteId(store)
+                    Task { @MainActor in
+                        guard let rid = store.remoteId else {
+                            selectedStoreUpdatedByUserId = nil
+                            return
+                        }
+                        do {
+                            let attr = try await firebase.fetchStoreAttribution(storeRemoteId: rid)
+                            selectedStoreUpdatedByUserId = attr.updatedBy
+                        } catch {
+                            selectedStoreUpdatedByUserId = nil
+                        }
+                    }
+                    await startAislesSyncIfPossible(for: store) }
+            }
+            .sheet(isPresented: $showManualStoreSheet) {
+                ManualStoreSheet(
+                    existingStores: stores,
+                    onPickExisting: { store in
+                        selectedStoreId = store.id.uuidString
+                        showManualStoreSheet = false
+                    },
+                    onSaveNew: { name, address, city in
+                        if Auth.auth().currentUser == nil ||
+                            (Auth.auth().currentUser?.isAnonymous ?? true) {
+                            showManualStoreSheet = false
                             showLoginRequiredAlert = true
                             return
                         }
-                        
-                        // Target = last editor of selected store (best available signal right now)
-                        let targetUserId = selectedStoreUpdatedByUserId ?? "unknown_target"
-                        let storeRid = selectedStore?.remoteId
-                        
-                        Task { @MainActor in
-                            do {
-                                try await firebase.submitUserReport(
-                                    reportedUserId: targetUserId,
-                                    reporterUserId: reporterId,
-                                    reason: reason ?? "no_reason_selected",
-                                    details: details,
-                                    storeRemoteId: storeRid,
-                                    context: selectedStore != nil ? "store_last_editor" : "general"
-                                )
-                                showReportSheet = false
-                                showBanner("Report submitted. Thank you.", isError: false)
-                            } catch {
-                                showReportSheet = false
-                                showBanner("Failed to submit report.", isError: true)
-                            }
-                        }
-                    }
-                )
-            }
-            .sheet(isPresented: $isShowingCamera) {
-                CameraImagePicker(isPresented: $isShowingCamera) { image in
-                    processImage(image)
-                }
-            }
-            .sheet(isPresented: $showConfirmImageSheet) {
-                ConfirmImageSheet(
-                    image: pendingImage,
-                    onCancel: {
-                        pendingImage = nil
-                        pickedPhotoItem = nil
-                        showConfirmImageSheet = false
-                    },
-                    onConfirm: { image in
-                        pendingImage = nil
-                        pickedPhotoItem = nil
-                        showConfirmImageSheet = false
-                        processImage(image)
-                    }
-                )
-            }
-            .onChange(of: pickedPhotoItem) { _, newItem in
-                if let item = newItem {
-                    handlePickedPhoto(item)
-                }
-            }
-            .confirmationDialog(
-                "Add aisle sign",
-                isPresented: $showPhotoSourceDialog,
-                titleVisibility: .visible
-            ) {
-                Button("Take photo") {
-                    isQuickQueryFocused = false
-                    isShowingCamera = true
-                }
-                
-                Button("Choose from library") {
-                    isQuickQueryFocused = false
-                    showPhotosPicker = true
-                }
-                
-                Button("Cancel", role: .cancel) { }
-            } message: {
-                Text("You can take a photo in the store or choose an existing image.")
-            }
-            .alert("Login required", isPresented: $showLoginRequiredAlert) {
-                Button("Cancel", role: .cancel) {}
-                
-                Button("Continue with Google") {
-                    Task { @MainActor in
-                        try? await signInWithGoogle()
-                    }
-                }
-                
-                Button("Continue with Apple") {
-                    Task { @MainActor in
-                        loginAppleCoordinator.start()
-                    }
-                }
-            } message: {
-                Text("Please sign in to upload images.")
-            }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    AuthButtons()
-                }
-                
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Done") {
-                        isQuickQueryFocused = false
-                        dismissKeyboard()
-                    }
-                }
-            }
-            .navigationDestination(isPresented: $goToAisles) {
-                if let store = selectedStore {
-                    AisleListView(store: store, initialSelectedAisleID: pendingAisleToSelectID)
-                        .onDisappear {
-                            pendingAisleToSelectID = nil
-                        }
-                }
-            }
-            
-            .navigationDestination(isPresented: $goToSearch) {
-                if let store = selectedStore {
-                    ProductSearchView(store: store, initialQuery: pendingProductQuery)
-                }
-            }
-#if DEBUG
-            .navigationDestination(isPresented: $goToReportsAdmin) {
-                ReportsAdminView(firebase: firebase)
-            }
-#endif
-        }
-        .onChange(of: selectedStoreId) { _, newValue in
-            //            if newValue != nil {
-            //                showFirstGuideNow = false
-            //            }
-            
-            if newValue == nil {
-                Task { @MainActor in stopAislesSync() }
-                return
-            }
-            guard let store = selectedStore else { return }
-            Task { await ensureStoreRemoteId(store)
-                Task { @MainActor in
-                    guard let rid = store.remoteId else {
-                        selectedStoreUpdatedByUserId = nil
-                        return
-                    }
-                    do {
-                        let attr = try await firebase.fetchStoreAttribution(storeRemoteId: rid)
-                        selectedStoreUpdatedByUserId = attr.updatedBy
-                    } catch {
-                        selectedStoreUpdatedByUserId = nil
-                    }
-                }
-                await startAislesSyncIfPossible(for: store) }
-        }
-        .sheet(isPresented: $showManualStoreSheet) {
-            ManualStoreSheet(
-                existingStores: stores,
-                onPickExisting: { store in
-                    selectedStoreId = store.id.uuidString
-                    showManualStoreSheet = false
-                },
-                onSaveNew: { name, address, city in
-                    if Auth.auth().currentUser == nil ||
-                        (Auth.auth().currentUser?.isAnonymous ?? true) {
-                        showManualStoreSheet = false
-                        showLoginRequiredAlert = true
-                        return
-                    }
-                    
-                    let newStore = Store(name: name, addressLine: address, city: city)
-                    context.insert(newStore)
-                    do {
-                        try context.save()
-                        selectedStoreId = newStore.id.uuidString
-                        showManualStoreSheet = false
-                    } catch {
-                        showBanner("Failed to save the store", isError: true)
-                    }
-                },
-                onDelete: { store in
-                    // אם מוחקים חנות שנבחרה – נקה בחירה
-                    if selectedStoreId == store.id.uuidString {
-                        selectedStoreId = nil
-                    }
-                    if previousSelectedStoreId == store.id.uuidString {
-                        previousSelectedStoreId = nil
-                    }
-                    
-                    Task { @MainActor in
-                        await deleteStoreEverywhere(store)
-                        showManualStoreSheet = false
-                    }
-                },
-                onUpdate: { store, name, address, city in
-                    // 1) Update locally
-                    store.name = name
-                    store.addressLine = address
-                    store.city = city
-                    
-                    do {
-                        try context.save()
-                        showBanner("Store updated", isError: false)
-                    } catch {
-                        showBanner("Failed to update store locally", isError: true)
-                        return
-                    }
-                    
-                    // 2) Update Firebase
-                    Task { @MainActor in
-                        // ensure remoteId exists
-                        await ensureStoreRemoteId(store)
-                        
-                        guard let rid = store.remoteId else {
-                            showBanner("Store is not synced to Firebase", isError: true)
-                            return
-                        }
-                        
+
+                        let newStore = Store(name: name, addressLine: address, city: city)
+                        context.insert(newStore)
                         do {
-                            try await firebase.updateStore(
-                                storeRemoteId: rid,
-                                name: store.name,
-                                address: store.addressLine,
-                                city: store.city
-                            )
+                            try context.save()
+                            selectedStoreId = newStore.id.uuidString
+                            showManualStoreSheet = false
                         } catch {
-                            showBanner("Failed to update store in Firebase", isError: true)
+                            showBanner("Failed to save the store", isError: true)
                         }
-                    }
-                }
-            )
-        }
-        .sheet(isPresented: $showDemoUploadSheet) {
-            DemoUploadSheet(
-                onPickDemoImageNamed: { name in
-                    guard let img = UIImage(named: name) else {
-                        showBanner("Missing demo image asset: \(name)", isError: true)
-                        return
-                    }
-                    pendingImage = img
-                    showDemoUploadSheet = false
-                    showConfirmImageSheet = true
-                },
-                onDontShowAgain: {
-                    showDemoUploadChooser = false
-                    showDemoUploadSheet = false
-                    showPhotoSourceDialog = true   // recommended: continue now
-                },
-                onGotIt: {
-                    showDemoUploadSheet = false
-                    showPhotoSourceDialog = true
-                }
-            )
-        }
-        .sheet(isPresented: $showEditStoreSheet) {
-            if let store = editingStore {
-                EditStoreSheet(
-                    store: store,
-                    onSave: { updatedName, updatedAddress, updatedCity in
-                        
+                    },
+                    onDelete: { store in
+                        // אם מוחקים חנות שנבחרה – נקה בחירה
+                        if selectedStoreId == store.id.uuidString {
+                            selectedStoreId = nil
+                        }
+                        if previousSelectedStoreId == store.id.uuidString {
+                            previousSelectedStoreId = nil
+                        }
+
+                        Task { @MainActor in
+                            await deleteStoreEverywhere(store)
+                            showManualStoreSheet = false
+                        }
+                    },
+                    onUpdate: { store, name, address, city in
                         // 1) Update locally
-                        store.name = updatedName
-                        store.addressLine = updatedAddress
-                        store.city = updatedCity
-                        
+                        store.name = name
+                        store.addressLine = address
+                        store.city = city
+
                         do {
                             try context.save()
                             showBanner("Store updated", isError: false)
-                            
-                            let addr = storeAddressLine(store) ?? ""
-                            if addr.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                showSelectedStoreAddress = false
-                            }
                         } catch {
                             showBanner("Failed to update store locally", isError: true)
                             return
                         }
-                        
-                        // 2) Update Firebase  ✅ (same as ManualStoreSheet)
+
+                        // 2) Update Firebase
                         Task { @MainActor in
+                            // ensure remoteId exists
                             await ensureStoreRemoteId(store)
-                            
+
                             guard let rid = store.remoteId else {
                                 showBanner("Store is not synced to Firebase", isError: true)
                                 return
                             }
-                            
+
                             do {
                                 try await firebase.updateStore(
                                     storeRemoteId: rid,
@@ -705,13 +651,83 @@ struct ContentView: View {
                     }
                 )
             }
+            .sheet(isPresented: $showDemoUploadSheet) {
+                DemoUploadSheet(
+                    onPickDemoImageNamed: { name in
+                        guard let img = UIImage(named: name) else {
+                            showBanner("Missing demo image asset: \(name)", isError: true)
+                            return
+                        }
+                        pendingImage = img
+                        showDemoUploadSheet = false
+                        showConfirmImageSheet = true
+                    },
+                    onDontShowAgain: {
+                        showDemoUploadChooser = false
+                        showDemoUploadSheet = false
+                        showPhotoSourceDialog = true   // recommended: continue now
+                    },
+                    onGotIt: {
+                        showDemoUploadSheet = false
+                        showPhotoSourceDialog = true
+                    }
+                )
+            }
+            .sheet(isPresented: $showEditStoreSheet) {
+                if let store = editingStore {
+                    EditStoreSheet(
+                        store: store,
+                        onSave: { updatedName, updatedAddress, updatedCity in
+
+                            // 1) Update locally
+                            store.name = updatedName
+                            store.addressLine = updatedAddress
+                            store.city = updatedCity
+
+                            do {
+                                try context.save()
+                                showBanner("Store updated", isError: false)
+
+                                let addr = storeAddressLine(store) ?? ""
+                                if addr.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                    showSelectedStoreAddress = false
+                                }
+                            } catch {
+                                showBanner("Failed to update store locally", isError: true)
+                                return
+                            }
+
+                            // 2) Update Firebase  ✅ (same as ManualStoreSheet)
+                            Task { @MainActor in
+                                await ensureStoreRemoteId(store)
+
+                                guard let rid = store.remoteId else {
+                                    showBanner("Store is not synced to Firebase", isError: true)
+                                    return
+                                }
+
+                                do {
+                                    try await firebase.updateStore(
+                                        storeRemoteId: rid,
+                                        name: store.name,
+                                        address: store.addressLine,
+                                        city: store.city
+                                    )
+                                } catch {
+                                    showBanner("Failed to update store in Firebase", isError: true)
+                                }
+                            }
+                        }
+                    )
+                }
+            }
+            .photosPicker(
+                isPresented: $showPhotosPicker,
+                selection: $pickedPhotoItem,
+                matching: .images,
+                photoLibrary: .shared()
+            )
         }
-        .photosPicker(
-            isPresented: $showPhotosPicker,
-            selection: $pickedPhotoItem,
-            matching: .images,
-            photoLibrary: .shared()
-        )
     }
     
     // MARK: - Store discovery
@@ -925,6 +941,7 @@ struct ContentView: View {
                     
                     HStack(spacing: 10) {
                         TextField("What are you looking for?", text: $quickQuery)
+                            .id("quickQueryField")
                             .textFieldStyle(.roundedBorder)
                             .submitLabel(.search)
                             .focused($isQuickQueryFocused)
