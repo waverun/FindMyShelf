@@ -15,19 +15,19 @@ enum AppColors {
 struct ContentView: View {
     @EnvironmentObject private var firebase: FirebaseService   // ✅ add
     @EnvironmentObject private var uploadFlow: UploadFlowCoordinator
-
+    
     // MARK: - Reporting (store-level)
     
 #if DEBUG
     @State private var goToReportsAdmin: Bool = false
 #endif
-
+    
     @State private var showLongPressHint: Bool = false
-
+    
     @State private var shouldRestoreSelectedStoreGuideCard: Bool = false
-
+    
     @State private var didShowSelectedStoreFirstTimeThisRun: Bool = false
-
+    
     @State private var showReportSheet: Bool = false
     @State private var selectedStoreUpdatedByUserId: String? = nil
     
@@ -51,15 +51,15 @@ struct ContentView: View {
     @State private var showManualStoreSheet = false
     @State private var savedStoreSearch = ""
     @State private var helpFilterText: String = ""
-
+    
     @State private var pendingProductQuery: String = ""
     
-//    private var apiKey: String {
-//        Bundle.main.object(forInfoDictionaryKey: "OPENAI_API_KEY") as? String ?? ""
-//    }
+    //    private var apiKey: String {
+    //        Bundle.main.object(forInfoDictionaryKey: "OPENAI_API_KEY") as? String ?? ""
+    //    }
     
-//                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       }
-
+    //                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       }
+    
     private var previousStore: Store? {
         guard let idString = previousSelectedStoreId,
               let uuid = UUID(uuidString: idString) else { return nil }
@@ -77,32 +77,32 @@ struct ContentView: View {
     @FocusState private var isQuickQueryFocused: Bool
     
     @State private var showPhotosPicker: Bool = false
-
+    
     @State private var didSeeSelectedStoreGuide: Bool = false
     @State private var didSeeChooseStoreGuide: Bool = false
-
+    
     @State private var showDemoUploadSheet: Bool = false
-
+    
     @State private var debugFunctionOutput: String = ""
     @State private var isCallingFunction: Bool = false
-
+    
     private var functions: Functions {
         Functions.functions(region: "us-central1")
     }
-
+    
     @StateObject private var locationManager = LocationManager()
     @StateObject private var finder = StoreFinder()
     
     @Environment(\.modelContext) private var context
     @Query(sort: \Store.createdAt) private var stores: [Store]
-
+    
     @AppStorage("showDemoUploadChooser") private var showDemoUploadChooser: Bool = true
-
+    
     @AppStorage("showChooseStoreGuideCard") private var showChooseStoreGuideCard: Bool = true
     @AppStorage("showSelectedStoreGuideCard") private var showSelectedStoreGuideCard: Bool = true
-
+    
     @AppStorage("isHelpExpanded") private var isHelpExpanded: Bool = true
-
+    
     @AppStorage("selectedStoreId") private var selectedStoreId: String?
     @AppStorage("previousSelectedStoreId") private var previousSelectedStoreId: String?
     
@@ -210,7 +210,7 @@ struct ContentView: View {
             .padding(.bottom, 10)
             .background(.ultraThinMaterial)
             .ignoresSafeArea(.keyboard, edges: .bottom)
-
+            
             if showLongPressHint {
                 LongPressHintBubble {
                     withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
@@ -223,11 +223,11 @@ struct ContentView: View {
             }
         }
     }
-
+    
     private var selectedStoreButtonsBar: some View {
         ZStack(alignment: .topTrailing) {
             HStack(spacing: 18) {
-
+                
                 // Back / Change store
                 IconBarButton(
                     systemImage: "arrow.uturn.backward",
@@ -239,7 +239,7 @@ struct ContentView: View {
                     quickQuery = ""
                     showSelectedStoreAddress = false
                 }
-
+                
                 // Open aisle map (aka "Lines")
                 IconBarButton(
                     systemImage: "list.bullet",
@@ -249,7 +249,7 @@ struct ContentView: View {
                 ) {
                     goToAisles = true
                 }
-
+                
                 // Product search screen
                 IconBarButton(
                     systemImage: "magnifyingglass",
@@ -259,7 +259,7 @@ struct ContentView: View {
                     pendingProductQuery = ""      // optional: start blank
                     goToSearch = true
                 }
-
+                
                 // Add aisle sign (camera)
                 IconBarButton(
                     systemImage: "camera.viewfinder",
@@ -267,7 +267,7 @@ struct ContentView: View {
                     isEnabled: (selectedStore != nil) && !ocr.isProcessingOCR
                 ) {
                     guard selectedStore != nil else { return }
-
+                    
                     if Auth.auth().currentUser == nil ||
                         (Auth.auth().currentUser?.isAnonymous ?? true) {
                         showLoginRequiredAlert = true
@@ -275,7 +275,7 @@ struct ContentView: View {
                     }
                     showPhotoSourceDialog = true
                 }
-
+                
                 IconBarButton(
                     systemImage: "exclamationmark.bubble",
                     accessibilityLabel: "Report a user",
@@ -283,7 +283,7 @@ struct ContentView: View {
                 ) {
                     showReportSheet = true
                 }
-
+                
                 IconBarButton(
                     systemImage: "questionmark.circle",
                     accessibilityLabel: "Help",
@@ -293,7 +293,7 @@ struct ContentView: View {
                         showLongPressHint.toggle()
                     }
                 }
-
+                
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 16)
@@ -301,7 +301,7 @@ struct ContentView: View {
             .padding(.bottom, 10)
             .background(.ultraThinMaterial)
             .ignoresSafeArea(.keyboard, edges: .bottom)
-
+            
             if showLongPressHint {
                 LongPressHintBubble {
                     withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
@@ -381,9 +381,9 @@ struct ContentView: View {
                                 selectedStoreSection
                                 actionsSection
                             }
-
+                            
                             devLinksSection
-
+                            
                             Spacer(minLength: 24)
                         }
                         .padding(.horizontal, 16)
@@ -406,7 +406,7 @@ struct ContentView: View {
                     .onChange(of: uploadFlow.requestUpload) { _, v in
                         guard v else { return }
                         uploadFlow.requestUpload = false
-
+                        
                         // do exactly what your Upload button does:
                         if Auth.auth().currentUser == nil || (Auth.auth().currentUser?.isAnonymous ?? true) {
                             showLoginRequiredAlert = true
@@ -424,7 +424,7 @@ struct ContentView: View {
                         if newValue == false && finder.results.isEmpty {
                             savedStoreSearch = ""
                         }
-
+                        
                         // When switching modes, clear the other search field and close keyboard.
                         if newValue {
                             savedStoreSearch = ""
@@ -467,10 +467,10 @@ struct ContentView: View {
                     if locationManager.authorizationStatus == .authorizedWhenInUse || locationManager.authorizationStatus == .authorizedAlways {
                         locationManager.startUpdating()
                     }
-
+                    
                     if let store = selectedStore {
                         Task { await startAislesSyncIfPossible(for: store) }
-
+                        
                         Task { @MainActor in
                             await ensureStoreRemoteId(store)
                             if let rid = store.remoteId {
@@ -489,17 +489,17 @@ struct ContentView: View {
                         title: selectedStore != nil ? "Report last editor" : "Report",
                         onCancel: { showReportSheet = false },
                         onSubmit: { reason, details in
-
+                            
                             guard let reporterId = Auth.auth().currentUser?.uid else {
                                 showReportSheet = false
                                 showLoginRequiredAlert = true
                                 return
                             }
-
+                            
                             // Target = last editor of selected store (best available signal right now)
                             let targetUserId = selectedStoreUpdatedByUserId ?? "unknown_target"
                             let storeRid = selectedStore?.remoteId
-
+                            
                             Task { @MainActor in
                                 do {
                                     try await firebase.submitUserReport(
@@ -555,25 +555,25 @@ struct ContentView: View {
                         isQuickQueryFocused = false
                         isShowingCamera = true
                     }
-
+                    
                     Button("Choose from library") {
                         isQuickQueryFocused = false
                         showPhotosPicker = true
                     }
-
+                    
                     Button("Cancel", role: .cancel) { }
                 } message: {
                     Text("You can take a photo in the store or choose an existing image.")
                 }
                 .alert("Login required", isPresented: $showLoginRequiredAlert) {
                     Button("Cancel", role: .cancel) {}
-
+                    
                     Button("Continue with Google") {
                         Task { @MainActor in
                             try? await signInWithGoogle()
                         }
                     }
-
+                    
                     Button("Continue with Apple") {
                         Task { @MainActor in
                             loginAppleCoordinator.start()
@@ -586,7 +586,7 @@ struct ContentView: View {
                     ToolbarItem(placement: .topBarTrailing) {
                         AuthButtons()
                     }
-
+                    
                     ToolbarItemGroup(placement: .keyboard) {
                         Spacer()
                         Button("Done") {
@@ -603,7 +603,7 @@ struct ContentView: View {
                             }
                     }
                 }
-
+                
                 .navigationDestination(isPresented: $goToSearch) {
                     if let store = selectedStore {
                         ProductSearchView(store: store, initialQuery: pendingProductQuery)
@@ -619,7 +619,7 @@ struct ContentView: View {
                 //            if newValue != nil {
                 //                showFirstGuideNow = false
                 //            }
-
+                
                 if newValue == nil {
                     Task { @MainActor in stopAislesSync() }
                     return
@@ -654,7 +654,7 @@ struct ContentView: View {
                             showLoginRequiredAlert = true
                             return
                         }
-
+                        
                         let newStore = Store(name: name, addressLine: address, city: city)
                         context.insert(newStore)
                         do {
@@ -673,7 +673,7 @@ struct ContentView: View {
                         if previousSelectedStoreId == store.id.uuidString {
                             previousSelectedStoreId = nil
                         }
-
+                        
                         Task { @MainActor in
                             await deleteStoreEverywhere(store)
                             showManualStoreSheet = false
@@ -684,7 +684,7 @@ struct ContentView: View {
                         store.name = name
                         store.addressLine = address
                         store.city = city
-
+                        
                         do {
                             try context.save()
                             showBanner("Store updated", isError: false)
@@ -692,17 +692,17 @@ struct ContentView: View {
                             showBanner("Failed to update store locally", isError: true)
                             return
                         }
-
+                        
                         // 2) Update Firebase
                         Task { @MainActor in
                             // ensure remoteId exists
                             await ensureStoreRemoteId(store)
-
+                            
                             guard let rid = store.remoteId else {
                                 showBanner("Store is not synced to Firebase", isError: true)
                                 return
                             }
-
+                            
                             do {
                                 try await firebase.updateStore(
                                     storeRemoteId: rid,
@@ -744,16 +744,16 @@ struct ContentView: View {
                     EditStoreSheet(
                         store: store,
                         onSave: { updatedName, updatedAddress, updatedCity in
-
+                            
                             // 1) Update locally
                             store.name = updatedName
                             store.addressLine = updatedAddress
                             store.city = updatedCity
-
+                            
                             do {
                                 try context.save()
                                 showBanner("Store updated", isError: false)
-
+                                
                                 let addr = storeAddressLine(store) ?? ""
                                 if addr.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                                     showSelectedStoreAddress = false
@@ -762,16 +762,16 @@ struct ContentView: View {
                                 showBanner("Failed to update store locally", isError: true)
                                 return
                             }
-
+                            
                             // 2) Update Firebase  ✅ (same as ManualStoreSheet)
                             Task { @MainActor in
                                 await ensureStoreRemoteId(store)
-
+                                
                                 guard let rid = store.remoteId else {
                                     showBanner("Store is not synced to Firebase", isError: true)
                                     return
                                 }
-
+                                
                                 do {
                                     try await firebase.updateStore(
                                         storeRemoteId: rid,
@@ -812,17 +812,17 @@ struct ContentView: View {
                 
                 Spacer()
                 
-//                Group {
-//                    if finder.isSearching {
-//                        ProgressView().scaleEffect(0.9)
-//                    } else {
-//                        ProgressView().scaleEffect(0.9).hidden()
-//                    }
-//                }
+                //                Group {
+                //                    if finder.isSearching {
+                //                        ProgressView().scaleEffect(0.9)
+                //                    } else {
+                //                        ProgressView().scaleEffect(0.9).hidden()
+                //                    }
+                //                }
             }
             if showChooseStoreGuideCard && !didSeeChooseStoreGuide {
                 let shouldShowEnableLocationHint = (locationManager.authorizationStatus == .notDetermined)
-
+                
                 ChooseStoreGuideCard(
                     showEnableLocationHint: shouldShowEnableLocationHint,
                     onGotIt: {
@@ -909,28 +909,77 @@ struct ContentView: View {
                 }
                 .padding(.top, 6)
             } else {
-//                EmptyStateCard(
-//                    title: "No stores shown yet",
-//                    subtitle: "Tap \"Find nearby stores\" to see stores around you.",
-//                    icon: "location.viewfinder"
-//                )
+                //                EmptyStateCard(
+                //                    title: "No stores shown yet",
+                //                    subtitle: "Tap \"Find nearby stores\" to see stores around you.",
+                //                    icon: "location.viewfinder"
+                //                )
+                let status = locationManager.authorizationStatus
+                
+                let config: (icon: String, buttonIcon: String, title: String, action: () -> Void) = {
+                    switch status {
+                        case .notDetermined:
+                            return (
+                                icon: "location",
+                                buttonIcon: "location",
+                                title: "Location permission needed",
+                                action: {
+                                    locationManager.requestPermission()
+                                }
+                            )
+                            
+                        case .denied, .restricted:
+                            return (
+                                icon: "gearshape",
+                                buttonIcon: "gearshape",
+                                title: "Location is disabled",
+                                action: {
+                                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                                        UIApplication.shared.open(url)
+                                    }
+                                }
+                            )
+                            
+                        case .authorizedWhenInUse, .authorizedAlways:
+                            return (
+                                icon: "magnifyingglass",
+                                buttonIcon: "magnifyingglass",
+                                title: "No stores shown yet",
+                                action: {
+                                    guard let loc = locationManager.currentLocation else { return }
+                                    finder.searchNearby(from: loc)
+                                }
+                            )
+                            
+                        default:
+                            return (
+                                icon: "magnifyingglass",
+                                buttonIcon: "magnifyingglass",
+                                title: "No stores shown yet",
+                                action: {
+                                    guard let loc = locationManager.currentLocation else { return }
+                                    finder.searchNearby(from: loc)
+                                }
+                            )
+                    }
+                }()
+                
                 EmptyStateActionCard(
-                    title: "No stores shown yet",
-                    icon: "magnifyingglass",
+                    title: config.title,
+                    icon: config.icon,
                     prefixText: "Tap",
-                    buttonSystemImage: "magnifyingglass",
-                    buttonA11yLabel: "Find nearby stores",
-                    suffixText: "to search nearby stores.",
-                    isEnabled: hasLocation
+                    buttonSystemImage: config.buttonIcon,
+                    buttonA11yLabel: "Primary action",
+                    suffixText: "to continue.",
+                    isEnabled: true
                 ) {
-                    guard let loc = locationManager.currentLocation else { return }
-                    finder.searchNearby(from: loc)
+                    config.action()
                 }
                 .padding(.bottom, 6)
                 // Keep the tips visible even when there are no results
                 // (already shown above, but this adds a clear visual anchor)
                 Divider().padding(.vertical, 4)
-
+                
                 if finder.isSearching {
                     HStack {
                         Spacer()
@@ -956,13 +1005,13 @@ struct ContentView: View {
     }
     
     // MARK: - Selected store
-
+    
     private var selectedStoreSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Your store")
                 .font(.headline)
                 .foregroundStyle(AppColors.headingColor)
-
+            
             if let store = selectedStore {
                 SelectedStoreCard(
                     title: store.name,
@@ -986,7 +1035,7 @@ struct ContentView: View {
                         showSelectedStoreAddress = false
                     }
                 )
-
+                
                 if showSelectedStoreGuideCard && !didSeeSelectedStoreGuide {
                     SelectedStoreGuideCard(
                         aisleCount: aisleCount(for: store),
@@ -1003,7 +1052,7 @@ struct ContentView: View {
             }
         }
     }
-
+    
     // MARK: - Actions
     
     private var actionsSection: some View {
@@ -1011,7 +1060,7 @@ struct ContentView: View {
             Text("Actions")
                 .font(.headline)
                 .foregroundStyle(AppColors.headingColor)
-
+            
             ActionCard {
                 VStack(alignment: .leading, spacing: 10) {
                     Label("Search for a product", systemImage: "magnifyingglass")
@@ -1059,7 +1108,7 @@ struct ContentView: View {
                     Text("Take or select a photo of an aisle sign and the app will detect and add the aisle.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-
+                    
                     HStack {
                         Button {
                             guard selectedStore != nil else { return }
@@ -1102,12 +1151,12 @@ struct ContentView: View {
                     Text("Tools")
                         .font(.headline)
                         .foregroundStyle(AppColors.headingColor)
-
+                    
 #if DEBUG
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Debug")
                             .font(.headline)
-
+                        
                         Button {
                             callOpenAIOcrProxyDebug()
                         } label: {
@@ -1137,7 +1186,7 @@ struct ContentView: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .disabled(isCallingFunction)
-
+                        
                         if !debugFunctionOutput.isEmpty {
                             ScrollView {
                                 Text(debugFunctionOutput)
@@ -1175,7 +1224,7 @@ struct ContentView: View {
             }
         }
     }
-
+    
     // MARK: - Help / Tips
     
     private struct HelpTip: Identifiable {
@@ -1241,26 +1290,26 @@ struct ContentView: View {
             tip.body.localizedCaseInsensitiveContains(q)
         }
     }
-
+    
     private struct DemoUploadSheet: View {
         let onPickDemoImageNamed: (String) -> Void
         let onDontShowAgain: () -> Void
         let onGotIt: () -> Void
-
+        
         private let demoNames = ["demo_aisle_1", "demo_aisle_2", "demo_aisle_3"]
         @Environment(\.dismiss) private var dismiss    // ← מתווסף
-
+        
         var body: some View {
             NavigationStack {
                 VStack(alignment: .leading, spacing: 16) {
                     Text("Try a demo picture")
                         .font(.headline)
                         .foregroundStyle(AppColors.headingColor)
-
+                    
                     Text("Pick a sample aisle sign photo, or press Got it to use your own photo.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-
+                    
                     HStack(spacing: 12) {
                         ForEach(demoNames, id: \.self) { name in
                             Button {
@@ -1271,9 +1320,9 @@ struct ContentView: View {
                             .buttonStyle(.plain)
                         }
                     }
-
+                    
                     Spacer(minLength: 8)
-
+                    
                     VStack(spacing: 12) {
                         // Row 1: Got it centered (below thumbnails)
                         HStack {
@@ -1282,7 +1331,7 @@ struct ContentView: View {
                                 .buttonStyle(.borderedProminent)
                             Spacer()
                         }
-
+                        
                         Spacer()
                         
                         // Row 2: Don’t show again centered (last line)
@@ -1307,10 +1356,10 @@ struct ContentView: View {
                 }
             }
         }
-
+        
         private struct DemoThumb: View {
             let name: String
-
+            
             var body: some View {
                 ZStack {
                     if let ui = UIImage(named: name) {
@@ -1341,7 +1390,7 @@ struct ContentView: View {
             }
         }
     }
-
+    
     private struct HelpTipCard: View {
         let tip: HelpTip
         
@@ -1385,7 +1434,7 @@ struct ContentView: View {
             )
         }
     }
-
+    
     private func aisleCount(for store: Store) -> Int {
         let storeUUID = store.id
         let descriptor = FetchDescriptor<Aisle>(
@@ -1393,7 +1442,7 @@ struct ContentView: View {
         )
         return (try? context.fetchCount(descriptor)) ?? 0
     }
-
+    
     @MainActor
     private func deleteStoreEverywhere(_ store: Store) async {
         // 1. Firebase (אם יש remoteId)
@@ -1439,9 +1488,9 @@ struct ContentView: View {
             localStoreId: store.id,
             context: context
         )
-
+        
         firebase.startProductsListener(storeRemoteId: storeRemoteId, localStoreId: store.id, context: context)
-
+        
         print("✅ Started aisles & products listeners for storeRemoteId:", storeRemoteId)
     }
     
@@ -1493,13 +1542,13 @@ struct ContentView: View {
         
         return nameMatch && latOk && lonOk
     }
-
+    
 #if DEBUG
     @MainActor
     private func callOpenAIOcrProxyDebug() {
         isCallingFunction = true
         debugFunctionOutput = ""
-
+        
         // 1) Load demo image from assets
         guard let img = UIImage(named: "demo_aisle_1") else {
             isCallingFunction = false
@@ -1507,7 +1556,7 @@ struct ContentView: View {
             showBanner("Missing demo image", isError: true)
             return
         }
-
+        
         // 2) Encode to JPEG → base64
         guard let jpeg = img.jpegData(compressionQuality: 0.85) else {
             isCallingFunction = false
@@ -1515,9 +1564,9 @@ struct ContentView: View {
             showBanner("JPEG encode failed", isError: true)
             return
         }
-
+        
         let base64 = jpeg.base64EncodedString()
-
+        
         // 3) Build payload for openaiOcrProxy
         let payload: [String: Any] = [
             "model": "gpt-5.2",
@@ -1527,15 +1576,15 @@ struct ContentView: View {
                 "detail": "high"
             ]
         ]
-
+        
         Task { @MainActor in
             do {
                 _ = try await ensureFirebaseUser()
-
+                
                 functions.httpsCallable("openaiOcrProxy").call(payload) { result, error in
                     Task { @MainActor in
                         isCallingFunction = false
-
+                        
                         if let nsError = error as NSError? {
                             var lines: [String] = []
                             lines.append("❌ openaiOcrProxy error")
@@ -1543,34 +1592,34 @@ struct ContentView: View {
                             lines.append("domain: \(nsError.domain)")
                             lines.append("code: \(nsError.code)")
                             lines.append("userInfo: \(nsError.userInfo)")
-
+                            
                             if let details = nsError.userInfo["details"] {
                                 lines.append("details: \(details)")
                             }
-
+                            
                             debugFunctionOutput = lines.joined(separator: "\n")
                             showBanner("openaiOcrProxy failed", isError: true)
                             return
                         }
-
+                        
                         guard let data = result?.data else {
                             debugFunctionOutput = "⚠️ openaiOcrProxy returned nil data"
                             showBanner("openaiOcrProxy returned nil", isError: true)
                             return
                         }
-
+                        
                         // Prefer showing OCR text if present
                         if let dict = data as? [String: Any] {
                             let ok = dict["ok"] as? Bool
                             let text = dict["text"] as? String
                             let linesArr = dict["lines"] as? [String]
                             let lang = dict["language"] as? String
-
+                            
                             var out: [String] = []
                             out.append("✅ openaiOcrProxy success")
                             out.append("ok: \(ok == true ? "true" : "false")")
                             if let lang { out.append("language: \(lang)") }
-
+                            
                             if let text, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                                 out.append("\n--- OCR TEXT ---\n\(text)")
                             } else if let linesArr, !linesArr.isEmpty {
@@ -1579,13 +1628,13 @@ struct ContentView: View {
                             } else {
                                 out.append("\n⚠️ No OCR text returned.")
                             }
-
+                            
                             debugFunctionOutput = out.joined(separator: "\n")
                         } else {
                             // Fallback pretty print
                             debugFunctionOutput = prettyString(from: data)
                         }
-
+                        
                         showBanner("openaiOcrProxy success", isError: false)
                     }
                 }
@@ -1596,26 +1645,26 @@ struct ContentView: View {
             }
         }
     }
-
+    
     @MainActor
     private func callOpenAIProxyDebug() {
         isCallingFunction = true
         debugFunctionOutput = ""
-
+        
         let payload: [String: Any] = [
             "prompt": "Say hello in one short sentence.",
             "model": "gpt-4.1-mini",
             "temperature": 0.2
         ]
-
+        
         Task { @MainActor in
             do {
                 _ = try await ensureFirebaseUser()
-
+                
                 functions.httpsCallable("openaiProxy").call(payload) { result, error in
                     Task { @MainActor in
                         isCallingFunction = false
-
+                        
                         if let nsError = error as NSError? {
                             var lines: [String] = []
                             lines.append("❌ openaiProxy error")
@@ -1623,22 +1672,22 @@ struct ContentView: View {
                             lines.append("domain: \(nsError.domain)")
                             lines.append("code: \(nsError.code)")
                             lines.append("userInfo: \(nsError.userInfo)")
-
+                            
                             if let details = nsError.userInfo["details"] {
                                 lines.append("details: \(details)")
                             }
-
+                            
                             debugFunctionOutput = lines.joined(separator: "\n")
                             showBanner("openaiProxy failed", isError: true)
                             return
                         }
-
+                        
                         guard let data = result?.data else {
                             debugFunctionOutput = "⚠️ openaiProxy returned nil data"
                             showBanner("openaiProxy returned nil", isError: true)
                             return
                         }
-
+                        
                         debugFunctionOutput = prettyString(from: data)
                         showBanner("openaiProxy success", isError: false)
                     }
@@ -1650,7 +1699,7 @@ struct ContentView: View {
             }
         }
     }
-
+    
     private func prettyString(from any: Any) -> String {
         // Try JSON pretty print first
         if JSONSerialization.isValidJSONObject(any),
@@ -1658,12 +1707,12 @@ struct ContentView: View {
            let s = String(data: data, encoding: .utf8) {
             return s
         }
-
+        
         // If it's already a dictionary/array but not valid JSON, fall back
         return String(describing: any)
     }
 #endif
-
+    
     private func startQuickSearch() {
         let trimmed = quickQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -1746,7 +1795,7 @@ struct ContentView: View {
         isQuickQueryFocused = false
         
         let fb = firebase   // ✅ capture EnvironmentObject value (not the wrapper)
-
+        
         ocr.processImage(
             image,
             store: store,
@@ -1769,30 +1818,30 @@ struct ContentView: View {
             firebase: firebase  // ← הוספת פרמטר
         )
         
-//        ocr.processImage(
-//            image,
-//            store: store,
-//            context: context,
-//            visionService: visionService,
-//            onBanner: { text, isError in
-//                showBanner(text, isError: isError)
-//            },
-//            onAisleCreated: { newId in
-//                pendingAisleToSelectID = newId
-//                goToAisles = true
-//            },
-//            onSyncToFirebase: { aisle in
-//                Task { @MainActor in
-//                    await fb.syncCreatedAisleToFirebase(
-//                        aisle,
-//                        store: store,
-//                        context: context
-//                    ) { msg in
-//                        showBanner(msg, isError: true)
-//                    }
-//                }
-//            }
-//        )
+        //        ocr.processImage(
+        //            image,
+        //            store: store,
+        //            context: context,
+        //            visionService: visionService,
+        //            onBanner: { text, isError in
+        //                showBanner(text, isError: isError)
+        //            },
+        //            onAisleCreated: { newId in
+        //                pendingAisleToSelectID = newId
+        //                goToAisles = true
+        //            },
+        //            onSyncToFirebase: { aisle in
+        //                Task { @MainActor in
+        //                    await fb.syncCreatedAisleToFirebase(
+        //                        aisle,
+        //                        store: store,
+        //                        context: context
+        //                    ) { msg in
+        //                        showBanner(msg, isError: true)
+        //                    }
+        //                }
+        //            }
+        //        )
     }
     
     
@@ -1902,7 +1951,7 @@ private struct SelectedStoreGuideCard: View {
     let aisleCount: Int
     let onGotIt: () -> Void
     let onDontShowAgain: () -> Void
-
+    
     private var recommendation: String {
         switch aisleCount {
             case 0...3:
@@ -1913,38 +1962,38 @@ private struct SelectedStoreGuideCard: View {
                 return "Press **Search** and search for a product (e.g. milk, rice)."
         }
     }
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 10) {
                 Image(systemName: "sparkles")
                     .font(.title3)
-
+                
                 VStack(alignment: .leading, spacing: 6) {
                     Text("What you can do here")
                         .font(.headline)
-
+                    
                     Text(
                         "You can search products in the aisles, upload or take a picture of an aisle sign, or add aisles manually using **Open aisle map**."
                     )
                     .font(.footnote)
                     .foregroundStyle(.secondary)
-
+                    
                     Text(recommendation)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
-
+                
                 Spacer()
             }
-
+            
             HStack(spacing: 10) {
                 Button("Don’t show again") { onDontShowAgain() }
                     .buttonStyle(.bordered)
-
+                
                 Button("Got it") { onGotIt() }
                     .buttonStyle(.borderedProminent)
-
+                
                 Spacer()
             }
         }
@@ -1962,7 +2011,7 @@ private struct ChooseStoreGuideCard: View {
     let showEnableLocationHint: Bool
     let onGotIt: () -> Void
     let onDontShowAgain: () -> Void
-
+    
     private var bodyText: String {
         if showEnableLocationHint {
             return "To find stores near you, first tap the 📍 button below (**Allow location**). Then tap 🔍 to search nearby stores. Or use “Add manually”."
@@ -1970,32 +2019,32 @@ private struct ChooseStoreGuideCard: View {
             return "First choose a store. Tap the 🔍 button below to find nearby stores, or use “Add manually”."
         }
     }
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 10) {
                 Image(systemName: "sparkles")
                     .font(.title3)
-
+                
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Welcome 👋")
                         .font(.headline)
-
+                    
                     Text(bodyText)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
-
+                
                 Spacer()
             }
-
+            
             HStack(spacing: 10) {
                 Button("Don’t show again") { onDontShowAgain() }
                     .buttonStyle(.bordered)
-
+                
                 Button("Got it") { onGotIt() }
                     .buttonStyle(.borderedProminent)
-
+                
                 Spacer()
             }
         }
@@ -2011,10 +2060,10 @@ private struct ChooseStoreGuideCard: View {
 
 private struct LongPressHintBubble: View {
     let onDismiss: () -> Void
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-
+            
             HStack {
                 Image(systemName: "hand.tap")
                 Text("Tip")
@@ -2027,11 +2076,11 @@ private struct LongPressHintBubble: View {
                         .font(.caption.bold())
                 }
             }
-
+            
             Text("You can long-press any button to see what it does.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
-
+            
         }
         .padding(14)
         .frame(width: 260)
