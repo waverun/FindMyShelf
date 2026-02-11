@@ -22,6 +22,8 @@ struct ContentView: View {
     @State private var goToReportsAdmin: Bool = false
 #endif
 
+    @State private var showLongPressHint: Bool = false
+
     @State private var shouldRestoreSelectedStoreGuideCard: Bool = false
 
     @State private var didShowSelectedStoreFirstTimeThisRun: Bool = false
@@ -110,68 +112,170 @@ struct ContentView: View {
     }
     
     private var bottomButtonsBar: some View {
-        HStack(spacing: 18) {
-            
-            // If location is blocked, the only meaningful action here is opening Settings.
-            if let status = locationManager.authorizationStatus,
-               status == .denied || status == .restricted {
+        ZStack(alignment: .topTrailing) {
+            HStack(spacing: 18) {
                 
+                // If location is blocked, the only meaningful action here is opening Settings.
+                if let status = locationManager.authorizationStatus,
+                   status == .denied || status == .restricted {
+                    
+                    IconBarButton(
+                        systemImage: "gearshape",
+                        accessibilityLabel: "Open Settings",
+                        isEnabled: true
+                    ) {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                } else {
+                    
+                    // Back to previous selected store
+                    if selectedStoreId == nil, let prev = previousSelectedStoreId, !prev.isEmpty {
+                        IconBarButton(
+                            systemImage: "arrow.uturn.backward",
+                            accessibilityLabel: "Back to selected store",
+                            isEnabled: true
+                        ) {
+                            selectedStoreId = prev
+                        }
+                    }
+                    
+                    // Allow location (only when not determined)
+                    if locationManager.authorizationStatus == .notDetermined {
+                        IconBarButton(
+                            systemImage: "location",
+                            accessibilityLabel: "Allow location",
+                            isEnabled: true
+                        ) {
+                            locationManager.requestPermission()
+                        }
+                    }
+                    
+                    // Refresh location
+                    IconBarButton(
+                        systemImage: "arrow.clockwise",
+                        accessibilityLabel: "Refresh location",
+                        isEnabled: isAuthorized
+                    ) {
+                        locationManager.startUpdating()
+                    }
+                    
+                    // Find nearby
+                    IconBarButton(
+                        systemImage: "magnifyingglass",
+                        accessibilityLabel: "Find nearby stores",
+                        isEnabled: hasLocation,
+                        isPrimary: true
+                    ) {
+                        guard let loc = locationManager.currentLocation else { return }
+                        finder.searchNearby(from: loc)
+                    }
+                    
+                    IconBarButton(
+                        systemImage: "exclamationmark.bubble",
+                        accessibilityLabel: "Report a user",
+                        isEnabled: true
+                    ) {
+                        showReportSheet = true
+                    }
+                    
+#if DEBUG
+                    IconBarButton(
+                        systemImage: "ladybug",
+                        accessibilityLabel: "Reports admin (Debug)",
+                        isEnabled: true
+                    ) {
+                        goToReportsAdmin = true
+                    }
+#endif
+                    IconBarButton(
+                        systemImage: "questionmark.circle",
+                        accessibilityLabel: "Help",
+                        isEnabled: true
+                    ) {
+                        withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                            showLongPressHint.toggle()
+                        }
+                    }
+                    
+                    Spacer(minLength: 0)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 10)
+            .padding(.bottom, 10)
+            .background(.ultraThinMaterial)
+            .ignoresSafeArea(.keyboard, edges: .bottom)
+
+            if showLongPressHint {
+                LongPressHintBubble {
+                    withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                        showLongPressHint = false
+                    }
+                }
+                .padding(.trailing, 12)
+                .offset(y: -70)   // מרים מעל ה-bar
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+    }
+
+    private var selectedStoreButtonsBar: some View {
+        ZStack(alignment: .topTrailing) {
+            HStack(spacing: 18) {
+
+                // Back / Change store
                 IconBarButton(
-                    systemImage: "gearshape",
-                    accessibilityLabel: "Open Settings",
+                    systemImage: "arrow.uturn.backward",
+                    accessibilityLabel: "Change store",
                     isEnabled: true
                 ) {
-                    if let url = URL(string: UIApplication.openSettingsURLString) {
-                        UIApplication.shared.open(url)
-                    }
+                    previousSelectedStoreId = selectedStoreId
+                    selectedStoreId = nil
+                    quickQuery = ""
+                    showSelectedStoreAddress = false
                 }
-                
-                Spacer()
-                
-            } else {
-                
-                // Back to previous selected store
-                if selectedStoreId == nil, let prev = previousSelectedStoreId, !prev.isEmpty {
-                    IconBarButton(
-                        systemImage: "arrow.uturn.backward",
-                        accessibilityLabel: "Back to selected store",
-                        isEnabled: true
-                    ) {
-                        selectedStoreId = prev
-                    }
-                }
-                
-                // Allow location (only when not determined)
-                if locationManager.authorizationStatus == .notDetermined {
-                    IconBarButton(
-                        systemImage: "location",
-                        accessibilityLabel: "Allow location",
-                        isEnabled: true
-                    ) {
-                        locationManager.requestPermission()
-                    }
-                }
-                
-                // Refresh location
+
+                // Open aisle map (aka "Lines")
                 IconBarButton(
-                    systemImage: "arrow.clockwise",
-                    accessibilityLabel: "Refresh location",
-                    isEnabled: isAuthorized
-                ) {
-                    locationManager.startUpdating()
-                }
-                
-                // Find nearby
-                IconBarButton(
-                    systemImage: "magnifyingglass",
-                    accessibilityLabel: "Find nearby stores",
-                    isEnabled: hasLocation,
+                    systemImage: "list.bullet",
+                    accessibilityLabel: "Open aisle map",
+                    isEnabled: (selectedStore != nil),
                     isPrimary: true
                 ) {
-                    guard let loc = locationManager.currentLocation else { return }
-                    finder.searchNearby(from: loc)
+                    goToAisles = true
                 }
-                
+
+                // Product search screen
+                IconBarButton(
+                    systemImage: "magnifyingglass",
+                    accessibilityLabel: "Search products",
+                    isEnabled: (selectedStore != nil)
+                ) {
+                    pendingProductQuery = ""      // optional: start blank
+                    goToSearch = true
+                }
+
+                // Add aisle sign (camera)
+                IconBarButton(
+                    systemImage: "camera.viewfinder",
+                    accessibilityLabel: "Add aisle sign (upload image)",
+                    isEnabled: (selectedStore != nil) && !ocr.isProcessingOCR
+                ) {
+                    guard selectedStore != nil else { return }
+
+                    if Auth.auth().currentUser == nil ||
+                        (Auth.auth().currentUser?.isAnonymous ?? true) {
+                        showLoginRequiredAlert = true
+                        return
+                    }
+                    showPhotoSourceDialog = true
+                }
+
                 IconBarButton(
                     systemImage: "exclamationmark.bubble",
                     accessibilityLabel: "Report a user",
@@ -179,92 +283,36 @@ struct ContentView: View {
                 ) {
                     showReportSheet = true
                 }
-                
-#if DEBUG
+
                 IconBarButton(
-                    systemImage: "ladybug",
-                    accessibilityLabel: "Reports admin (Debug)",
+                    systemImage: "questionmark.circle",
+                    accessibilityLabel: "Help",
                     isEnabled: true
                 ) {
-                    goToReportsAdmin = true
+                    withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                        showLongPressHint.toggle()
+                    }
                 }
-#endif
+
                 Spacer(minLength: 0)
             }
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 10)
-        .padding(.bottom, 10)
-        .background(.ultraThinMaterial)
-        .ignoresSafeArea(.keyboard, edges: .bottom)
-    }
-    
-    private var selectedStoreButtonsBar: some View {
-        HStack(spacing: 18) {
-            
-            // Back / Change store
-            IconBarButton(
-                systemImage: "arrow.uturn.backward",
-                accessibilityLabel: "Change store",
-                isEnabled: true
-            ) {
-                previousSelectedStoreId = selectedStoreId
-                selectedStoreId = nil
-                quickQuery = ""
-                showSelectedStoreAddress = false
-            }
-            
-            // Open aisle map (aka "Lines")
-            IconBarButton(
-                systemImage: "list.bullet",
-                accessibilityLabel: "Open aisle map",
-                isEnabled: (selectedStore != nil),
-                isPrimary: true
-            ) {
-                goToAisles = true
-            }
-            
-            // Product search screen
-            IconBarButton(
-                systemImage: "magnifyingglass",
-                accessibilityLabel: "Search products",
-                isEnabled: (selectedStore != nil)
-            ) {
-                pendingProductQuery = ""      // optional: start blank
-                goToSearch = true
-            }
-            
-            // Add aisle sign (camera)
-            IconBarButton(
-                systemImage: "camera.viewfinder",
-                accessibilityLabel: "Add aisle sign (upload image)",
-                isEnabled: (selectedStore != nil) && !ocr.isProcessingOCR
-            ) {
-                guard selectedStore != nil else { return }
-                
-                if Auth.auth().currentUser == nil ||
-                    (Auth.auth().currentUser?.isAnonymous ?? true) {
-                    showLoginRequiredAlert = true
-                    return
+            .padding(.horizontal, 16)
+            .padding(.top, 10)
+            .padding(.bottom, 10)
+            .background(.ultraThinMaterial)
+            .ignoresSafeArea(.keyboard, edges: .bottom)
+
+            if showLongPressHint {
+                LongPressHintBubble {
+                    withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                        showLongPressHint = false
+                    }
                 }
-                showPhotoSourceDialog = true
+                .padding(.trailing, 12)
+                .offset(y: -70)   // מרים מעל ה-bar
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
-            
-            IconBarButton(
-                systemImage: "exclamationmark.bubble",
-                accessibilityLabel: "Report a user",
-                isEnabled: true
-            ) {
-                showReportSheet = true
-            }
-            
-            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 10)
-        .padding(.bottom, 10)
-        .background(.ultraThinMaterial)
-        .ignoresSafeArea(.keyboard, edges: .bottom)
     }
     
     private struct IconBarButton: View {
@@ -1961,3 +2009,40 @@ private struct ChooseStoreGuideCard: View {
     }
 }
 
+private struct LongPressHintBubble: View {
+    let onDismiss: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+
+            HStack {
+                Image(systemName: "hand.tap")
+                Text("Tip")
+                    .font(.headline)
+                Spacer()
+                Button {
+                    onDismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.caption.bold())
+                }
+            }
+
+            Text("You can long-press any button to see what it does.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+        }
+        .padding(14)
+        .frame(width: 260)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(.ultraThinMaterial)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(.white.opacity(0.1))
+        )
+        .shadow(radius: 18, y: 8)
+    }
+}
