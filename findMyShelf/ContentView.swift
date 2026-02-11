@@ -861,11 +861,23 @@ struct ContentView: View {
                 }
                 .padding(.top, 6)
             } else {
-                EmptyStateCard(
+//                EmptyStateCard(
+//                    title: "No stores shown yet",
+//                    subtitle: "Tap \"Find nearby stores\" to see stores around you.",
+//                    icon: "location.viewfinder"
+//                )
+                EmptyStateActionCard(
                     title: "No stores shown yet",
-                    subtitle: "Tap \"Find nearby stores\" to see stores around you.",
-                    icon: "location.viewfinder"
-                )
+                    icon: "magnifyingglass",
+                    prefixText: "Tap",
+                    buttonSystemImage: "magnifyingglass",
+                    buttonA11yLabel: "Find nearby stores",
+                    suffixText: "to search nearby stores.",
+                    isEnabled: hasLocation
+                ) {
+                    guard let loc = locationManager.currentLocation else { return }
+                    finder.searchNearby(from: loc)
+                }
                 .padding(.bottom, 6)
                 // Keep the tips visible even when there are no results
                 // (already shown above, but this adds a clear visual anchor)
