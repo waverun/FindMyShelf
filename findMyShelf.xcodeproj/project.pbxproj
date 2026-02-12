@@ -28,6 +28,15 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				"findMyShelf-support/faq.html",
+				"findMyShelf-support/index.html",
+				"findMyShelf-support/privacy-policy.html",
+			);
+			target = 503824702ECC7778006B36C1 /* findMyShelf */;
+		};
+		509C6C852F3E81830052D479 /* Exceptions for "javascript-google-cloud" folder in "findMyShelf" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				index.js,
 			);
 			target = 503824702ECC7778006B36C1 /* findMyShelf */;
 		};
@@ -40,16 +49,6 @@
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
-/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-		509C6C7A2F3D2BCE0052D479 /* Exceptions for "Support site" folder in "Compile Sources" phase from "findMyShelf" target */ = {
-			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
-			buildPhase = 5038246D2ECC7778006B36C1 /* Sources */;
-			membershipExceptions = (
-				"findMyShelf-support/faq.html",
-			);
-		};
-/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		503824732ECC7778006B36C1 /* findMyShelf */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -61,6 +60,9 @@
 		};
 		509C6C5D2F355A040052D479 /* javascript-google-cloud */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				509C6C852F3E81830052D479 /* Exceptions for "javascript-google-cloud" folder in "findMyShelf" target */,
+			);
 			path = "javascript-google-cloud";
 			sourceTree = "<group>";
 		};
@@ -68,7 +70,6 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				509C6C792F3D2BCE0052D479 /* Exceptions for "Support site" folder in "findMyShelf" target */,
-				509C6C7A2F3D2BCE0052D479 /* Exceptions for "Support site" folder in "Compile Sources" phase from "findMyShelf" target */,
 			);
 			path = "Support site";
 			sourceTree = "<group>";
@@ -357,7 +358,7 @@
 				INFOPLIST_FILE = findMyShelf/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Privacy - Camera Usage Description\nRequired to take photos of signs in the supermarket.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "נדרש כדי למצוא חנויות קרובות אליך.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Required to find stores near you.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Required to select images of aisle signs from the photo library.";
 				INFOPLIST_KEY_NSPrincipalClass = "";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -398,7 +399,7 @@
 				INFOPLIST_FILE = findMyShelf/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Privacy - Camera Usage Description\nRequired to take photos of signs in the supermarket.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "נדרש כדי למצוא חנויות קרובות אליך.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Required to find stores near you.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Required to select images of aisle signs from the photo library.";
 				INFOPLIST_KEY_NSPrincipalClass = "";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
