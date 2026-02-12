@@ -16,12 +16,12 @@ struct ContentView: View {
     @EnvironmentObject private var firebase: FirebaseService   // ✅ add
     @EnvironmentObject private var uploadFlow: UploadFlowCoordinator
 
-//    @StateObject private var locationManager = LocationManager()
-//    @StateObject private var finder = StoreFinder()
+    @StateObject private var locationManager = LocationManager()
+    @StateObject private var finder = StoreFinder()
 
-    @StateObject private var vm = ContentViewModel()
-    var locationManager: LocationManager { vm.locationManager }
-    var finder: StoreFinder { vm.finder }
+//    @StateObject private var vm = ContentViewModel()
+//    var locationManager: LocationManager { vm.locationManager }
+//    var finder: StoreFinder { vm.finder }
 
     // MARK: - Reporting (store-level)
 
