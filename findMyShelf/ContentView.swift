@@ -16,9 +16,12 @@ struct ContentView: View {
     @EnvironmentObject private var firebase: FirebaseService   // ✅ add
     @EnvironmentObject private var uploadFlow: UploadFlowCoordinator
 
+//    @StateObject private var locationManager = LocationManager()
+//    @StateObject private var finder = StoreFinder()
+
     @StateObject private var vm = ContentViewModel()
     var locationManager: LocationManager { vm.locationManager }
-//    var finder: StoreFinder { vm.finder }
+    var finder: StoreFinder { vm.finder }
 
     // MARK: - Reporting (store-level)
 
@@ -87,9 +90,6 @@ struct ContentView: View {
     private var functions: Functions {
         Functions.functions(region: "us-central1")
     }
-
-//    @StateObject private var locationManager = LocationManager()
-    @StateObject private var finder = StoreFinder()
 
     @Environment(\.modelContext) private var context
     @Query(sort: \Store.createdAt) private var stores: [Store]
