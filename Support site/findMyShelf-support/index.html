@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <title>FindMyShelf Support</title>
+        <style>
+            :root {
+                --bg-a: #FE860C;   /* logo orange light */
+                --bg-b: #F14F0C;   /* logo orange dark */
+                --bg-c: #87cefa;   /* soft blue */
+                --bg-d: #32cd32;   /* soft green */
+                --glass: rgba(0,0,0,0.5);
+                --link: #3399ff;
+            }
+            * { box-sizing: border-box; }
+            body {
+                margin: 0;
+                padding: 0;
+                font-family: Arial, Helvetica, sans-serif;
+                background: linear-gradient(to bottom right, var(--bg-a), var(--bg-b), var(--bg-c), var(--bg-d));
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: flex-start;
+                text-align: center;
+                color: #fff;
+            }
+            header { margin-top: 20px; padding: 0 16px; }
+            h1 { margin: 8px 0 10px; }
+            .icon {
+                width: 120px; height: 120px; margin: 10px auto; border-radius: 24px;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+                object-fit: cover;
+            }
+            section {
+                width: calc(100% - 32px);
+                max-width: 900px;
+                margin: 16px auto;
+                padding: 14px 16px;
+                background: var(--glass);
+                border-radius: 10px;
+                backdrop-filter: blur(4px);
+            }
+            a {
+                color: var(--link);
+                text-decoration: none;
+                font-weight: bold;
+            }
+            a:hover { text-decoration: underline; }
+            footer { margin: 20px; opacity: 0.95; }
+            .gradient-controls { margin: 20px 0; }
+            .gradient-controls button {
+                padding: 10px 20px;
+                border: none;
+                background-color: #007bff;
+                color: #fff;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 16px;
+                box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+            }
+            .gradient-controls button:hover { background-color: #0056b3; }
+
+            .mini {
+                font-size: 0.95rem;
+                opacity: 0.95;
+                line-height: 1.45;
+            }
+
+            .pill-row {
+                display: flex;
+                gap: 10px;
+                flex-wrap: wrap;
+                justify-content: center;
+                margin-top: 10px;
+            }
+            .pill {
+                padding: 8px 12px;
+                border-radius: 999px;
+                background: rgba(255,255,255,0.10);
+                border: 1px solid rgba(255,255,255,0.12);
+                font-size: 0.9rem;
+            }
+        </style>
+    </head>
+
+    <body>
+        <header>
+            <h1>FindMyShelf Support</h1>
+            <img class="icon" src="app-icon.png" alt="FindMyShelf App Icon" />
+            <p class="mini">
+            FindMyShelf helps you find items in a supermarket by mapping aisles and matching products to the
+            right shelf using AI.
+            </p>
+            <div class="pill-row" aria-label="Key features">
+                <div class="pill">AI aisle-sign decoding</div>
+                <div class="pill">Product → aisle search</div>
+                <div class="pill">Shared community data</div>
+                <div class="pill">Manual store option</div>
+            </div>
+        </header>
+
+        <section>
+            <h2>About FindMyShelf</h2>
+            <p>
+            FindMyShelf lets you take a photo of a supermarket aisle sign and automatically extract the aisle
+            information. After choosing a store, you can search for a product (like “milk” or “rice”) and the app
+            suggests which aisle(s) it should be in — even if the aisle text isn’t an exact match.
+            </p>
+            <p>
+            Store and aisle data is shared so your improvements can help other shoppers too.
+            </p>
+        </section>
+
+        <section>
+            <h2>FAQ</h2>
+            <p>
+            <a href="/faq/">View Frequently Asked Questions</a>
+            </p>
+        </section>
+
+        <section>
+            <h2>Privacy Policy</h2>
+            <p>
+            <a href="/privacy-policy/">Read Our Privacy Policy</a>
+            </p>
+        </section>
+
+        <section>
+            <h2>Contact Support</h2>
+            <p>
+            For help, feedback, or bug reports, email:
+            <a href="mailto:support@findmyshelf.app">support@findmyshelf.app</a>
+            </p>
+            <p class="mini">
+            If possible, include your device model, iOS version, and what you were trying to do when the issue happened.
+            </p>
+        </section>
+
+        <section class="gradient-controls">
+            <h2>Customize Background</h2>
+            <button id="updateGradient" type="button" aria-label="Update background gradient">
+                Update Gradient
+            </button>
+        </section>
+
+        <footer>
+            <p>&copy; 2026 FindMyShelf. All rights reserved.</p>
+        </footer>
+
+        <script>
+            (function () {
+                const btn = document.getElementById('updateGradient');
+                function randColor() {
+                    return `#${Math.floor(Math.random() * 0xFFFFFF).toString(16).padStart(6, '0')}`;
+                }
+                btn.addEventListener('click', () => {
+                    const colors = [randColor(), randColor(), randColor(), randColor()];
+                    document.body.style.background =
+                    `linear-gradient(to bottom right, ${colors[0]}, ${colors[1]}, ${colors[2]}, ${colors[3]})`;
+                });
+            })();
+        </script>
+    </body>
+</html>

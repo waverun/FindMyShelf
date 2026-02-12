@@ -24,6 +24,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		509C6C792F3D2BCE0052D479 /* Exceptions for "Support site" folder in "findMyShelf" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"findMyShelf-support/faq.html",
+			);
+			target = 503824702ECC7778006B36C1 /* findMyShelf */;
+		};
 		50D397132F1D5A4F008B7A57 /* Exceptions for "findMyShelf" folder in "findMyShelf" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -32,6 +39,16 @@
 			target = 503824702ECC7778006B36C1 /* findMyShelf */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		509C6C7A2F3D2BCE0052D479 /* Exceptions for "Support site" folder in "Compile Sources" phase from "findMyShelf" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			buildPhase = 5038246D2ECC7778006B36C1 /* Sources */;
+			membershipExceptions = (
+				"findMyShelf-support/faq.html",
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		503824732ECC7778006B36C1 /* findMyShelf */ = {
@@ -45,6 +62,15 @@
 		509C6C5D2F355A040052D479 /* javascript-google-cloud */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "javascript-google-cloud";
+			sourceTree = "<group>";
+		};
+		509C6C6C2F3D24D10052D479 /* Support site */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				509C6C792F3D2BCE0052D479 /* Exceptions for "Support site" folder in "findMyShelf" target */,
+				509C6C7A2F3D2BCE0052D479 /* Exceptions for "Support site" folder in "Compile Sources" phase from "findMyShelf" target */,
+			);
+			path = "Support site";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -69,6 +95,7 @@
 		503824682ECC7778006B36C1 = {
 			isa = PBXGroup;
 			children = (
+				509C6C6C2F3D24D10052D479 /* Support site */,
 				509C6C5D2F355A040052D479 /* javascript-google-cloud */,
 				5081F8382F28CA980014EA9B /* AppleSignInCoordinator.swift */,
 				503824732ECC7778006B36C1 /* findMyShelf */,
@@ -111,6 +138,7 @@
 			fileSystemSynchronizedGroups = (
 				503824732ECC7778006B36C1 /* findMyShelf */,
 				509C6C5D2F355A040052D479 /* javascript-google-cloud */,
+				509C6C6C2F3D24D10052D479 /* Support site */,
 			);
 			name = findMyShelf;
 			packageProductDependencies = (
