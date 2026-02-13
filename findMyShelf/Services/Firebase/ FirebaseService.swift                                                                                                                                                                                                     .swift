@@ -12,6 +12,25 @@ final class FirebaseService: ObservableObject {
     private var aislesListener: ListenerRegistration?
     private var productsListener: ListenerRegistration?
 
+    @MainActor
+    final class AuthViewModel: ObservableObject {
+        @Published var user: User?
+        @Published var isAuthReady = false
+
+        private var handle: AuthStateDidChangeListenerHandle?
+
+        init() {
+            handle = Auth.auth().addStateDidChangeListener { _, user in
+                self.user = user
+                self.isAuthReady = true
+            }
+        }
+
+        func signOut() {
+            try? Auth.auth().signOut()
+        }
+    }
+
     /// רושם שגיאה מקריאת API לאוסף ייעודי ב־Firestore
     func logApiError(endpoint: String,
                      message: String,

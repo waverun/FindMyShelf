@@ -6,6 +6,12 @@ import CoreLocation
 import PhotosUI
 import UIKit
 
+private func startGoogleSignIn() {
+    Task { @MainActor in
+        try? await signInWithGoogle()
+    }
+}
+
 enum AppColors {
     static let logoOrangeLight = Color(red: 254/255, green: 134/255, blue: 12/255) // #FE860C
     static let logoOrangeDark  = Color(red: 241/255, green:  79/255, blue: 12/255) // #F14F0C
@@ -19,9 +25,9 @@ struct ContentView: View {
     @StateObject private var locationManager = LocationManager()
     @StateObject private var finder = StoreFinder()
 
-//    @StateObject private var vm = ContentViewModel()
-//    var locationManager: LocationManager { vm.locationManager }
-//    var finder: StoreFinder { vm.finder }
+    //    @StateObject private var vm = ContentViewModel()
+    //    var locationManager: LocationManager { vm.locationManager }
+    //    var finder: StoreFinder { vm.finder }
 
     // MARK: - Reporting (store-level)
 
@@ -29,6 +35,7 @@ struct ContentView: View {
     @State private var goToReportsAdmin: Bool = false
 #endif
 
+    @State private var showEmailLoginSheet = false
     @State private var showLongPressHint: Bool = false
 
     @State private var shouldRestoreSelectedStoreGuideCard: Bool = false
@@ -40,6 +47,7 @@ struct ContentView: View {
 
     @State private var showLoginRequiredAlert = false
     @State private var loginAppleCoordinator = AppleSignInCoordinator()
+//    @State private var showEmailLoginSheet = false
 
     @StateObject private var ocr = AisleOCRController()
 
@@ -369,6 +377,8 @@ struct ContentView: View {
     }
 
     var body: some View {
+        let authButtons = AuthButtons(showEmailLoginSheet: $showEmailLoginSheet)
+
         NavigationStack {
             ZStack(alignment: .top) {
                 ScrollViewReader { proxy in
@@ -567,6 +577,10 @@ struct ContentView: View {
                 .alert("Login required", isPresented: $showLoginRequiredAlert) {
                     Button("Cancel", role: .cancel) {}
 
+                    Button("Email & Password") {
+                        showEmailLoginSheet = true
+                    }
+
                     Button("Continue with Google") {
                         Task { @MainActor in
                             try? await signInWithGoogle()
@@ -581,9 +595,18 @@ struct ContentView: View {
                 } message: {
                     Text("Please sign in to upload images.")
                 }
+                .sheet(isPresented: $showEmailLoginSheet) {
+                    EmailLoginSheet(
+                        onSuccess: {
+                            showEmailLoginSheet = false
+                        }
+                    )
+                }
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        AuthButtons()
+//                        AuthButtons()
+//                        AuthButtons(showEmailLoginSheet: $showEmailLoginSheet)
+                        authButtons
                     }
 
                     ToolbarItemGroup(placement: .keyboard) {
@@ -962,7 +985,7 @@ struct ContentView: View {
                             )
                     }
                 }()
-                
+
                 EmptyStateActionCard(
                     title: config.title,
                     icon: config.icon,
@@ -2068,4 +2091,160 @@ private struct LongPressHintBubble: View {
         )
         .shadow(radius: 18, y: 8)
     }
+}
+
+
+private struct EmailLoginSheet: View {
+
+    let onSuccess: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var email: String = ""
+    @State private var password: String = ""
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("Email", text: $email)
+                        .keyboardType(.emailAddress)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+
+                    SecureField("Password (min 6 chars)", text: $password)
+                }
+
+                Section {
+                    Button("Sign Up") {
+                        signUp()
+                    }
+                    .disabled(email.isEmpty || password.count < 6 || isLoading)
+
+                    Button("Forgot password?") {
+                        resetPassword()
+                    }
+                    .disabled(email.isEmpty || isLoading)
+                }
+
+                if let errorMessage {
+                    Section {
+                        Text(errorMessage)
+                            .foregroundStyle(.red)
+                    }
+                }
+            }
+            .navigationTitle("Sign in")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Continue") {
+                        signIn()
+                    }
+                    .disabled(email.isEmpty || password.count < 6 || isLoading)
+                }
+            }
+        }
+    }
+
+    private func signUp() {
+        isLoading = true
+        errorMessage = nil
+
+        Auth.auth().createUser(withEmail: email, password: password) { _, error in
+            isLoading = false
+            if let error {
+                errorMessage = error.localizedDescription
+            } else {
+                onSuccess()
+            }
+        }
+    }
+
+    private func resetPassword() {
+        isLoading = true
+        errorMessage = nil
+
+        Auth.auth().sendPasswordReset(withEmail: email) { error in
+            isLoading = false
+            if let error {
+                errorMessage = error.localizedDescription
+            } else {
+                errorMessage = "Password reset email sent."
+            }
+        }
+    }
+
+    private func signIn() {
+        isLoading = true
+        errorMessage = nil
+
+        Auth.auth().signIn(withEmail: email, password: password) { result, error in
+            if let error {
+                // If user not found → create automatically
+                if (error as NSError).code == AuthErrorCode.userNotFound.rawValue {
+//                    Auth.auth().createUser(withEmail: email, password: password) { result, createError in
+//                        isLoading = false
+//                        if let createError {
+//                            errorMessage = createError.localizedDescription
+//                        } else {
+//                            onSuccess()
+//                        }
+//                    }
+                    isLoading = false
+                    errorMessage = error.localizedDescription
+                    return
+                } else {
+                    isLoading = false
+                    errorMessage = error.localizedDescription
+                }
+                return
+            }
+
+            isLoading = false
+            onSuccess()
+        }
+    }
+
+//    private func signIn() {
+//        isLoading = true
+//        errorMessage = nil
+//
+//        let auth = Auth.auth()
+//
+//        auth.signIn(withEmail: email, password: password) { _, error in
+//            if let error = error as NSError? {
+//
+//                // User doesn't exist → create account automatically
+//                if error.code == AuthErrorCode.userNotFound.rawValue {
+//                    auth.createUser(withEmail: email, password: password) { _, createError in
+//                        isLoading = false
+//                        if let createError {
+//                            errorMessage = createError.localizedDescription
+//                        } else {
+//                            onSuccess()
+//                        }
+//                    }
+//                    return
+//                }
+//
+//                // Other errors (wrong password, invalid email, etc.)
+//                isLoading = false
+//                errorMessage = error.localizedDescription
+//                return
+//            }
+//
+//            // Sign in success
+//            isLoading = false
+//            onSuccess()
+//        }
+//    }
 }

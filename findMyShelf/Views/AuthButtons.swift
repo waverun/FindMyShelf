@@ -2,26 +2,48 @@ import SwiftUI
 import FirebaseAuth
 
 struct AuthButtons: View {
+    @Binding var showEmailLoginSheet: Bool
     @State private var appleCoordinator = AppleSignInCoordinator()
     @State private var showLogoutConfirm = false
     @State private var authTick = 0
     
-    private var user = Auth.auth().currentUser
-    
-    private var isLoggedIn: Bool {
+//    var user = Auth.auth().currentUser
+
+    var user: User? { Auth.auth().currentUser }
+    var isLoggedIn: Bool {
         user != nil
     }
     
-    private var providerIcon: String? {
+//    var providerIcon: String? {
+//        guard let providerId = user?.providerData.first?.providerID else {
+//            return nil
+//        }
+//        
+//        switch providerId {
+//            case "google.com":
+//                return "g.circle.fill"
+//            case "apple.com":
+//                return "applelogo"
+//            default:
+//                return nil
+//        }
+//    }
+
+    var providerIcon: String? {
         guard let providerId = user?.providerData.first?.providerID else {
             return nil
         }
-        
+
         switch providerId {
             case "google.com":
                 return "g.circle.fill"
+
             case "apple.com":
-                return "apple.logo"
+                return "applelogo"
+
+            case "password":
+                return "envelope.fill"   // ← זה מה שחסר
+
             default:
                 return nil
         }
@@ -41,14 +63,23 @@ struct AuthButtons: View {
                     Image(systemName: "g.circle.fill")
                         .font(.title2)
                 }
-                
+
+                Button {
+                    showEmailLoginSheet = true
+                } label: {
+//                    Image(systemName: "envelope")
+                    Image(systemName: "envelope")
+                        .font(.system(size: 15))
+                        .padding(6)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 6))                }
+
                 Button {
                     Task { @MainActor in
                         appleCoordinator.start()
                         authTick += 1
                     }
                 } label: {
-                    Image(systemName: "apple.logo")
+                    Image(systemName: "applelogo")
                         .font(.title2)
                 }
             }
