@@ -2277,7 +2277,8 @@ private struct AccountSheet: View {
     let onBanner: (_ message: String, _ isError: Bool) -> Void
     
     @Environment(\.dismiss) private var dismiss
-    
+
+    @State private var showNeedsRecentLoginAlert: Bool = false
     @State private var showDeleteConfirm: Bool = false
     @State private var isDeleting: Bool = false
     
@@ -2376,6 +2377,15 @@ private struct AccountSheet: View {
             } message: {
                 Text("This permanently deletes your Firebase user. You will be signed out.")
             }
+            .alert("Please sign in again", isPresented: $showNeedsRecentLoginAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("""
+For security, account deletion requires a recent sign-in.
+
+Please log out, sign in again (with the same method), then return here and tap “Delete account” again.
+""")
+            }
         }
     }
     
@@ -2391,12 +2401,26 @@ private struct AccountSheet: View {
             DispatchQueue.main.async {
                 isDeleting = false
                 
+//                if let error {
+//                    // Common case: requires recent login
+//                    onBanner("Failed to delete account: \(error.localizedDescription)", true)
+//                    return
+//                }
+
                 if let error {
-                    // Common case: requires recent login
+                    let ns = error as NSError
+                    if ns.domain == AuthErrorDomain,
+                       ns.code == AuthErrorCode.requiresRecentLogin.rawValue {
+
+                        showNeedsRecentLoginAlert = true
+                        onBanner("Please sign in again, then retry deleting the account.", true)
+                        return
+                    }
+
                     onBanner("Failed to delete account: \(error.localizedDescription)", true)
                     return
                 }
-                
+
                 onBanner("Account deleted", false)
                 onDeleteAccount()
                 dismiss()
