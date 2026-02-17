@@ -2,6 +2,7 @@ import SwiftUI
 import FirebaseAuth
 
 struct AuthButtons: View {
+    @Binding var showAccountSheet: Bool
     @Binding var showEmailLoginSheet: Bool
     @State private var appleCoordinator = AppleSignInCoordinator()
     @State private var showLogoutConfirm = false
@@ -86,9 +87,10 @@ struct AuthButtons: View {
             
             // Avatar + provider badge
             Button {
-                if isLoggedIn {
-                    showLogoutConfirm = true
-                }
+                showAccountSheet = true
+//                if isLoggedIn {
+//                    showLogoutConfirm = true
+//                }
             } label: {
                 Image(systemName: "person.crop.circle.fill")
                     .font(.title2)
