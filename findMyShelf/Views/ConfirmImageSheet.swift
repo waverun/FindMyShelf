@@ -12,8 +12,8 @@ struct ConfirmImageSheet: View {
     @State private var dragOffset: CGSize = .zero
 
     @State private var useZoomedArea: Bool = false
+    @State private var didAutoSwitchToZoomMode: Bool = false
     @State private var imageViewportSize: CGSize = .zero
-    @State private var previewImage: UIImage?
 
     private let minScale: CGFloat = 1.0
     private let maxScale: CGFloat = 4.0
@@ -35,7 +35,11 @@ struct ConfirmImageSheet: View {
     }
 
     private var imageToSendPreview: UIImage? {
-        previewImage
+        guard let image else { return nil }
+        if useZoomedArea, isActuallyZoomed, let cropped = cropVisibleArea(from: image) {
+            return cropped
+        }
+        return image
     }
 
     var body: some View {
@@ -80,30 +84,6 @@ struct ConfirmImageSheet: View {
                     .padding(.horizontal, 16)
                     .disabled(!isActuallyZoomed)
 
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Preview before upload")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.secondary)
-
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(Color.secondary.opacity(0.1))
-
-                            if let preview = imageToSendPreview {
-                                Image(uiImage: preview)
-                                    .resizable()
-                                    .scaledToFit()
-                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            } else {
-                                Text("Could not generate preview")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                        .aspectRatio(viewportAspect, contentMode: .fit)
-                    }
-                    .padding(.horizontal, 16)
                 }
 
                 Text("Use this photo?")
@@ -126,16 +106,18 @@ struct ConfirmImageSheet: View {
             }
             .navigationTitle("Confirm photo")
             .navigationBarTitleDisplayMode(.inline)
-            .onAppear {
-                refreshPreviewImage()
+            .onChange(of: pinchScale) { _, newValue in
+                if !didAutoSwitchToZoomMode, newValue > 1.01 {
+                    useZoomedArea = true
+                    didAutoSwitchToZoomMode = true
+                }
             }
-            .onChange(of: image) { _, _ in refreshPreviewImage() }
-            .onChange(of: useZoomedArea) { _, _ in refreshPreviewImage() }
-            .onChange(of: baseScale) { _, _ in refreshPreviewImage() }
-            .onChange(of: pinchScale) { _, _ in refreshPreviewImage() }
-            .onChange(of: baseOffset) { _, _ in refreshPreviewImage() }
-            .onChange(of: dragOffset) { _, _ in refreshPreviewImage() }
-            .onChange(of: imageViewportSize) { _, _ in refreshPreviewImage() }
+            .onChange(of: baseScale) { _, newValue in
+                if !didAutoSwitchToZoomMode, newValue > 1.01 {
+                    useZoomedArea = true
+                    didAutoSwitchToZoomMode = true
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { onCancel() }
@@ -151,19 +133,6 @@ struct ConfirmImageSheet: View {
                     .disabled(image == nil)
                 }
             }
-        }
-    }
-
-    private func refreshPreviewImage() {
-        guard let image else {
-            previewImage = nil
-            return
-        }
-
-        if useZoomedArea, isActuallyZoomed, let cropped = cropVisibleArea(from: image) {
-            previewImage = cropped
-        } else {
-            previewImage = image
         }
     }
 
