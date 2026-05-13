@@ -446,8 +446,10 @@ exports.openaiAisleVisionProxy = onCall(
                                                 "16) If title_original is English, title_en equals title_original. " +
                                                 "17) If a clear aisle code exists (e.g. A12, 12, Row 7), set aisle_code. " +
                                                 "18) Otherwise, set aisle_code to null. " +
-                                                "19) Do not invent brands or words not clearly visible on the sign.";
-
+                                                "19) Do not invent brands or words not clearly visible on the sign. " +
+                                                "20) If the photo contains multiple signs for the SAME aisle code/number, extract products/categories from ALL of those signs. " +
+                                                "21) In that case, keywords_original and keywords_en must represent the UNION of products/categories from all same-aisle signs in the image. " +
+                                                "22) Remove duplicates while preserving meaningful phrases.";
                                                 // const userText =
                                                 // "Return ONLY valid JSON with keys: " +
                                                 // "title_original (string|null), title_en (string|null), " +
