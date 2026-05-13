@@ -1898,8 +1898,16 @@ struct ContentView: View {
             },
             onSyncToFirebase: { aisle in
                 Task { @MainActor in
-                    await fb.syncCreatedAisleToFirebase(aisle, store: store, context: context) { msg in
-                        showBanner(msg, isError: true)
+                    if let storeRemoteId = store.remoteId, aisle.remoteId != nil {
+                        do {
+                            try await fb.updateAisle(storeRemoteId: storeRemoteId, aisle: aisle)
+                        } catch {
+                            showBanner("Failed to update aisle in Firebase", isError: true)
+                        }
+                    } else {
+                        await fb.syncCreatedAisleToFirebase(aisle, store: store, context: context) { msg in
+                            showBanner(msg, isError: true)
+                        }
                     }
                 }
             },

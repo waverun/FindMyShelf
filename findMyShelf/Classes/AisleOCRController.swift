@@ -101,7 +101,7 @@ final class AisleOCRController: ObservableObject {
                 // בשאר הקוד אתה יכול להשתמש ב־cleaned לבניית uniqueKeywords
                 let uniqueKeywords = Array(Set(cleaned.map { $0.lowercased() })).sorted()
 
-                // prevent duplicates (local)
+                // prevent duplicates (local) - if exists, merge keywords and open aisles screen
                 let storeID = store.id
                 let descriptor = FetchDescriptor<Aisle>(
                     predicate: #Predicate<Aisle> { aisle in
@@ -109,8 +109,35 @@ final class AisleOCRController: ObservableObject {
                     }
                 )
                 let aisles = (try? context.fetch(descriptor)) ?? []
-                if aisles.contains(where: { $0.nameOrNumber == displayTitle }) {
-                    onBanner("Aisle '\(displayTitle)' already exists", true)
+
+                let normalizedDisplayTitle = displayTitle
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                    .lowercased()
+
+                if let existing = aisles.first(where: {
+                    $0.nameOrNumber.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == normalizedDisplayTitle
+                }) {
+                    let existingLower = Set(existing.keywords.map { $0.lowercased() })
+                    let toAdd = uniqueKeywords.filter { !existingLower.contains($0.lowercased()) }
+
+                    if !toAdd.isEmpty {
+                        existing.keywords.append(contentsOf: toAdd)
+                    }
+                    existing.updatedAt = Date()
+
+                    do {
+                        try context.save()
+                        if toAdd.isEmpty {
+                            onBanner("Aisle '\(existing.nameOrNumber)' already exists (no new keywords)", false)
+                        } else {
+                            onBanner("Merged \(toAdd.count) new keyword(s) into aisle '\(existing.nameOrNumber)'", false)
+                        }
+
+                        onSyncToFirebase(existing)
+                        onAisleCreated(existing.id)
+                    } catch {
+                        onBanner("Failed to merge into existing aisle", true)
+                    }
                     return
                 }
 
