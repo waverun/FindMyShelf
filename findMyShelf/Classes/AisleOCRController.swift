@@ -10,7 +10,7 @@ final class AisleOCRController: ObservableObject {
 
     private func sanitizeKeywords(_ raw: [String]) -> [String] {
         raw
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .map { collapseWhitespace($0).trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
             .filter { s in
                 // Count Unicode letters (works for Hebrew/Arabic/Latin/etc.)
@@ -21,6 +21,40 @@ final class AisleOCRController: ObservableObject {
                 // Must contain at least 3 letters total
                 return letterCount >= 3
             }
+    }
+
+    private func collapseWhitespace(_ s: String) -> String {
+        s.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+    }
+
+    private func keywordDedupKey(_ s: String) -> String {
+        let punctuationAndSymbols = CharacterSet.punctuationCharacters.union(.symbols)
+        let scalarView = s.unicodeScalars.map { scalar -> String in
+            punctuationAndSymbols.contains(scalar) ? " " : String(scalar)
+        }
+        let withoutPunctuation = scalarView.joined()
+        let collapsed = collapseWhitespace(withoutPunctuation)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return collapsed.folding(
+            options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive],
+            locale: .current
+        )
+    }
+
+    private func dedupeKeywordsPreservingOrder(_ keywords: [String]) -> [String] {
+        var seen = Set<String>()
+        var out: [String] = []
+
+        for keyword in keywords {
+            let key = keywordDedupKey(keyword)
+            guard !key.isEmpty else { continue }
+            guard !seen.contains(key) else { continue }
+            seen.insert(key)
+            out.append(keyword)
+        }
+
+        return out
     }
 
     func processImage(
@@ -98,8 +132,8 @@ final class AisleOCRController: ObservableObject {
 //                    Set(cleaned.map { $0.lowercased() })
 //                ).sorted()
 
-                // בשאר הקוד אתה יכול להשתמש ב־cleaned לבניית uniqueKeywords
-                let uniqueKeywords = Array(Set(cleaned.map { $0.lowercased() })).sorted()
+                // דה-דופליקציה קשיחה כדי למנוע כפילויות שנובעות מפיסוק/רווחים/Case
+                let uniqueKeywords = dedupeKeywordsPreservingOrder(cleaned)
 
                 // prevent duplicates (local) - if exists, merge keywords and open aisles screen
                 let storeID = store.id
@@ -117,20 +151,19 @@ final class AisleOCRController: ObservableObject {
                 if let existing = aisles.first(where: {
                     $0.nameOrNumber.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == normalizedDisplayTitle
                 }) {
-                    let existingLower = Set(existing.keywords.map { $0.lowercased() })
-                    let toAdd = uniqueKeywords.filter { !existingLower.contains($0.lowercased()) }
+                    let existingDeduped = dedupeKeywordsPreservingOrder(existing.keywords)
+                    let mergedDeduped = dedupeKeywordsPreservingOrder(existingDeduped + uniqueKeywords)
+                    let addedCount = max(0, mergedDeduped.count - existingDeduped.count)
 
-                    if !toAdd.isEmpty {
-                        existing.keywords.append(contentsOf: toAdd)
-                    }
+                    existing.keywords = mergedDeduped
                     existing.updatedAt = Date()
 
                     do {
                         try context.save()
-                        if toAdd.isEmpty {
+                        if addedCount == 0 {
                             onBanner("Aisle '\(existing.nameOrNumber)' already exists (no new keywords)", false)
                         } else {
-                            onBanner("Merged \(toAdd.count) new keyword(s) into aisle '\(existing.nameOrNumber)'", false)
+                            onBanner("Merged \(addedCount) new keyword(s) into aisle '\(existing.nameOrNumber)'", false)
                         }
 
                         onSyncToFirebase(existing)
