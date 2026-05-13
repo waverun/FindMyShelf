@@ -64,6 +64,9 @@ struct ContentView: View {
     @State private var showEditStoreSheet: Bool = false
     
     @State private var showManualStoreSheet = false
+    @State private var showSearchLocationOptions = false
+    @State private var showLocationPickerSheet = false
+    @State private var selectedSearchCoordinate: CLLocationCoordinate2D?
     @State private var savedStoreSearch = ""
     @State private var helpFilterText: String = ""
     
@@ -174,11 +177,10 @@ struct ContentView: View {
                     IconBarButton(
                         systemImage: "magnifyingglass",
                         accessibilityLabel: "Find nearby stores",
-                        isEnabled: hasLocation,
+                        isEnabled: true,
                         isPrimary: true
                     ) {
-                        guard let loc = locationManager.currentLocation else { return }
-                        finder.searchNearby(from: loc)
+                        showSearchLocationOptions = true
                     }
                     
                     IconBarButton(
@@ -575,6 +577,39 @@ struct ContentView: View {
                     Button("Cancel", role: .cancel) { }
                 } message: {
                     Text("You can take a photo in the store or choose an existing image.")
+                }
+                .confirmationDialog(
+                    "Find nearby stores",
+                    isPresented: $showSearchLocationOptions,
+                    titleVisibility: .visible
+                ) {
+                    if locationManager.currentLocation != nil {
+                        Button("Use current location") {
+                            searchNearbyUsingCurrentLocation()
+                        }
+                    }
+
+                    Button("Choose location on map") {
+                        selectedSearchCoordinate = locationManager.currentLocation?.coordinate
+                        showLocationPickerSheet = true
+                    }
+
+                    Button("Cancel", role: .cancel) { }
+                } message: {
+                    Text("Choose where to search for nearby supermarkets and food stores.")
+                }
+                .sheet(isPresented: $showLocationPickerSheet) {
+                    LocationPickerSheet(
+                        initialCoordinate: selectedSearchCoordinate,
+                        onCancel: {
+                            showLocationPickerSheet = false
+                        },
+                        onConfirm: { coordinate in
+                            selectedSearchCoordinate = coordinate
+                            showLocationPickerSheet = false
+                            searchNearby(at: coordinate)
+                        }
+                    )
                 }
                 .alert("Login required", isPresented: $showLoginRequiredAlert) {
                     Button("Cancel", role: .cancel) {}
@@ -988,8 +1023,7 @@ struct ContentView: View {
                                 buttonIcon: "magnifyingglass",
                                 title: "No stores shown yet",
                                 action: {
-                                    guard let loc = locationManager.currentLocation else { return }
-                                    finder.searchNearby(from: loc)
+                                    showSearchLocationOptions = true
                                 }
                             )
                             
@@ -999,8 +1033,7 @@ struct ContentView: View {
                                 buttonIcon: "magnifyingglass",
                                 title: "No stores shown yet",
                                 action: {
-                                    guard let loc = locationManager.currentLocation else { return }
-                                    finder.searchNearby(from: loc)
+                                    showSearchLocationOptions = true
                                 }
                             )
                     }
@@ -1766,6 +1799,19 @@ struct ContentView: View {
         
         pendingProductQuery = trimmed
         goToSearch = true
+    }
+
+    private func searchNearbyUsingCurrentLocation() {
+        guard let location = locationManager.currentLocation else {
+            showBanner("Current location is not available yet", isError: true)
+            return
+        }
+        finder.searchNearby(from: location)
+    }
+
+    private func searchNearby(at coordinate: CLLocationCoordinate2D) {
+        let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        finder.searchNearby(from: location)
     }
     
     private func handleStoreChosen(_ nearby: NearbyStore) {
