@@ -269,28 +269,6 @@ struct AisleListView: View {
                 }
                 .padding()
 
-                Spacer()
-
-                Button {
-                    uploadFlow.requestUpload = true
-                    dismiss()
-                } label: {
-                    Label("Upload image", systemImage: "camera.viewfinder")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .fill(.ultraThinMaterial)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .strokeBorder(.white.opacity(0.15), lineWidth: 1)
-                        )
-                }
-                .buttonStyle(.plain)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 8)
                 }
                 .contentShape(Rectangle())     // חשוב!
                 .onTapGesture {
@@ -317,6 +295,30 @@ struct AisleListView: View {
         }
         .navigationTitle("Aisles map \(store.name)")
         .scrollDismissesKeyboard(.interactively)
+        .safeAreaInset(edge: .bottom) {
+            Button {
+                uploadFlow.requestUpload = true
+                dismiss()
+            } label: {
+                Label("Upload image", systemImage: "camera.viewfinder")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .strokeBorder(.white.opacity(0.15), lineWidth: 1)
+                    )
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 8)
+            .background(.regularMaterial)
+        }
         .onAppear {
             if let id = initialSelectedAisleID {
                 selectedAisleID = id
