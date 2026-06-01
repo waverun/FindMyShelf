@@ -27,6 +27,8 @@ struct ProductSearchView: View {
 
     @State private var isCallingGPT: Bool = false
     @State private var gptCandidates: [GPTAisleCandidate] = []
+    @State private var bannerText: String?
+    @State private var bannerIsError = false
 
     // שורות ומוצרים רק לחנות הזו
     private var aislesForStore: [Aisle] {
@@ -196,6 +198,15 @@ struct ProductSearchView: View {
             //            }
             //        )
             .navigationTitle("Product Search")
+            .safeAreaInset(edge: .top) {
+                if let bannerText {
+                    productSearchBanner(text: bannerText)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 2)
+                    .padding(.bottom, 8)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
             .onAppear {
                 // ✅ רץ פעם אחת בלבד, ורק אם הגיע טקסט מהמסך הקודם
                 guard !didAutoSearch else { return }
@@ -257,6 +268,7 @@ struct ProductSearchView: View {
             isCallingGPT = false
             gptCandidates = []
             suggestedAisle = nil
+            showNotFoundCoverageBanner()
             return
         }
 
@@ -299,6 +311,7 @@ struct ProductSearchView: View {
                     self.statusMessage = "AI could not find a suitable aisle. You may need to add a new aisle."
                     self.gptCandidates = []
                     self.suggestedAisle = nil
+                    self.showNotFoundCoverageBanner()
                     return
                 }
 
@@ -315,6 +328,7 @@ struct ProductSearchView: View {
                     """
                 } else {
                     self.statusMessage = "AI returned candidates, but could not map them to existing aisles."
+                    self.showNotFoundCoverageBanner()
                 }
             }
         } catch {
@@ -396,6 +410,100 @@ struct ProductSearchView: View {
                 print("❌ Failed to sync product:", error)
             }
         }
+    }
+
+    private func showBanner(_ text: String, isError: Bool = false, autoDismiss: Bool = true) {
+        withAnimation(.easeInOut(duration: 0.25)) {
+            bannerText = text
+            bannerIsError = isError
+        }
+
+        guard autoDismiss else { return }
+
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 10_000_000_000)
+            if bannerText == text {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    bannerText = nil
+                }
+            }
+        }
+    }
+
+    private struct StoreCoverageInfo {
+        let existingNumbers: [Int]
+        let missingNumbers: [Int]
+        let maxAisle: Int
+
+        var missingCount: Int { missingNumbers.count }
+    }
+
+    private func parsedAisleNumber(from nameOrNumber: String) -> Int? {
+        let pattern = #"\d+"#
+        guard let range = nameOrNumber.range(of: pattern, options: .regularExpression) else { return nil }
+        return Int(nameOrNumber[range])
+    }
+
+    private func storeCoverageInfo() -> StoreCoverageInfo {
+        let numbersSet = Set(aislesForStore.compactMap { parsedAisleNumber(from: $0.nameOrNumber) }.filter { $0 > 0 })
+        guard let maxAisle = numbersSet.max(), maxAisle > 0 else {
+            return StoreCoverageInfo(existingNumbers: [], missingNumbers: [], maxAisle: 0)
+        }
+
+        let existingNumbers = Array(numbersSet).sorted()
+        let expected = Set(1...maxAisle)
+        let missingNumbers = Array(expected.subtracting(numbersSet)).sorted()
+        return StoreCoverageInfo(existingNumbers: existingNumbers, missingNumbers: missingNumbers, maxAisle: maxAisle)
+    }
+
+    private func showNotFoundCoverageBanner() {
+        let info = storeCoverageInfo()
+        if info.missingCount > 0 {
+            let missingPreview = info.missingNumbers.prefix(12).map(String.init).joined(separator: ", ")
+            let suffix = info.missingNumbers.count > 12 ? "…" : ""
+            let cta = info.missingCount == 1
+                ? " Please add a photo to complete store coverage."
+                : " Please add photos to improve store coverage."
+            showBanner("Missing aisles: \(missingPreview)\(suffix).\(cta)", isError: false)
+            return
+        }
+
+        showBanner("No matching aisle found yet. Adding aisle sign photos can improve search in this store.", isError: false)
+    }
+
+    @ViewBuilder
+    private func productSearchBanner(text: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: bannerIsError ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                    .symbolRenderingMode(.hierarchical)
+                    .padding(.top, 1)
+
+                Text(text)
+                    .font(.footnote)
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .layoutPriority(1)
+
+                Spacer(minLength: 6)
+
+                Button {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        bannerText = nil
+                    }
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.footnote.bold())
+                }
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(bannerIsError ? Color.red.opacity(0.26) : Color.green.opacity(0.24))
+        )
+        .shadow(color: .black.opacity(0.18), radius: 8, y: 4)
     }
     
 //    private func assignProduct(to aisle: Aisle) {

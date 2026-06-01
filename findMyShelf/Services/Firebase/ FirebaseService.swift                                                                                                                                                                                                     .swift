@@ -225,6 +225,27 @@ final class FirebaseService: ObservableObject {
     }
 
     /// Fetch existing store by geoCell + name similarity, or create new one
+    func fetchStoreCompletion(storeRemoteId: String) async throws -> Bool {
+        let doc = try await db.collection("stores").document(storeRemoteId).getDocument()
+        return (doc.get("isComplete") as? Bool) ?? false
+    }
+
+    func setStoreCompletion(storeRemoteId: String, isComplete: Bool) async throws {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            throw NSError(domain: "Auth", code: 401, userInfo: [NSLocalizedDescriptionKey: "Not logged in"])
+        }
+
+        let data: [String: Any] = [
+            "isComplete": isComplete,
+            "completeUpdatedAt": FieldValue.serverTimestamp(),
+            "completeUpdatedByUserId": uid
+        ]
+
+        try await db.collection("stores")
+            .document(storeRemoteId)
+            .setData(data, merge: true)
+    }
+
     func fetchOrCreateStore(
         name: String,
         address: String?,

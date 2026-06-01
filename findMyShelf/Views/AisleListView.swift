@@ -5,6 +5,7 @@ import SwiftData
 
 final class UploadFlowCoordinator: ObservableObject {
     @Published var requestUpload: Bool = false
+    @Published var postUploadBannerMessage: String? = nil
 }
 
 struct AisleListView: View {
@@ -42,6 +43,9 @@ struct AisleListView: View {
     // Login gating (same alert text/buttons as ContentView)
     @State private var showLoginRequiredAlert = false
     @State private var loginAppleCoordinator = AppleSignInCoordinator()
+
+    @State private var bannerText: String?
+    @State private var bannerIsError: Bool = false
     
     private enum FocusedField: Hashable {
         case newAisleName
@@ -78,8 +82,9 @@ struct AisleListView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack {
+        ZStack(alignment: .top) {
+            ScrollView {
+                VStack {
                 if showAisleMapGuideCard && !didSeeAisleMapGuide {
                     AisleMapGuideCard(
                         onGotIt: {
@@ -286,10 +291,28 @@ struct AisleListView: View {
                 .buttonStyle(.plain)
                 .padding(.horizontal, 16)
                 .padding(.bottom, 8)
+                }
+                .contentShape(Rectangle())     // חשוב!
+                .onTapGesture {
+                    focusedField = nil
+                }
             }
-            .contentShape(Rectangle())     // חשוב!
-            .onTapGesture {
-                focusedField = nil
+
+            if let bannerText {
+                BannerView(
+                    text: bannerText,
+                    isError: bannerIsError,
+                    actionTitle: nil,
+                    onAction: nil,
+                    onTap: nil,
+                    onClose: {
+                        withAnimation { self.bannerText = nil }
+                    }
+                )
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .zIndex(10)
             }
         }
         .navigationTitle("Aisles map \(store.name)")
@@ -300,6 +323,15 @@ struct AisleListView: View {
                 isEditingSelected = false
                 isNewAisleSelection = true
             }
+            if let msg = uploadFlow.postUploadBannerMessage {
+                showBanner(msg, isError: false)
+                uploadFlow.postUploadBannerMessage = nil
+            }
+        }
+        .onChange(of: uploadFlow.postUploadBannerMessage) { _, newValue in
+            guard let msg = newValue else { return }
+            showBanner(msg, isError: false)
+            uploadFlow.postUploadBannerMessage = nil
         }
         .alert("Login required", isPresented: $showLoginRequiredAlert) {
             Button("Cancel", role: .cancel) {}
@@ -320,6 +352,20 @@ struct AisleListView: View {
         }
     }
     
+    private func showBanner(_ text: String, isError: Bool) {
+        bannerIsError = isError
+        withAnimation {
+            bannerText = text
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+            withAnimation {
+                if bannerText == text {
+                    bannerText = nil
+                }
+            }
+        }
+    }
+
     // MARK: - פעולות בסיסיות
     
     @MainActor

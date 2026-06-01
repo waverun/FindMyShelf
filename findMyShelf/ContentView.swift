@@ -114,6 +114,9 @@ struct ContentView: View {
     
     @AppStorage("selectedStoreId") private var selectedStoreId: String?
     @AppStorage("previousSelectedStoreId") private var previousSelectedStoreId: String?
+    @AppStorage("completedStoreIds") private var completedStoreIdsRaw: String = ""
+    @AppStorage("encouragementMessageIndex") private var encouragementMessageIndex: Int = 0
+    @AppStorage("thankYouMessageIndex") private var thankYouMessageIndex: Int = 0
     
     private var selectedStore: Store? {
         guard let idString = selectedStoreId, let uuid = UUID(uuidString: idString) else { return nil }
@@ -372,6 +375,7 @@ struct ContentView: View {
     
     @State private var bannerText: String?
     @State private var bannerIsError: Bool = false
+    @State private var bannerIsPinned: Bool = false
     
     @State private var showAccountSheet: Bool = false
     
@@ -388,6 +392,7 @@ struct ContentView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         VStack(alignment: .leading, spacing: 18) {
+                            Color.clear.frame(height: 0).id("topAnchor")
                             if selectedStore == nil {
                                 storeDiscoverySection
                             } else {
@@ -461,14 +466,33 @@ struct ContentView: View {
                             }
                         }
                     }
+                    .onChange(of: bannerText) { _, newValue in
+                        guard newValue != nil else { return }
+                        DispatchQueue.main.async {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                proxy.scrollTo("topAnchor", anchor: .top)
+                            }
+                        }
+                    }
                 }
                 .safeAreaInset(edge: .top) {
                     if let bannerText {
-                        BannerView(text: bannerText, isError: bannerIsError) {
-                            withAnimation { self.bannerText = nil }
-                        }
+                        BannerView(
+                            text: bannerText,
+                            isError: bannerIsError,
+                            actionTitle: nil,
+                            onAction: nil,
+                            onTap: {
+                                bannerIsPinned = true
+                            },
+                            onClose: {
+                                withAnimation { self.bannerText = nil }
+                                bannerIsPinned = false
+                            }
+                        )
                         .padding(.horizontal, 16)
-                        .padding(.top, 8)
+                        .padding(.top, 0)
+                        .padding(.bottom, 10)
                         .transition(.move(edge: .top).combined(with: .opacity))
                         .zIndex(999)
                     }
@@ -483,6 +507,7 @@ struct ContentView: View {
                     
                     if let store = selectedStore {
                         Task { await startAislesSyncIfPossible(for: store) }
+                        refreshStoreCompletionFromFirebase(store)
                         
                         Task { @MainActor in
                             await ensureStoreRemoteId(store)
@@ -1124,6 +1149,7 @@ struct ContentView: View {
                     )
                     .padding(.top, 6)
                 }
+
             }
         }
     }
@@ -1792,11 +1818,12 @@ struct ContentView: View {
         let trimmed = quickQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         
-        guard selectedStore != nil else {
+        guard let store = selectedStore else {
             showBanner("Please select a store before searching", isError: true)
             return
         }
-        
+
+        maybeShowEncouragementBanner(for: store)
         pendingProductQuery = trimmed
         goToSearch = true
     }
@@ -1838,6 +1865,8 @@ struct ContentView: View {
         }) {
             selectedStoreId = existing.id.uuidString
             showSelectedStoreAddress = false
+            refreshStoreCompletionFromFirebase(existing)
+            maybeShowEncouragementBanner(for: existing)
             return
         }
         
@@ -1853,6 +1882,8 @@ struct ContentView: View {
             try context.save()
             selectedStoreId = newStore.id.uuidString
             showSelectedStoreAddress = false
+            refreshStoreCompletionFromFirebase(newStore)
+            maybeShowEncouragementBanner(for: newStore)
         } catch {
             showBanner("Failed to save the store", isError: true)
         }
@@ -1881,7 +1912,8 @@ struct ContentView: View {
             return
         }
         isQuickQueryFocused = false
-        
+
+        let beforeAisleCount = storeCoverageInfo(for: store)?.existingCount ?? 0
         let fb = firebase   // ✅ capture EnvironmentObject value (not the wrapper)
         
         ocr.processImage(
@@ -1895,6 +1927,18 @@ struct ContentView: View {
             onAisleCreated: { newId in
                 pendingAisleToSelectID = newId
                 goToAisles = true
+
+                let afterAisleCount = storeCoverageInfo(for: store)?.existingCount ?? beforeAisleCount
+                if afterAisleCount > beforeAisleCount, isStoreMarkedComplete(store) {
+                    unmarkStoreComplete(store)
+                    Task {
+                        await syncStoreCompletionToFirebase(store: store, isComplete: false)
+                    }
+                }
+
+                let thanks = thankYouMessage(for: store)
+                thankYouMessageIndex += 1
+                uploadFlow.postUploadBannerMessage = thanks
             },
             onSyncToFirebase: { aisle in
                 Task { @MainActor in
@@ -1916,14 +1960,169 @@ struct ContentView: View {
     }
     
     
+    private struct StoreCoverageInfo {
+        let existingNumbers: [Int]
+        let missingNumbers: [Int]
+        let maxAisle: Int
+
+        var existingCount: Int { existingNumbers.count }
+        var missingCount: Int { missingNumbers.count }
+    }
+
+    private func completionKey(for store: Store) -> String {
+        if let remoteId = store.remoteId, !remoteId.isEmpty { return "rid:\(remoteId)" }
+        return "lid:\(store.id.uuidString)"
+    }
+
+    private func completedStoreIds() -> Set<String> {
+        Set(completedStoreIdsRaw.split(separator: ",").map(String.init))
+    }
+
+    private func isStoreMarkedComplete(_ store: Store) -> Bool {
+        completedStoreIds().contains(completionKey(for: store))
+    }
+
+    private func markStoreComplete(_ store: Store) {
+        var ids = completedStoreIds()
+        ids.insert(completionKey(for: store))
+        completedStoreIdsRaw = ids.sorted().joined(separator: ",")
+    }
+
+    private func unmarkStoreComplete(_ store: Store) {
+        var ids = completedStoreIds()
+        ids.remove(completionKey(for: store))
+        completedStoreIdsRaw = ids.sorted().joined(separator: ",")
+    }
+
+    private func syncStoreCompletionToFirebase(store: Store, isComplete: Bool) async {
+        guard let remoteId = store.remoteId else { return }
+        do {
+            try await firebase.setStoreCompletion(storeRemoteId: remoteId, isComplete: isComplete)
+        } catch {
+            showBanner("Failed to update store completion in Firebase", isError: true)
+        }
+    }
+
+    private func refreshStoreCompletionFromFirebase(_ store: Store) {
+        guard let remoteId = store.remoteId else { return }
+        Task {
+            do {
+                let isComplete = try await firebase.fetchStoreCompletion(storeRemoteId: remoteId)
+                if isComplete {
+                    markStoreComplete(store)
+                } else {
+                    unmarkStoreComplete(store)
+                }
+            } catch {
+                // Keep local state if cloud fetch fails.
+            }
+        }
+    }
+
+    private func parsedAisleNumber(from nameOrNumber: String) -> Int? {
+        let pattern = #"\d+"#
+        guard let range = nameOrNumber.range(of: pattern, options: .regularExpression) else { return nil }
+        return Int(nameOrNumber[range])
+    }
+
+    private func storeCoverageInfo(for store: Store) -> StoreCoverageInfo? {
+        let storeUUID = store.id
+        let descriptor = FetchDescriptor<Aisle>(
+            predicate: #Predicate { $0.storeId == storeUUID }
+        )
+        let aisles = (try? context.fetch(descriptor)) ?? []
+
+        let numbersSet = Set(aisles.compactMap { parsedAisleNumber(from: $0.nameOrNumber) }.filter { $0 > 0 })
+        guard let maxAisle = numbersSet.max(), maxAisle > 0 else {
+            return StoreCoverageInfo(existingNumbers: [], missingNumbers: [], maxAisle: 0)
+        }
+
+        let existingNumbers = Array(numbersSet).sorted()
+        let expected = Set(1...maxAisle)
+        let missingNumbers = Array(expected.subtracting(numbersSet)).sorted()
+
+        return StoreCoverageInfo(
+            existingNumbers: existingNumbers,
+            missingNumbers: missingNumbers,
+            maxAisle: maxAisle
+        )
+    }
+
+    private func encouragementMessage(for store: Store, info: StoreCoverageInfo?) -> String {
+        let fallback = "One sign photo can help thousands of shoppers find products faster."
+
+        guard let info else {
+            return "The store is not full yet. Every sign you scan improves search for everyone."
+        }
+
+        if info.missingCount > 0, info.maxAisle >= 10, info.missingCount * 2 < info.maxAisle {
+            let missingPreview = info.missingNumbers.prefix(12).map(String.init).joined(separator: ", ")
+            let missingSuffix = info.missingNumbers.count > 12 ? "…" : ""
+            let cta = info.missingCount == 1
+                ? " Please add photo to complete the store."
+                : " Please add photos to improve store coverage."
+            return "Missing aisles: \(missingPreview)\(missingSuffix).\(cta)"
+        }
+
+        if info.missingCount > 0, info.maxAisle >= 10, info.missingCount <= 5 {
+            return "Only \(info.missingCount) signs are missing to complete this store."
+        }
+
+        if info.existingCount == 0 {
+            return "The store is not full yet. Every sign you scan improves search for everyone."
+        }
+
+        return fallback
+    }
+
+    private func maybeShowEncouragementBanner(for store: Store) {
+        guard !isStoreMarkedComplete(store) else { return }
+
+        let info = storeCoverageInfo(for: store)
+        if let info,
+           info.maxAisle >= 10,
+           info.missingCount == 0 {
+            return
+        }
+
+        // Missing-aisles message has priority and should always be shown when relevant.
+        if let info,
+           info.missingCount > 0,
+           info.maxAisle >= 10,
+           info.missingCount * 2 < info.maxAisle {
+            showBanner(encouragementMessage(for: store, info: info), isError: false)
+            return
+        }
+
+        let message1 = "The store is not full yet. Every sign you scan improves search for everyone."
+        let message3 = "One sign photo can help thousands of shoppers find products faster."
+        let rotation = [message1, message3]
+
+        let idx = max(0, encouragementMessageIndex) % rotation.count
+
+        showBanner(rotation[idx], isError: false)
+        encouragementMessageIndex = (idx + 1) % rotation.count
+    }
+
+    private func thankYouMessage(for store: Store) -> String {
+        let info = storeCoverageInfo(for: store)
+        let aisleCount = info?.existingCount ?? 0
+
+        if thankYouMessageIndex % 2 == 0 {
+            return "Thank you! You helped improve search in this store."
+        }
+        return "Thanks! This store now has \(aisleCount) aisles."
+    }
+
     private func showBanner(_ text: String, isError: Bool) {
         bannerIsError = isError
+        bannerIsPinned = false
         withAnimation {
             bannerText = text
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10.0) {
             withAnimation {
-                if bannerText == text {
+                if bannerText == text && !bannerIsPinned {
                     bannerText = nil
                 }
                 
