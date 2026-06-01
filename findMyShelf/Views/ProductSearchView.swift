@@ -42,19 +42,12 @@ struct ProductSearchView: View {
         ZStack {
             Form {
                 Section() {
-//                Section("Product Search") {
-                    //                TextField("Type a product name…", text: $productQuery)
-                    //                    .textInputAutocapitalization(.never)
-                    //                    .onSubmit {
-                    //                        runSearch()
-                    //                    }
-
                     TextField("Type a product name…", text: $productQuery)
                         .textInputAutocapitalization(.never)
                         .focused($isProductQueryFocused)
                         .submitLabel(.search)
                         .onSubmit {
-                            isProductQueryFocused = false   // ✅ סוגר מקלדת
+                            isProductQueryFocused = false
                             runSearch()
                         }
 
@@ -82,33 +75,6 @@ struct ProductSearchView: View {
                             .foregroundStyle(.primary)
                     }
                 }
-
-//                if let existing = foundExistingProduct,
-//                   let aisleId = existing.aisleId,
-//                   let aisle = aislesForStore.first(where: { $0.id == aisleId }) {
-//
-//                    Section("Product already known") {
-//                        Text("\"\(existing.name)\" is already assigned to aisle \(aisle.nameOrNumber).")
-//                            .font(.body)
-//                    }
-//                } else if let aisle = suggestedAisle {
-//                    Section("Suggested aisle") {
-//                        Text("It looks like the product belongs to aisle:")
-//                            .font(.subheadline)
-//                        Text("Aisle \(aisle.nameOrNumber)")
-//                            .font(.headline)
-//
-//                        if !aisle.keywords.isEmpty {
-//                            Text("On the sign: \(aisle.keywords.joined(separator: ", "))")
-//                                .font(.footnote)
-//                                .foregroundStyle(.secondary)
-//                        }
-//
-//                        Button("Assign and save") {
-//                            assignProduct(to: aisle)
-//                        }
-//                    }
-//                }
 
                 if isCallingGPT {
                     Section("AI") {
@@ -159,19 +125,8 @@ struct ProductSearchView: View {
                         }
                     }
                 }
-//                Color.clear
-//                    .contentShape(Rectangle())
-//                    .onTapGesture {
-//                        isProductQueryFocused = false
-//                    }
-//                    .allowsHitTesting(true)
             }
             .scrollDismissesKeyboard(.interactively)
-            //            .simultaneousGesture(
-            //                TapGesture().onEnded {
-            //                    isProductQueryFocused = false
-            //                }
-            //            )
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
@@ -180,23 +135,6 @@ struct ProductSearchView: View {
                     }
                 }
             }
-            .scrollDismissesKeyboard(.interactively)
-            //        .toolbar {
-            //            ToolbarItemGroup(placement: .keyboard) {
-            //                Spacer()
-            //                Button("Done") {
-            //                    isProductQueryFocused = false
-            //                }
-            //            }
-            //        }
-            //        .onTapGesture {
-            //            isProductQueryFocused = false
-            //        }
-            //        .simultaneousGesture(
-            //            TapGesture().onEnded {
-            //                isProductQueryFocused = false
-            //            }
-            //        )
             .navigationTitle("Product Search")
             .safeAreaInset(edge: .top) {
                 if let bannerText {
@@ -208,7 +146,6 @@ struct ProductSearchView: View {
                 }
             }
             .onAppear {
-                // ✅ רץ פעם אחת בלבד, ורק אם הגיע טקסט מהמסך הקודם
                 guard !didAutoSearch else { return }
                 let q = initialQuery.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !q.isEmpty else { return }
@@ -218,14 +155,7 @@ struct ProductSearchView: View {
                 runSearch()
             }
         }
-//        .simultaneousGesture(
-//            TapGesture().onEnded {
-//                isProductQueryFocused = false
-//            }
-//        )
     }
-
-    // MARK: - לוגיקה
 
     private func runSearch() {
         let q = productQuery
@@ -243,7 +173,6 @@ struct ProductSearchView: View {
         foundExistingProduct = nil
         suggestedAisle = nil
 
-        // 1. האם יש מוצר מוכר קודם?
         if let existing = productsForStore.first(where: { $0.name.lowercased().contains(q) }) {
             foundExistingProduct = existing
             if existing.aisleId == nil {
@@ -254,15 +183,12 @@ struct ProductSearchView: View {
             return
         }
 
-        // 2. לנסות למצוא שורה לפי keywords (לוקאלי)
         if let localBest = bestMatchingAisle(for: q) {
             suggestedAisle = localBest
             statusMessage = "No known product, but found a suitable aisle locally by keywords."
             return
         }
 
-        // 3. If local didn't find anything – call GPT
-        // ✅ Solution 2: if the store has no aisles yet, don't call AI, show a better message.
         if aislesForStore.isEmpty {
             statusMessage = "This store has no aisles yet. Add an aisle (upload a sign) and then try searching again."
             isCallingGPT = false
@@ -272,7 +198,6 @@ struct ProductSearchView: View {
             return
         }
 
-        // 3. אם גם לוקאלי לא מצא – לקרוא ל-GPT
         Task {
             await runGPTSuggestion(for: q)
         }
@@ -317,7 +242,6 @@ struct ProductSearchView: View {
 
                 self.gptCandidates = resp.candidates
 
-                // נבחר את המועמד הראשון כ"שורה מוצעת"
                 if let top = resp.candidates.first,
                    let uuid = UUID(uuidString: top.aisleId),
                    let aisle = aislesForStore.first(where: { $0.id == uuid }) {
@@ -339,7 +263,6 @@ struct ProductSearchView: View {
         }
     }
 
-    /// מוצא שורה עם הכי הרבה התאמה למחרוזת (בשם השורה או במילות המפתח)
     private func bestMatchingAisle(for query: String) -> Aisle? {
         var bestScore = 0
         var bestAisle: Aisle?
@@ -347,12 +270,10 @@ struct ProductSearchView: View {
         for aisle in aislesForStore {
             var score = 0
 
-            // התאמה בשם השורה
             if aisle.nameOrNumber.lowercased().contains(query) {
                 score += 2
             }
 
-            // התאמה במילות מפתח
             for kw in aisle.keywords {
                 if kw.lowercased().contains(query) {
                     score += 3
@@ -367,8 +288,6 @@ struct ProductSearchView: View {
 
         return bestScore > 0 ? bestAisle : nil
     }
-
-//    יצירת ProductItem חדש ושיוך לשורה
 
     private func assignProduct(to aisle: Aisle) {
         let name = productQuery.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -387,7 +306,6 @@ struct ProductSearchView: View {
             return
         }
 
-        // ✅ Firebase sync (only if store+aisle are synced)
         guard
             let storeRemoteId = store.remoteId,
             let aisleRemoteId = aisle.remoteId,
@@ -406,7 +324,6 @@ struct ProductSearchView: View {
                 )
                 try? context.save()
             } catch {
-                // optional: show non-blocking message
                 print("❌ Failed to sync product:", error)
             }
         }
@@ -505,28 +422,4 @@ struct ProductSearchView: View {
         )
         .shadow(color: .black.opacity(0.18), radius: 8, y: 4)
     }
-    
-//    private func assignProduct(to aisle: Aisle) {
-//        let name = productQuery
-//            .trimmingCharacters(in: .whitespacesAndNewlines)
-//
-//        guard !name.isEmpty else { return }
-//
-//        let item = ProductItem(
-//            name: name,
-//            storeId: store.id,
-//            aisleId: aisle.id
-//        )
-//        context.insert(item)
-//
-//        do {
-//            try context.save()
-//            foundExistingProduct = item
-//            suggestedAisle = nil
-//            statusMessage = "The product \"\(name)\" was saved and assigned to aisle \(aisle.nameOrNumber)."
-//        } catch {
-//            print("Failed to save product:", error)
-//            statusMessage = "Failed to save the product."
-//        }
-//    }
 }

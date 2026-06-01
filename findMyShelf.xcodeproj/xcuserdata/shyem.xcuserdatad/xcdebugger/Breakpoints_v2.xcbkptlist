@@ -31,9 +31,7 @@
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "2645"
-            endingLineNumber = "2645"
-            landmarkName = "deleteUserNow()"
-            landmarkType = "7">
+            endingLineNumber = "2645">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -47,9 +45,7 @@
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "2648"
-            endingLineNumber = "2648"
-            landmarkName = "deleteUserNow()"
-            landmarkType = "7">
+            endingLineNumber = "2648">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -63,9 +59,7 @@
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "2665"
-            endingLineNumber = "2665"
-            landmarkName = "deleteUserNow()"
-            landmarkType = "7">
+            endingLineNumber = "2665">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -79,9 +73,7 @@
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "2649"
-            endingLineNumber = "2649"
-            landmarkName = "deleteUserNow()"
-            landmarkType = "7">
+            endingLineNumber = "2649">
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>
