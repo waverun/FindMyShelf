@@ -405,6 +405,9 @@ struct AisleListView: View {
             try context.save()
             newAisleName = ""
             focusedField = nil
+            selectedAisleID = aisle.id
+            isEditingSelected = false
+            isNewAisleSelection = true
         } catch {
             print("❌ Failed to save aisle locally:", error)
             return
