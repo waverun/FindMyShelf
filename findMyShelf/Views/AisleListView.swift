@@ -299,6 +299,7 @@ struct AisleListView: View {
             if showUploadReward {
                 UploadRewardView(trigger: uploadRewardTrigger, reduceMotion: reduceMotion)
                     .padding(.horizontal, 28)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                     .transition(.scale(scale: 0.72).combined(with: .opacity))
                     .zIndex(20)
             }
