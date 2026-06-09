@@ -434,6 +434,23 @@ struct ContentView: View {
                             showPhotoSourceDialog = true
                         }
                     }
+                    .onChange(of: uploadFlow.requestedUploadSource) { _, source in
+                        guard let source else { return }
+                        uploadFlow.requestedUploadSource = nil
+
+                        if Auth.auth().currentUser == nil || (Auth.auth().currentUser?.isAnonymous ?? true) {
+                            showLoginRequiredAlert = true
+                            return
+                        }
+
+                        isQuickQueryFocused = false
+                        switch source {
+                        case .camera:
+                            isShowingCamera = true
+                        case .photoLibrary:
+                            showPhotosPicker = true
+                        }
+                    }
                     .onChange(of: isHelpExpanded) { _, newValue in
                         // If there are no stores yet, we still allow hiding tips.
                         // Just clear the store search field to avoid a "search stores" mode with no data.

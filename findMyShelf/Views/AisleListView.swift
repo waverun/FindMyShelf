@@ -3,8 +3,14 @@ import FirebaseAuth
 import SwiftData
 //import PhotosUI
 
+enum UploadSourceRequest: Equatable {
+    case camera
+    case photoLibrary
+}
+
 final class UploadFlowCoordinator: ObservableObject {
     @Published var requestUpload: Bool = false
+    @Published var requestedUploadSource: UploadSourceRequest? = nil
     @Published var postUploadBannerMessage: String? = nil
 }
 
@@ -307,24 +313,17 @@ struct AisleListView: View {
         .navigationTitle("Aisles map \(store.name)")
         .scrollDismissesKeyboard(.interactively)
         .safeAreaInset(edge: .bottom) {
-            Button {
-                uploadFlow.requestUpload = true
-                dismiss()
-            } label: {
-                Label("Upload image", systemImage: "camera.viewfinder")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(.ultraThinMaterial)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .strokeBorder(.white.opacity(0.15), lineWidth: 1)
-                    )
+            HStack(spacing: 12) {
+                uploadSourceButton(title: "Take photo", systemImage: "camera.viewfinder") {
+                    uploadFlow.requestedUploadSource = .camera
+                    dismiss()
+                }
+
+                uploadSourceButton(title: "Library", systemImage: "photo.on.rectangle") {
+                    uploadFlow.requestedUploadSource = .photoLibrary
+                    dismiss()
+                }
             }
-            .buttonStyle(.plain)
             .padding(.horizontal, 16)
             .padding(.top, 8)
             .padding(.bottom, 8)
@@ -366,6 +365,24 @@ struct AisleListView: View {
         }
     }
     
+    private func uploadSourceButton(title: String, systemImage: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.headline)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(.white.opacity(0.15), lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+
     private func showBanner(_ text: String, isError: Bool) {
         bannerIsError = isError
         withAnimation {
