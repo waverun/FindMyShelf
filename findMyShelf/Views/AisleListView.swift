@@ -10,6 +10,7 @@ final class UploadFlowCoordinator: ObservableObject {
 
 struct AisleListView: View {
     @Environment(\.modelContext) private var context
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject private var uploadFlow: UploadFlowCoordinator
     @Environment(\.dismiss) private var dismiss
 
@@ -46,6 +47,8 @@ struct AisleListView: View {
 
     @State private var bannerText: String?
     @State private var bannerIsError: Bool = false
+    @State private var showUploadReward: Bool = false
+    @State private var uploadRewardTrigger: Int = 0
     
     private enum FocusedField: Hashable {
         case newAisleName
@@ -292,6 +295,13 @@ struct AisleListView: View {
                 .transition(.move(edge: .top).combined(with: .opacity))
                 .zIndex(10)
             }
+
+            if showUploadReward {
+                UploadRewardView(trigger: uploadRewardTrigger, reduceMotion: reduceMotion)
+                    .padding(.horizontal, 28)
+                    .transition(.scale(scale: 0.72).combined(with: .opacity))
+                    .zIndex(20)
+            }
         }
         .navigationTitle("Aisles map \(store.name)")
         .scrollDismissesKeyboard(.interactively)
@@ -327,6 +337,7 @@ struct AisleListView: View {
             }
             if let msg = uploadFlow.postUploadBannerMessage {
                 showBanner(msg, isError: false)
+                playUploadReward()
                 uploadFlow.postUploadBannerMessage = nil
             }
         }
@@ -364,6 +375,21 @@ struct AisleListView: View {
                 if bannerText == text {
                     bannerText = nil
                 }
+            }
+        }
+    }
+
+    private func playUploadReward() {
+        uploadRewardTrigger += 1
+        withAnimation(.spring(response: 0.36, dampingFraction: 0.72)) {
+            showUploadReward = true
+        }
+
+        let trigger = uploadRewardTrigger
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.6) {
+            guard uploadRewardTrigger == trigger else { return }
+            withAnimation(.easeInOut(duration: 0.22)) {
+                showUploadReward = false
             }
         }
     }
@@ -647,6 +673,104 @@ private struct AisleBottomPanel: View {
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .fill(.thinMaterial)
             )
+        }
+    }
+}
+
+private struct UploadRewardView: View {
+    let trigger: Int
+    let reduceMotion: Bool
+
+    @State private var animate: Bool = false
+    @State private var ringRotation: Double = -60
+
+    private static let sparkleOffsets: [CGSize] = [
+        CGSize(width: -96, height: -70),
+        CGSize(width: 0, height: -96),
+        CGSize(width: 92, height: -64),
+        CGSize(width: -112, height: 8),
+        CGSize(width: 112, height: 16),
+        CGSize(width: -78, height: 82),
+        CGSize(width: 4, height: 104),
+        CGSize(width: 82, height: 76)
+    ]
+
+    var body: some View {
+        ZStack {
+            if !reduceMotion {
+                ForEach(Array(Self.sparkleOffsets.enumerated()), id: \.offset) { index, offset in
+                    Image(systemName: index.isMultiple(of: 2) ? "sparkles" : "star.fill")
+                        .font(.system(size: index.isMultiple(of: 3) ? 18 : 13, weight: .bold))
+                        .foregroundStyle(index.isMultiple(of: 2) ? AppColors.logoOrangeLight : .yellow)
+                        .scaleEffect(animate ? 1.0 : 0.2)
+                        .opacity(animate ? 0.0 : 0.95)
+                        .offset(animate ? offset : .zero)
+                        .animation(.easeOut(duration: 1.0).delay(Double(index) * 0.04), value: animate)
+                }
+            }
+
+            VStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(LinearGradient(
+                            colors: [AppColors.logoOrangeLight, AppColors.logoOrangeDark],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ))
+                        .frame(width: 88, height: 88)
+                        .shadow(color: AppColors.logoOrangeDark.opacity(0.35), radius: 18, y: 10)
+
+                    Circle()
+                        .trim(from: 0.08, to: animate ? 1.0 : 0.18)
+                        .stroke(.white.opacity(0.85), style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                        .frame(width: 104, height: 104)
+                        .rotationEffect(.degrees(reduceMotion ? -60 : ringRotation))
+
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 44, weight: .bold))
+                        .foregroundStyle(.white)
+                        .scaleEffect(animate ? 1.0 : 0.68)
+                }
+
+                VStack(spacing: 3) {
+                    Text("Aisle added")
+                        .font(.title3.bold())
+                    Text("+1 photo helped this store")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 28)
+            .padding(.vertical, 22)
+            .background(.regularMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .strokeBorder(.white.opacity(0.2), lineWidth: 1)
+            )
+            .scaleEffect(animate && !reduceMotion ? 1.0 : 0.9)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Aisle added. One photo helped this store.")
+        .onAppear(perform: startAnimation)
+        .onChange(of: trigger) { _, _ in
+            startAnimation()
+        }
+    }
+
+    private func startAnimation() {
+        animate = false
+        ringRotation = -60
+
+        DispatchQueue.main.async {
+            withAnimation(reduceMotion ? .easeOut(duration: 0.12) : .spring(response: 0.42, dampingFraction: 0.64)) {
+                animate = true
+            }
+
+            guard !reduceMotion else { return }
+            withAnimation(.linear(duration: 3.2)) {
+                ringRotation = 1020
+            }
         }
     }
 }
